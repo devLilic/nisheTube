@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLibraryEntries;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Channel extends Model
 {
+    use HasLibraryEntries;
+
     /** @return HasMany<Video, $this> */
     public function videos(): HasMany
     {

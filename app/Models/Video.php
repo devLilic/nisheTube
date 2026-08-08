@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLibraryEntries;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,8 @@ use Illuminate\Support\Carbon;
 ])]
 class Video extends Model
 {
+    use HasLibraryEntries;
+
     /** @return BelongsTo<Channel, $this> */
     public function channel(): BelongsTo
     {

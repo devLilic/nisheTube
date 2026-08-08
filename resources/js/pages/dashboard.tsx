@@ -1,27 +1,84 @@
-import { Head } from '@inertiajs/react';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { Deferred, Head, Link, usePage, usePoll } from '@inertiajs/react';
+import { Search, Sparkles } from 'lucide-react';
+import { useEffect } from 'react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import {
+    DashboardLoadError,
+    DashboardLoading,
+} from '@/features/dashboard/dashboard-loading';
+import { DashboardOverview } from '@/features/dashboard/dashboard-overview';
 import { dashboard } from '@/routes';
+import { create } from '@/routes/research';
+import type { Auth, DashboardData } from '@/types';
 
-export default function Dashboard() {
+type PageProps = {
+    auth: Auth;
+    dashboard?: DashboardData;
+};
+
+export default function Dashboard({ dashboard: dashboardData }: PageProps) {
+    const { auth } = usePage<PageProps>().props;
+    const { start, stop } = usePoll(
+        5000,
+        { only: ['dashboard'] },
+        { autoStart: false, mode: 'rest' },
+    );
+
+    useEffect(() => {
+        if ((dashboardData?.counts.active_runs ?? 0) > 0) {
+            start();
+        } else {
+            stop();
+        }
+
+        return () => stop();
+    }, [dashboardData?.counts.active_runs, start, stop]);
+
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
-            </div>
+            <PageContainer>
+                <PageHeader
+                    eyebrow="Research command center"
+                    title={`Welcome back, ${auth.user.name.split(' ')[0]}`}
+                    description="Track active collection, compare recent opportunity signals, and decide what to research next. Scores summarize observed returned-video evidence, not YouTube search volume."
+                    actions={
+                        <>
+                            <Button asChild>
+                                <Link href={create()}>
+                                    <Search aria-hidden="true" />
+                                    New search
+                                </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                disabled
+                                title="Discovery becomes available in the Discovery milestone"
+                            >
+                                <Sparkles aria-hidden="true" />
+                                Start discovery
+                            </Button>
+                        </>
+                    }
+                />
+
+                <Deferred
+                    data="dashboard"
+                    fallback={<DashboardLoading />}
+                    rescue={<DashboardLoadError />}
+                >
+                    {dashboardData ? (
+                        <DashboardOverview
+                            dashboard={dashboardData}
+                            timezone={auth.user.timezone}
+                        />
+                    ) : (
+                        <DashboardLoading />
+                    )}
+                </Deferred>
+            </PageContainer>
         </>
     );
 }

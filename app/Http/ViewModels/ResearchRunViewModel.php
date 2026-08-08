@@ -5,6 +5,7 @@ namespace App\Http\ViewModels;
 use App\Domain\Catalog\ReadModels\BuildResearchRunAnalysis;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Settings\Enums\MarketKey;
+use App\Models\OpportunityScore;
 use App\Models\ResearchRun;
 
 class ResearchRunViewModel
@@ -46,6 +47,7 @@ class ResearchRunViewModel
         ];
 
         if ($withResults) {
+            $data['score'] = $this->score($run);
             $data['collection'] = [
                 'pages_collected' => $run->searchPages()->count(),
                 'sample_results' => $run->searchResults()
@@ -64,6 +66,83 @@ class ResearchRunViewModel
         }
 
         return $data;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function score(ResearchRun $run): ?array
+    {
+        $score = $run->opportunityScores()
+            ->latest('calculated_at')
+            ->latest('id')
+            ->first();
+
+        if ($score === null) {
+            return null;
+        }
+
+        $weights = $score->input_summary['configuration']['weights'] ?? [];
+
+        return [
+            'overall_score' => (float) $score->overall_score,
+            'overall_label' => $this->opportunityLabel((float) $score->overall_score),
+            'confidence_score' => (float) $score->confidence_score,
+            'confidence_label' => $this->confidenceLabel((float) $score->confidence_score),
+            'formula_version' => $score->formula_version,
+            'sample_size' => $score->sample_size,
+            'calculated_at' => $score->calculated_at->toIso8601String(),
+            'components' => [
+                $this->component($score, $weights, 'demand_momentum', 'Demand momentum', 'demand_momentum_score'),
+                $this->component($score, $weights, 'competition_opportunity', 'Competition opportunity', 'competition_opportunity_score'),
+                $this->component($score, $weights, 'audience_reachability', 'Audience reachability', 'audience_reachability_score'),
+                $this->component($score, $weights, 'content_freshness_gap', 'Content freshness gap', 'content_freshness_gap_score'),
+                $this->component($score, $weights, 'creator_viability', 'Creator viability', 'creator_viability_score'),
+            ],
+            'warnings' => $score->warnings,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $weights
+     * @return array{key: string, label: string, score: float, weight_percent: float, explanation: string}
+     */
+    private function component(
+        OpportunityScore $score,
+        array $weights,
+        string $key,
+        string $label,
+        string $scoreAttribute,
+    ): array {
+        $weight = $weights[$key] ?? 0;
+        $explanation = $score->explanations[$key] ?? 'No explanation was stored for this component.';
+
+        return [
+            'key' => $key,
+            'label' => $label,
+            'score' => (float) $score->getAttribute($scoreAttribute),
+            'weight_percent' => is_numeric($weight) ? ((float) $weight) * 100 : 0.0,
+            'explanation' => $explanation,
+        ];
+    }
+
+    private function opportunityLabel(float $score): string
+    {
+        return match (true) {
+            $score >= 80 => 'Strong opportunity',
+            $score >= 65 => 'Promising',
+            $score >= 50 => 'Mixed',
+            $score >= 35 => 'Competitive / uncertain',
+            default => 'Weak observed opportunity',
+        };
+    }
+
+    private function confidenceLabel(float $score): string
+    {
+        return match (true) {
+            $score >= 80 => 'High confidence',
+            $score >= 60 => 'Moderate confidence',
+            $score >= 40 => 'Limited confidence',
+            default => 'Exploratory only',
+        };
     }
 
     /** @return array{code: string, title: string, message: string, guidance: string, action: 'settings'|'new_search'|'retry'}|null */
@@ -97,6 +176,11 @@ class ResearchRunViewModel
             'youtube_rate_limited' => [
                 'YouTube is temporarily rate limiting requests',
                 'Wait briefly and retry this saved run.',
+                'retry',
+            ],
+            'research_scoring_failed' => [
+                'Opportunity scoring could not finish',
+                'The saved metrics remain available. Retry to create a new immutable attempt and calculate its score.',
                 'retry',
             ],
             default => [

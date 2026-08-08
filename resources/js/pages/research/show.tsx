@@ -27,17 +27,20 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { FavoriteToggle } from '@/features/library/favorite-toggle';
 import { ResearchAnalysisSection } from '@/features/research/analysis/research-analysis';
 import { RunProgress } from '@/features/research/run-progress';
+import { OpportunityScoreSection } from '@/features/research/scoring/opportunity-score-section';
 import { create } from '@/routes/research';
 import { show } from '@/routes/research/runs';
 import { edit as editYouTube } from '@/routes/youtube';
-import type { Auth, QuotaSummary, ResearchRun } from '@/types';
+import type { Auth, LibraryContext, QuotaSummary, ResearchRun } from '@/types';
 
 type PageProps = {
     auth: Auth;
     run: ResearchRun;
     youtubeQuota: QuotaSummary | null;
+    library: LibraryContext;
 };
 
 function formatTimestamp(value: string | null, timezone: string) {
@@ -60,7 +63,7 @@ function formatFilter(value: string | null) {
     return value.replaceAll('_', ' ').replace('viewCount', 'View count');
 }
 
-export default function ResearchRunShow({ run }: PageProps) {
+export default function ResearchRunShow({ run, library }: PageProps) {
     const { auth, youtubeQuota } = usePage<PageProps>().props;
     const { start, stop } = usePoll(
         2000,
@@ -94,6 +97,12 @@ export default function ResearchRunShow({ run }: PageProps) {
                     description="Live collection status from the persisted run. Counts and warnings update as the local queue worker progresses."
                     actions={
                         <>
+                            <FavoriteToggle
+                                library={library}
+                                targetType="research_run"
+                                targetReference={run.public_id}
+                                label={run.query_text}
+                            />
                             <Button variant="outline" asChild>
                                 <Link href={create()}>
                                     <ArrowLeft aria-hidden="true" />
@@ -236,10 +245,20 @@ export default function ResearchRunShow({ run }: PageProps) {
                     </CardContent>
                 </Card>
 
+                <OpportunityScoreSection
+                    score={run.score}
+                    status={run.status}
+                    timezone={auth.user.timezone}
+                    collectedAt={
+                        run.analysis?.summary.latest_collected_at ?? null
+                    }
+                />
+
                 <ResearchAnalysisSection
                     analysis={run.analysis}
                     status={run.status}
                     timezone={auth.user.timezone}
+                    library={library}
                 />
 
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

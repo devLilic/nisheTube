@@ -1,4 +1,4 @@
-import { ExternalLink, Search } from 'lucide-react';
+import { ExternalLink, ImageOff, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import type { ResearchChannelAnalysis, ResearchVideoAnalysis } from '@/types';
+import { FavoriteToggle } from '@/features/library/favorite-toggle';
+import type {
+    LibraryContext,
+    ResearchChannelAnalysis,
+    ResearchVideoAnalysis,
+} from '@/types';
 import {
     formatAnalysisTimestamp,
     formatDecimal,
@@ -33,6 +38,12 @@ import {
     formatInteger,
     formatPercent,
 } from './analysis-format';
+import {
+    externalYouTubeLinkProps,
+    videoPreviewAvailable,
+    youtubeChannelUrl,
+    youtubeVideoUrl,
+} from './youtube-links';
 
 type Selection =
     | { type: 'video'; item: ResearchVideoAnalysis }
@@ -50,6 +61,48 @@ function DetailItem({ label, value }: { label: string; value: string }) {
                 {value}
             </dd>
         </div>
+    );
+}
+
+function VideoPreview({
+    video,
+    variant,
+}: {
+    video: ResearchVideoAnalysis;
+    variant: 'row' | 'drawer';
+}) {
+    const [failed, setFailed] = useState(false);
+    const hasPreview = videoPreviewAvailable(video.thumbnail_url, failed);
+
+    return (
+        <a
+            href={youtubeVideoUrl(video.provider_video_id)}
+            {...externalYouTubeLinkProps}
+            aria-label={`Preview for ${video.title}; open video on YouTube in a new tab`}
+            className={`group/preview relative block shrink-0 overflow-hidden rounded-lg border bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none ${
+                variant === 'drawer' ? 'aspect-video w-full' : 'h-16 w-28'
+            }`}
+        >
+            {hasPreview ? (
+                <img
+                    src={video.thumbnail_url ?? undefined}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    onError={() => setFailed(true)}
+                    className="size-full object-cover transition-transform group-hover/preview:scale-[1.03]"
+                />
+            ) : (
+                <span className="flex size-full flex-col items-center justify-center gap-1 bg-muted px-2 text-center text-[10px] leading-3 text-muted-foreground">
+                    <ImageOff className="size-4" aria-hidden="true" />
+                    Preview unavailable
+                </span>
+            )}
+            <span className="absolute right-1.5 bottom-1.5 rounded bg-background/90 p-1 text-foreground opacity-0 shadow-sm transition-opacity group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100">
+                <ExternalLink className="size-3.5" aria-hidden="true" />
+            </span>
+        </a>
     );
 }
 
@@ -92,15 +145,21 @@ function DetailDrawer({
 
                         {selection.type === 'video' ? (
                             <>
+                                <VideoPreview
+                                    key={selection.item.provider_video_id}
+                                    video={selection.item}
+                                    variant="drawer"
+                                />
                                 <Button
                                     variant="outline"
                                     asChild
                                     className="w-fit"
                                 >
                                     <a
-                                        href={`https://www.youtube.com/watch?v=${encodeURIComponent(selection.item.provider_video_id)}`}
-                                        target="_blank"
-                                        rel="noreferrer"
+                                        href={youtubeVideoUrl(
+                                            selection.item.provider_video_id,
+                                        )}
+                                        {...externalYouTubeLinkProps}
                                     >
                                         Open on YouTube
                                         <ExternalLink aria-hidden="true" />
@@ -186,9 +245,10 @@ function DetailDrawer({
                                     className="w-fit"
                                 >
                                     <a
-                                        href={`https://www.youtube.com/channel/${encodeURIComponent(selection.item.provider_channel_id)}`}
-                                        target="_blank"
-                                        rel="noreferrer"
+                                        href={youtubeChannelUrl(
+                                            selection.item.provider_channel_id,
+                                        )}
+                                        {...externalYouTubeLinkProps}
                                     >
                                         Open on YouTube
                                         <ExternalLink aria-hidden="true" />
@@ -288,10 +348,12 @@ export function AnalysisTables({
     videos,
     channels,
     timezone,
+    library,
 }: {
     videos: ResearchVideoAnalysis[];
     channels: ResearchChannelAnalysis[];
     timezone: string;
+    library: LibraryContext;
 }) {
     const [mode, setMode] = useState<'videos' | 'channels'>('videos');
     const [query, setQuery] = useState('');
@@ -419,26 +481,61 @@ export function AnalysisTables({
                                 {visibleVideos.map((video) => (
                                     <TableRow key={video.provider_video_id}>
                                         <TableCell className="max-w-96 min-w-64">
-                                            <p
-                                                className="line-clamp-2 font-medium"
-                                                title={video.title}
-                                            >
-                                                {video.title}
-                                            </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                Rank {video.result_rank} ·{' '}
-                                                {formatDuration(
-                                                    video.duration_seconds,
-                                                )}
-                                            </p>
+                                            <div className="flex items-start gap-3">
+                                                <VideoPreview
+                                                    video={video}
+                                                    variant="row"
+                                                />
+                                                <div className="min-w-0 pt-0.5">
+                                                    <a
+                                                        href={youtubeVideoUrl(
+                                                            video.provider_video_id,
+                                                        )}
+                                                        {...externalYouTubeLinkProps}
+                                                        className="group/link inline-flex max-w-full items-start gap-1 font-medium hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                        title={video.title}
+                                                    >
+                                                        <span className="line-clamp-2 break-words group-hover/link:underline">
+                                                            {video.title}
+                                                        </span>
+                                                        <ExternalLink
+                                                            className="mt-0.5 size-3.5 shrink-0"
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span className="sr-only">
+                                                            Opens in a new tab
+                                                        </span>
+                                                    </a>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        Rank {video.result_rank}{' '}
+                                                        ·{' '}
+                                                        {formatDuration(
+                                                            video.duration_seconds,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </TableCell>
                                         <TableCell className="max-w-64 min-w-44">
-                                            <span
-                                                className="line-clamp-2"
+                                            <a
+                                                href={youtubeChannelUrl(
+                                                    video.channel_id,
+                                                )}
+                                                {...externalYouTubeLinkProps}
+                                                className="group/link inline-flex max-w-full items-start gap-1 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                                 title={video.channel_title}
                                             >
-                                                {video.channel_title}
-                                            </span>
+                                                <span className="line-clamp-2 break-words group-hover/link:underline">
+                                                    {video.channel_title}
+                                                </span>
+                                                <ExternalLink
+                                                    className="mt-0.5 size-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                <span className="sr-only">
+                                                    Opens channel in a new tab
+                                                </span>
+                                            </a>
                                         </TableCell>
                                         <TableCell className="text-right tabular-nums">
                                             {formatInteger(video.view_count)}
@@ -456,18 +553,29 @@ export function AnalysisTables({
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setSelection({
-                                                        type: 'video',
-                                                        item: video,
-                                                    })
-                                                }
-                                            >
-                                                Details
-                                            </Button>
+                                            <div className="flex justify-end gap-2">
+                                                <FavoriteToggle
+                                                    library={library}
+                                                    targetType="video"
+                                                    targetReference={
+                                                        video.provider_video_id
+                                                    }
+                                                    label={video.title}
+                                                    compact
+                                                />
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setSelection({
+                                                            type: 'video',
+                                                            item: video,
+                                                        })
+                                                    }
+                                                >
+                                                    Details
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -503,12 +611,25 @@ export function AnalysisTables({
                                 {visibleChannels.map((channel) => (
                                     <TableRow key={channel.provider_channel_id}>
                                         <TableCell className="max-w-96 min-w-64">
-                                            <p
-                                                className="line-clamp-2 font-medium"
+                                            <a
+                                                href={youtubeChannelUrl(
+                                                    channel.provider_channel_id,
+                                                )}
+                                                {...externalYouTubeLinkProps}
+                                                className="group/link inline-flex max-w-full items-start gap-1 font-medium hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                                 title={channel.title}
                                             >
-                                                {channel.title}
-                                            </p>
+                                                <span className="line-clamp-2 break-words group-hover/link:underline">
+                                                    {channel.title}
+                                                </span>
+                                                <ExternalLink
+                                                    className="mt-0.5 size-3.5 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                                <span className="sr-only">
+                                                    Opens in a new tab
+                                                </span>
+                                            </a>
                                             <p className="mt-1 text-xs text-muted-foreground">
                                                 {channel.custom_url ??
                                                     channel.provider_channel_id}
@@ -539,18 +660,29 @@ export function AnalysisTables({
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setSelection({
-                                                        type: 'channel',
-                                                        item: channel,
-                                                    })
-                                                }
-                                            >
-                                                Details
-                                            </Button>
+                                            <div className="flex justify-end gap-2">
+                                                <FavoriteToggle
+                                                    library={library}
+                                                    targetType="channel"
+                                                    targetReference={
+                                                        channel.provider_channel_id
+                                                    }
+                                                    label={channel.title}
+                                                    compact
+                                                />
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setSelection({
+                                                            type: 'channel',
+                                                            item: channel,
+                                                        })
+                                                    }
+                                                >
+                                                    Details
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}

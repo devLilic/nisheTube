@@ -12,6 +12,7 @@ use App\Domain\YouTube\Enums\QuotaUsageOutcome;
 use App\Domain\YouTube\Enums\YouTubeErrorCode;
 use App\Domain\YouTube\Exceptions\YouTubeProviderException;
 use App\Jobs\Research\EnrichResearchRun;
+use App\Jobs\Research\ScoreResearchRun;
 use App\Models\ApiUsageEvent;
 use App\Models\Channel;
 use App\Models\ChannelSnapshot;
@@ -26,6 +27,7 @@ use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ResearchRunEnrichmentTest extends TestCase
@@ -40,6 +42,7 @@ class ResearchRunEnrichmentTest extends TestCase
         config()->set('youtube.api_key', 'enrichment-test-secret');
         config()->set('youtube.max_attempts', 1);
         config()->set('youtube.retry_delay_milliseconds', 0);
+        Queue::fake([ScoreResearchRun::class]);
         CarbonImmutable::setTestNow('2026-08-08 12:00:00 UTC');
     }
 
@@ -114,6 +117,7 @@ class ResearchRunEnrichmentTest extends TestCase
         $this->assertSame(4, ApiUsageEvent::query()->where('research_run_id', $run->id)->count());
         $this->assertSame(4, ApiUsageEvent::query()->where('user_id', $run->user_id)->count());
         $this->assertSame(['channels.list', 'videos.list'], ApiUsageEvent::query()->distinct()->orderBy('endpoint')->pluck('endpoint')->all());
+        Queue::assertPushed(ScoreResearchRun::class, fn (ScoreResearchRun $job): bool => $job->researchRunId === $run->id);
     }
 
     public function test_missing_and_hidden_provider_metrics_remain_null_with_safe_warnings(): void

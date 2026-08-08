@@ -119,7 +119,8 @@ class EnrichResearchRun implements ShouldBeUniqueUntilProcessing, ShouldQueue
             }
         }
 
-        $transition->handle($run->fresh() ?? $run, ResearchRunStatus::Scoring);
+        $run = $transition->handle($run->fresh() ?? $run, ResearchRunStatus::Scoring);
+        ScoreResearchRun::dispatch($run->id)->afterCommit();
     }
 
     public function failed(?Throwable $exception): void
@@ -164,7 +165,8 @@ class EnrichResearchRun implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 $run,
                 'YouTube returned incomplete enrichment data; the saved video and channel metrics will continue to scoring.',
             );
-            $transition->handle($run, ResearchRunStatus::Scoring);
+            $run = $transition->handle($run, ResearchRunStatus::Scoring);
+            ScoreResearchRun::dispatch($run->id)->afterCommit();
 
             return;
         }

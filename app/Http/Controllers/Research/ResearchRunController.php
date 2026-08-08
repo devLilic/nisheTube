@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Research;
 
 use App\Domain\Research\Actions\RetryResearchRun;
 use App\Http\Controllers\Controller;
+use App\Http\ViewModels\LibraryViewModel;
 use App\Http\ViewModels\ResearchRunViewModel;
 use App\Models\ResearchRun;
 use Illuminate\Http\RedirectResponse;
@@ -14,12 +15,13 @@ use Inertia\Response;
 
 class ResearchRunController extends Controller
 {
-    public function show(ResearchRun $researchRun, ResearchRunViewModel $viewModel): Response
+    public function show(Request $request, ResearchRun $researchRun, ResearchRunViewModel $viewModel, LibraryViewModel $libraryViewModel): Response
     {
         Gate::authorize('view', $researchRun);
 
         return Inertia::render('research/show', [
             'run' => $viewModel->toArray($researchRun),
+            'library' => $libraryViewModel->context($request->user()),
         ]);
     }
 

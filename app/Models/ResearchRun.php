@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\Research\Enums\ResearchRunKind;
 use App\Domain\Research\Enums\ResearchRunStatus;
+use App\Models\Concerns\HasLibraryEntries;
 use App\Models\Concerns\HasPublicId;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -65,7 +66,7 @@ use Illuminate\Support\Carbon;
 ])]
 class ResearchRun extends Model
 {
-    use HasPublicId;
+    use HasLibraryEntries, HasPublicId;
 
     private const FROZEN_ATTRIBUTES = [
         'public_id',
@@ -153,6 +154,24 @@ class ResearchRun extends Model
     public function channelSnapshots(): HasMany
     {
         return $this->hasMany(ChannelSnapshot::class);
+    }
+
+    /** @return HasMany<OpportunityScore, $this> */
+    public function opportunityScores(): HasMany
+    {
+        return $this->hasMany(OpportunityScore::class);
+    }
+
+    /** @return HasMany<DiscoverySeed, $this> */
+    public function discoverySeeds(): HasMany
+    {
+        return $this->hasMany(DiscoverySeed::class);
+    }
+
+    /** @return HasMany<NicheCandidate, $this> */
+    public function validationCandidates(): HasMany
+    {
+        return $this->hasMany(NicheCandidate::class, 'validation_research_run_id');
     }
 
     /** @return array<string, string> */

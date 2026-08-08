@@ -31,10 +31,30 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
     {
         $owner = User::factory()->create();
         $run = $this->newRun($owner, 4);
-        $firstChannel = $this->channel($run, 'channel-one', 'Atelier foarte lung pentru cercetare', 500, false, 40);
+        $firstChannel = $this->channel(
+            $run,
+            'channel-one',
+            'Atelier foarte lung pentru cercetare',
+            500,
+            false,
+            40,
+            thumbnailUrl: 'https://images.example.test/channel-one.jpg',
+        );
         $secondChannel = $this->channel($run, 'channel-two', 'Канал об узких нишах', null, true, 20);
 
-        $this->video($run, $firstChannel, 'video-one', 'Small apartment ideas', 1, 1000, 100, 50, 500, 2);
+        $this->video(
+            $run,
+            $firstChannel,
+            'video-one',
+            'Small apartment ideas',
+            1,
+            1000,
+            100,
+            50,
+            500,
+            2,
+            thumbnailUrl: 'https://images.example.test/video-one.jpg',
+        );
         $this->video($run, $firstChannel, 'video-two', 'Mobilier pentru spații înguste', 2, 3000, null, 30, 1500, null);
         $this->video($run, $secondChannel, 'video-three', 'Идеи для маленькой квартиры', 3, 5000, 250, 50, 2500, 10);
 
@@ -54,12 +74,18 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
             ->where('run.analysis.summary.missing_video_metric_count', 1)
             ->where('run.analysis.summary.latest_collected_at', '2026-08-08T12:00:00+00:00')
             ->has('run.analysis.videos', 3)
+            ->where('run.analysis.videos.0.provider_video_id', 'video-one')
+            ->where('run.analysis.videos.0.channel_id', 'channel-one')
+            ->where('run.analysis.videos.0.thumbnail_url', 'https://images.example.test/video-one.jpg')
             ->where('run.analysis.videos.1.title', 'Mobilier pentru spații înguste')
             ->where('run.analysis.videos.1.like_count', null)
+            ->where('run.analysis.videos.1.thumbnail_url', null)
             ->where('run.analysis.videos.1.engagement_rate', null)
             ->has('run.analysis.channels', 2)
             ->where('run.analysis.channels.0.title', 'Канал об узких нишах')
             ->where('run.analysis.channels.0.subscriber_count_hidden', true)
+            ->where('run.analysis.channels.1.provider_channel_id', 'channel-one')
+            ->where('run.analysis.channels.1.thumbnail_url', 'https://images.example.test/channel-one.jpg')
         );
     }
 
@@ -148,12 +174,14 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
         ?int $subscribers,
         bool $hidden,
         int $videoCount,
+        ?string $thumbnailUrl = null,
     ): Channel {
         $channel = Channel::query()->create([
             'provider' => 'youtube',
             'provider_channel_id' => $providerId,
             'title' => $title,
             'custom_url' => "@{$providerId}",
+            'thumbnail_url' => $thumbnailUrl,
             'country' => 'RO',
         ]);
 
@@ -181,12 +209,14 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
         ?int $comments,
         int $viewsPerDay,
         ?int $reachRatio,
+        ?string $thumbnailUrl = null,
     ): void {
         $video = Video::query()->create([
             'provider' => 'youtube',
             'provider_video_id' => $providerId,
             'channel_id' => $channel->id,
             'title' => $title,
+            'thumbnail_url' => $thumbnailUrl,
             'published_at' => '2026-08-06 12:00:00',
             'duration_seconds' => 625,
             'category_id' => '26',

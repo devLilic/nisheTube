@@ -1,7 +1,11 @@
 import { BarChart3, LoaderCircle } from 'lucide-react';
 import { StatePanel } from '@/components/data-state';
 import { PartialDataBanner } from '@/components/partial-data-banner';
-import type { ResearchAnalysis, ResearchRunStatus } from '@/types';
+import type {
+    LibraryContext,
+    ResearchAnalysis,
+    ResearchRunStatus,
+} from '@/types';
 import { AnalysisCharts } from './analysis-charts';
 import { AnalysisOverview } from './analysis-overview';
 import { AnalysisTables } from './analysis-tables';
@@ -10,10 +14,12 @@ export function ResearchAnalysisSection({
     analysis,
     status,
     timezone,
+    library,
 }: {
     analysis: ResearchAnalysis | undefined;
     status: ResearchRunStatus;
     timezone: string;
+    library: LibraryContext;
 }) {
     if (!analysis || analysis.videos.length === 0) {
         const active = !['completed', 'failed'].includes(status);
@@ -60,6 +66,7 @@ export function ResearchAnalysisSection({
                 videos={analysis.videos}
                 channels={analysis.channels}
                 timezone={timezone}
+                library={library}
             />
         </div>
     );

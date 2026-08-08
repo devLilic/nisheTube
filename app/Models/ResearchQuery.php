@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\Research\Enums\SearchOrder;
 use App\Domain\Research\Enums\VideoDurationFilter;
+use App\Models\Concerns\HasLibraryEntries;
 use App\Models\Concerns\HasPublicId;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -42,7 +43,7 @@ use Illuminate\Support\Str;
 ])]
 class ResearchQuery extends Model
 {
-    use HasPublicId;
+    use HasLibraryEntries, HasPublicId;
 
     protected static function booted(): void
     {

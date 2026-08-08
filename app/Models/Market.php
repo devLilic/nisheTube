@@ -27,6 +27,12 @@ class Market extends Model
         return $this->hasMany(ResearchQuery::class);
     }
 
+    /** @return HasMany<DiscoveryRun, $this> */
+    public function discoveryRuns(): HasMany
+    {
+        return $this->hasMany(DiscoveryRun::class);
+    }
+
     /**
      * @return array<string, string>
      */

@@ -50,6 +50,24 @@ class User extends Authenticatable
         return $this->hasMany(ResearchRun::class);
     }
 
+    /** @return HasMany<DiscoveryRun, $this> */
+    public function discoveryRuns(): HasMany
+    {
+        return $this->hasMany(DiscoveryRun::class);
+    }
+
+    /** @return HasMany<Favorite, $this> */
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    /** @return HasMany<Tag, $this> */
+    public function tags(): HasMany
+    {
+        return $this->hasMany(Tag::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

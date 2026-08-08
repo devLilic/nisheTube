@@ -83,43 +83,46 @@
 
 ## Phase 5 — Opportunity scoring
 
-- [ ] **SCR-01 — Versioned scoring schema and engine (DB/BE)**  
+- [x] **SCR-01 — Versioned scoring schema and engine (DB/BE)**
   Implement `niche-opportunity-v1`, five components, robust normalization, confidence, warnings, deterministic persistence, and configuration.
 
-- [ ] **SCR-02 — Score explanation interface (UI)**  
+- [x] **SCR-02 — Score explanation interface (UI)**
   Add overall gauge, confidence badge, five component bars/cards, explanation/warning panels, formula information, and insufficient-data state.
 
-- [ ] **SCR-03 — Scoring tests**  
+- [x] **SCR-03 — Scoring tests**  
   Implement all fixtures listed in the scoring document, including outliers, hidden subscribers, monotonicity, confidence, and formula versioning.
 
 ## Phase 6 — Dashboard
 
-- [ ] **DASH-01 — Dashboard read models (BE)**  
+- [x] **DASH-01 — Dashboard read models (BE)**  
   Build efficient user-scoped queries for recent runs, counts, top opportunities, trend points, quota and cleanup status.
 
-- [ ] **DASH-02 — Visual dashboard (UI)**  
+- [x] **DASH-02 — Visual dashboard (UI)**  
   Implement summary cards, recent runs, candidate highlights, trend chart, quota indicator, cleanup notice, and primary actions with all empty/error/loading states.
 
-- [ ] **DASH-03 — Dashboard tests**  
+- [x] **DASH-03 — Dashboard tests**  
   Cover user scoping, empty account, partial/failed runs, and aggregate correctness.
+
+- [x] **FIX-02 — Expose YouTube links and video previews in research results (UI)**  
+  Show the stored YouTube thumbnail for each video directly in the detailed results table and detail drawer, with an accessible unavailable-image fallback. Make video titles/thumbnails and channel names direct outbound links to their canonical YouTube video or channel pages, opening in a new tab with safe external-link attributes and without requiring the detail drawer. Preserve the existing searchable pagination, long-title handling, partial/empty/error states, and responsive table behavior. Acceptance: completed and partial runs expose keyboard-accessible row-level video/channel links and video previews at 1440px and 768px; missing thumbnails do not break layout; focused interface tests cover canonical URLs, link safety, preview/fallback rendering, and owner-scoped props; no additional provider request or quota usage is introduced.
 
 ## Phase 7 — Discovery
 
-- [ ] **DISC-01 — Discovery schema and deterministic engine (DB/BE)**  
+- [x] **DISC-01 — Discovery schema and deterministic engine (DB/BE)**  
   Add discovery runs/seeds/candidates, seed sampling, breakout detection, topic phrase extraction, candidate evidence, validation linkage, and provider-extension contracts.
 
-- [ ] **DISC-02 — Discovery workflow interface (UI)**  
+- [x] **DISC-02 — Discovery workflow interface (UI)**  
   Add seed form, market/budget controls, progress timeline, candidate cards, evidence, filters, save/dismiss/validate actions, and no-results/quota states.
 
-- [ ] **DISC-03 — Discovery tests**  
+- [x] **DISC-03 — Discovery tests**  
   Cover deterministic clustering/extraction, duplicate candidates, validation runs, user ownership, retries, and limited quota.
 
 ## Phase 8 — Projects and favorites
 
-- [ ] **LIB-01 — Projects, favorites, notes, and tags (DB/BE)**  
+- [x] **LIB-01 — Projects, favorites, notes, and tags (DB/BE)**  
   Implement CRUD, target allow-list, authorization, tagging, notes, archive behavior, and useful filters.
 
-- [ ] **LIB-02 — Projects and favorites interface (UI)**  
+- [x] **LIB-02 — Projects and favorites interface (UI)**  
   Add project grid/list, detail tabs, favorite actions across analysis/discovery, notes/tags, filters, sorting, empty states, and confirmations.
 
 - [ ] **LIB-03 — Library tests**  

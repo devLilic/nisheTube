@@ -90,6 +90,36 @@ export type ResearchAnalysis = {
     channels: ResearchChannelAnalysis[];
 };
 
+export type OpportunityScoreWarning = {
+    code: string;
+    message: string;
+};
+
+export type OpportunityScoreComponent = {
+    key:
+        | 'demand_momentum'
+        | 'competition_opportunity'
+        | 'audience_reachability'
+        | 'content_freshness_gap'
+        | 'creator_viability';
+    label: string;
+    score: number;
+    weight_percent: number;
+    explanation: string;
+};
+
+export type OpportunityScore = {
+    overall_score: number;
+    overall_label: string;
+    confidence_score: number;
+    confidence_label: string;
+    formula_version: string;
+    sample_size: number;
+    calculated_at: string;
+    components: OpportunityScoreComponent[];
+    warnings: OpportunityScoreWarning[];
+};
+
 export type ResearchRun = {
     public_id: string;
     query_text: string;
@@ -120,6 +150,7 @@ export type ResearchRun = {
         pages_collected: number;
         sample_results: ResearchResultPreview[];
     };
+    score?: OpportunityScore | null;
     analysis?: ResearchAnalysis;
 };
 
