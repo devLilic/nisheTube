@@ -42,8 +42,8 @@ const mainNavItems: NavItem[] = [
         icon: FolderKanban,
     },
     { title: 'Favorites', href: '/favorites', icon: Heart },
-    { title: 'History', href: '/history', icon: History, disabled: true },
-    { title: 'Exports', href: '/exports', icon: FileDown, disabled: true },
+    { title: 'History', href: '/history', icon: History },
+    { title: 'Exports', href: '/exports', icon: FileDown },
     { title: 'Settings', href: '/settings/profile', icon: Settings },
     { title: 'UI showcase', href: '/design-system', icon: Beaker },
 ];

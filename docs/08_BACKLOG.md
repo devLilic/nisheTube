@@ -125,54 +125,54 @@
 - [x] **LIB-02 — Projects and favorites interface (UI)**  
   Add project grid/list, detail tabs, favorite actions across analysis/discovery, notes/tags, filters, sorting, empty states, and confirmations.
 
-- [ ] **LIB-03 — Library tests**  
+- [x] **LIB-03 — Library tests**
   Cover ownership, duplicates, target validation, archived projects, filters, and cross-user leakage.
 
 ## Phase 9 — History and comparisons
 
-- [ ] **HIST-01 — History and comparison services (BE)**  
+- [x] **HIST-01 — History and comparison services (BE)**
   Build compatible-run selection, metric/component deltas, new/lost entities, parameter/formula warnings, and efficient queries.
 
-- [ ] **HIST-02 — History and comparison interface (UI)**  
+- [x] **HIST-02 — History and comparison interface (UI)**
   Add timeline/table, pair selector, delta cards, component chart, video/channel changes, compatibility warnings, and insufficient-history state.
 
-- [ ] **HIST-03 — History tests**  
+- [x] **HIST-03 — History tests**
   Cover compatible/incompatible runs, different formulas, missing values, permissions, and delta correctness.
 
 ## Phase 10 — Exports
 
-- [ ] **EXP-01 — Export jobs and writers (BE)**  
+- [x] **EXP-01 — Export jobs and writers (BE)**
   Add CSV/XLSX writers behind a contract, user-scoped selections, queued status, metadata columns, storage, expiry, and safe deletion.
 
-- [ ] **EXP-02 — Export interface (UI)**  
+- [x] **EXP-02 — Export interface (UI)**
   Add export builder, included-record summary, format/column options, jobs table, progress, download, expiry, failure, and deletion states.
 
-- [ ] **EXP-03 — Export tests**  
+- [x] **EXP-03 — Export tests**
   Verify authorization, escaping/formulas, Unicode titles, timestamps, score metadata, large job behavior, file cleanup, and downloads.
 
 ## Phase 11 — Retention and manual snapshot deletion
 
-- [ ] **RET-01 — Retention eligibility and audit schema (DB/BE)**  
+- [x] **RET-01 — Retention eligibility and audit schema (DB/BE)**  
   Implement six-month cutoff, dependency-safe eligibility, dry-run preview, cleanup command/job, selective manual deletion, audit records, and idempotency. Resolve favorite-preservation policy in the decision log first.
 
-- [ ] **RET-02 — Retention and deletion interface (UI)**  
+- [x] **RET-02 — Retention and deletion interface (UI)**  
   Add Settings retention summary, eligible counts/date range, dry-run preview, cleanup progress/outcome, snapshot selection, destructive confirmation, and audit history.
 
-- [ ] **RET-03 — Retention tests**  
+- [x] **RET-03 — Retention tests**  
   Use frozen time to test boundary dates, ownership, preserved non-snapshot data, favorites policy, retries, dry run, audit output, and file deletion.
 
 ## Phase 12 — Release hardening
 
-- [ ] **REL-01 — End-to-end local workflow**  
+- [x] **REL-01 — End-to-end local workflow**  
   Verify register -> configure -> search -> analyze -> score -> save -> repeat -> compare -> export -> cleanup.
 
-- [ ] **REL-02 — Performance and database review**  
+- [x] **REL-02 — Performance and database review**  
   Inspect N+1 queries, indexes, pagination, memory use, queued batch sizes, and large-result UI rendering.
 
-- [ ] **REL-03 — Accessibility and visual QA (UI)**  
+- [x] **REL-03 — Accessibility and visual QA (UI)**  
   Keyboard test, focus, contrast, chart alternatives, long Romanian/Russian titles, tablet layout, dark/light theme if enabled, and screenshot review.
 
-- [ ] **REL-04 — Documentation and recovery**  
+- [x] **REL-04 — Documentation and recovery**  
   Update setup, create backup/restore instructions for local MySQL and exports, document quota/reset behavior, and add troubleshooting.
 
 ## Suggested milestone releases

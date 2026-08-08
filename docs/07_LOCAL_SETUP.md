@@ -2,31 +2,37 @@
 
 ## 1. Confirmed environment
 
-| Component | Local value |
-|---|---|
-| Project path | `C:\laragon\www\NisheTube` |
-| Laragon terminal | `C:\laragon\bin\cmder\Cmder.exe` |
-| PHP | 8.3.30 x64 |
-| Composer | 2.9.4 |
-| Node.js | 22.22.0 |
-| MySQL | 8.4.3 |
-| Laravel | 13.8+ within major 13 |
+| Component        | Local value                                                          |
+| ---------------- | -------------------------------------------------------------------- |
+| Project path     | `<Laragon root>\www\NisheTube` (normally `C:\laragon\www\NisheTube`) |
+| Laragon terminal | `C:\laragon\bin\cmder\Cmder.exe`                                     |
+| PHP              | 8.3.30 x64                                                           |
+| Composer         | 2.9.4                                                                |
+| Node.js          | 22.22.0                                                              |
+| MySQL            | 8.4.3                                                                |
+| Laravel          | 13.8+ within major 13                                                |
 
 ### 1.1 Codex and automation tool paths
 
-The Laragon terminal prepares these tools automatically, but a Codex or plain PowerShell process may not inherit the same `PATH`. During the FND-01/FND-02 verification, PHP was not discoverable, and Composer could not run until the Laragon PHP directory was added explicitly. Use these confirmed locations instead of searching the machine again:
+The Laragon terminal prepares these tools automatically, but a Codex or plain PowerShell process may not inherit the same `PATH`. Laragon itself and the repository may be installed on a drive other than `C:`. First prefer executable discovery so commands follow the active Laragon installation:
 
-| Tool | Confirmed executable or directory |
-|---|---|
-| PHP | `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe` |
-| Composer launcher | `C:\laragon\bin\composer\composer.bat` |
-| Composer PHAR | `C:\laragon\bin\composer\composer.phar` |
-| Laragon Node.js | `C:\laragon\bin\nodejs\node-v22\node.exe` |
-| Laragon npm | `C:\laragon\bin\nodejs\node-v22\npm.cmd` |
-| MySQL client | `C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysql.exe` |
-| Laragon terminal | `C:\laragon\bin\cmder\Cmder.exe` |
+```powershell
+Get-Command php, composer.bat, node, npm.cmd, mysql.exe, mysqldump.exe
+```
 
-For a Codex PowerShell command, prepend the tool directories to the process-local `PATH`:
+If discovery fails, the following paths show the expected layout under the default `C:\laragon` root. Substitute the actual Laragon root and installed version directory when they differ:
+
+| Tool              | Default executable or directory                         |
+| ----------------- | ------------------------------------------------------- |
+| PHP               | `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe`  |
+| Composer launcher | `C:\laragon\bin\composer\composer.bat`                  |
+| Composer PHAR     | `C:\laragon\bin\composer\composer.phar`                 |
+| Laragon Node.js   | `C:\laragon\bin\nodejs\node-v22\node.exe`               |
+| Laragon npm       | `C:\laragon\bin\nodejs\node-v22\npm.cmd`                |
+| MySQL client      | `C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysql.exe` |
+| Laragon terminal  | `C:\laragon\bin\cmder\Cmder.exe`                        |
+
+For a PowerShell process that cannot resolve the tools, prepend the matching directories to the process-local `PATH`:
 
 ```powershell
 $env:Path = @(
@@ -106,7 +112,7 @@ Do not run destructive migration refresh commands after real research data exist
 
 ## 5. Daily development workflow
 
-After the foundation task defines the final scripts:
+From the project directory:
 
 ```text
 composer install
@@ -115,7 +121,7 @@ php artisan migrate
 composer run dev
 ```
 
-The development command should run Laravel, the queue worker, logs, and Vite. Laragon may serve the site as `http://nishetube.test`; avoid running a second web server if it conflicts with the Laragon virtual host.
+`composer run dev` starts Laravel's local PHP server, a database queue listener, and Vite. If Laragon already serves `http://nishetube.test`, use separate `npm run dev` and `php artisan queue:work` terminals instead of starting the additional PHP server. Keep a queue worker running whenever research, discovery, exports, or retention work is queued.
 
 ## 6. Scheduler and retention on a local PC
 
@@ -126,6 +132,17 @@ The computer is not expected to run continuously. Retention therefore needs all 
 - a Settings UI reminder/action when cleanup is due.
 
 The default eligibility cutoff is six calendar months before the UTC execution time.
+
+Useful manual commands:
+
+```text
+php artisan retention:cleanup --dry-run
+php artisan retention:cleanup
+php artisan schedule:list
+php artisan schedule:work
+```
+
+The non-dry-run command queues cleanup work; a queue worker must be running to execute it. Preview the eligible scope first. Favorited runs are preserved by automatic retention, while selective manual deletion remains an explicitly confirmed owner action in Settings.
 
 ## 7. YouTube API setup
 
@@ -184,3 +201,9 @@ Verify manually:
 - Confirm `.env`, generated exports, logs, caches, and local database artifacts are ignored.
 - Make small commits by complete vertical slice.
 - Do not commit downloaded API payloads containing unnecessary user/provider data.
+
+## 10. Backup, recovery, and troubleshooting
+
+Before migrations, dependency upgrades, retention execution, or other material local changes, back up both MySQL and private generated exports. Database rows alone do not contain the CSV/XLSX file bytes.
+
+Follow [Backup, restore, and troubleshooting](11_BACKUP_AND_RECOVERY.md) for the verified PowerShell workflow, restore safety checks, quota reset reference, and common failure recovery.

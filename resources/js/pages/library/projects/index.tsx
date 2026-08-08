@@ -11,6 +11,8 @@ import { useState } from 'react';
 import { StatePanel } from '@/components/data-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
+import { PaginationControls } from '@/components/pagination-controls';
+import type { PaginationMeta } from '@/components/pagination-controls';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +22,7 @@ import type { LibraryProject } from '@/types';
 
 type Props = {
     projects: LibraryProject[];
+    pagination: PaginationMeta;
     filters: {
         search: string;
         status: string;
@@ -28,7 +31,11 @@ type Props = {
     };
 };
 
-export default function ProjectsIndex({ projects, filters }: Props) {
+export default function ProjectsIndex({
+    projects,
+    pagination,
+    filters,
+}: Props) {
     const [creating, setCreating] = useState(false);
     const updateFilter = (key: string, value: string) =>
         router.get(
@@ -198,7 +205,7 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                     <div
                         className={
                             filters.view === 'grid'
-                                ? 'grid gap-4 md:grid-cols-2 xl:grid-cols-3'
+                                ? 'grid gap-4 lg:grid-cols-2 xl:grid-cols-3'
                                 : 'space-y-3'
                         }
                     >
@@ -253,6 +260,16 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                         ))}
                     </div>
                 )}
+                <PaginationControls
+                    pagination={pagination}
+                    onPageChange={(page) =>
+                        router.get(
+                            '/projects',
+                            { ...filters, page },
+                            { preserveState: true, preserveScroll: true },
+                        )
+                    }
+                />
             </PageContainer>
         </>
     );

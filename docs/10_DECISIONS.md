@@ -72,15 +72,11 @@
 **Decision:** `docs/TASK_STATUS.md` is the live task-state register. It tracks each task as Pending, In progress, Completed, or Blocked, stores completion verification, and contains exactly one active task unless the project is blocked.  
 **Reason:** Codex needs an auditable, durable handoff between chats and must only promote the next task after the prior one is correctly verified.
 
-## Open decision O-001 — Favorites during retention cleanup
+## D-016 — Preserve favorited runs during automatic retention cleanup
 
-**Status:** Must resolve before `RET-01`  
-Choose and document one behavior:
-
-1. favorite snapshots/runs are exempt from automatic cleanup until unfavorited; or
-2. favorites preserve only a lightweight reference/note while the historical snapshot may be deleted after explicit warning.
-
-Recommended default: exempt favorited runs from automatic cleanup and require explicit manual deletion confirmation.
+**Status:** Accepted  
+**Decision:** Favorited research runs are exempt from automatic and manual-retention cleanup until unfavorited. Selective manual deletion may include a favorited run only after the owner receives an explicit favorite-impact warning and confirms that exact deletion scope.  
+**Reason:** Favorites represent deliberate user curation. Automatic retention must not silently remove their historical evidence, while an explicit owner-directed deletion path still allows storage to be reclaimed intentionally.
 
 ## D-013 — Loopback-only registration
 

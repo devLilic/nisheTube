@@ -1,5 +1,11 @@
 import { Link } from '@inertiajs/react';
-import { Palette, ShieldCheck, UserRound, Youtube } from 'lucide-react';
+import {
+    Database,
+    Palette,
+    ShieldCheck,
+    UserRound,
+    Youtube,
+} from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -32,6 +38,11 @@ const sidebarNavItems: NavItem[] = [
         title: 'Appearance',
         href: editAppearance(),
         icon: Palette,
+    },
+    {
+        title: 'Data retention',
+        href: '/settings/retention',
+        icon: Database,
     },
 ];
 

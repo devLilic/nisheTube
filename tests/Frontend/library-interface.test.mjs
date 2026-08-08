@@ -24,6 +24,7 @@ test('project library exposes grid/list, filters, sorting, empty state, tabs, an
     assert.match(projects, /List view/);
     assert.match(projects, /Recently updated/);
     assert.match(projects, /No projects found/);
+    assert.match(projects, /PaginationControls/);
     assert.match(project, /role="tablist"/);
     assert.match(project, /Delete project\?/);
     assert.match(project, /Archive project\?/);
@@ -33,6 +34,7 @@ test('favorites expose type, project, tag and note controls with explicit remova
     assert.match(favorites, /All types/);
     assert.match(favorites, /All projects/);
     assert.match(favorites, /All tags/);
+    assert.match(favorites, /PaginationControls/);
     assert.match(favoriteCard, /Add research notes/);
     assert.match(favoriteCard, /Remove favorite\?/);
     assert.match(

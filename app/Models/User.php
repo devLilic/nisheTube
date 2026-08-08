@@ -68,6 +68,18 @@ class User extends Authenticatable
         return $this->hasMany(Tag::class);
     }
 
+    /** @return HasMany<ResearchExport, $this> */
+    public function researchExports(): HasMany
+    {
+        return $this->hasMany(ResearchExport::class, 'user_id');
+    }
+
+    /** @return HasMany<CleanupRun, $this> */
+    public function cleanupRuns(): HasMany
+    {
+        return $this->hasMany(CleanupRun::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

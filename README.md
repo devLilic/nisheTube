@@ -12,7 +12,7 @@ NisheTube is a local YouTube niche-research application. It searches and samples
 
 ## Current state
 
-Foundation tasks FND-01 through FND-05 are complete. AUTH-01, the authentication backend and preference-storage foundation, is the active task. The live status of every task is maintained in `docs/TASK_STATUS.md`.
+The local MVP feature backlog is implemented through release hardening. The live status and focused verification evidence are maintained in `docs/TASK_STATUS.md`.
 
 ## Documentation
 
@@ -23,6 +23,7 @@ Foundation tasks FND-01 through FND-05 are complete. AUTH-01, the authentication
 - [UI/UX specification](docs/05_UI_UX.md)
 - [YouTube API integration](docs/06_YOUTUBE_API.md)
 - [Local setup](docs/07_LOCAL_SETUP.md)
+- [Backup, restore, and troubleshooting](docs/11_BACKUP_AND_RECOVERY.md)
 - [Implementation backlog](docs/08_BACKLOG.md)
 - [Live task status](docs/TASK_STATUS.md)
 - [Acceptance and testing](docs/09_ACCEPTANCE_AND_TESTING.md)
@@ -32,7 +33,7 @@ Codex must read `AGENTS.md` before implementation and follow the vertical-slice 
 
 ## Local environment
 
-- Project: `C:\laragon\www\NisheTube`
+- Project: `<Laragon root>\www\NisheTube` (normally `C:\laragon\www\NisheTube`; use the actual checkout path)
 - PHP: 8.3.30
 - Laravel: 13.8 or later compatible 13.x release
 - Node.js: 22.22

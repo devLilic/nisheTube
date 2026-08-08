@@ -14,22 +14,27 @@ use App\Models\ResearchRun;
 use App\Models\Taggable;
 use App\Models\User;
 use App\Models\Video;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class LibraryViewModel
 {
+    private const PAGE_SIZE = 24;
+
     public function __construct(private readonly LibraryQueries $queries) {}
 
     /** @return array<string, mixed> */
-    public function context(User $user): array
+    public function context(User $user, bool $includeFavorites = true): array
     {
-        $favorites = Favorite::query()
-            ->where('user_id', $user->id)
-            ->with(['project', 'target'])
-            ->latest('updated_at')
-            ->get();
+        $favorites = $includeFavorites
+            ? Favorite::query()
+                ->where('user_id', $user->id)
+                ->with(['project', 'target'])
+                ->latest('updated_at')
+                ->get()
+            : collect();
 
         return [
             'projects' => ResearchProject::query()->where('user_id', $user->id)->whereNull('archived_at')->orderBy('name')->get()
@@ -57,8 +62,11 @@ class LibraryViewModel
             $query->reorder('created_at');
         }
 
+        $projects = $query->paginate(self::PAGE_SIZE)->withQueryString();
+
         return [
-            'projects' => $query->get()->map(fn (ResearchProject $project): array => $this->projectCard($project))->values()->all(),
+            'projects' => $projects->getCollection()->map(fn (ResearchProject $project): array => $this->projectCard($project))->values()->all(),
+            'pagination' => $this->pagination($projects),
             'filters' => [
                 'search' => $request->string('search')->toString(),
                 'status' => $request->string('status')->toString() ?: 'active',
@@ -120,12 +128,13 @@ class LibraryViewModel
             $query->reorder('created_at');
         }
 
-        $favorites = $query->get();
-        $this->loadTags($favorites->all());
+        $favorites = $query->paginate(self::PAGE_SIZE)->withQueryString();
+        $this->loadTags($favorites->items());
 
         return [
-            'favorites' => $favorites->map(fn (Favorite $favorite): array => $this->favoriteSummary($favorite))->values()->all(),
-            'library' => $this->context($user),
+            'favorites' => $favorites->getCollection()->map(fn (Favorite $favorite): array => $this->favoriteSummary($favorite))->values()->all(),
+            'pagination' => $this->pagination($favorites),
+            'library' => $this->context($user, includeFavorites: false),
             'filters' => [
                 'search' => $request->string('search')->toString(),
                 'type' => $targetType === null ? 'all' : $targetType->value,
@@ -133,6 +142,24 @@ class LibraryViewModel
                 'tag' => is_numeric($tagId) ? $request->string('tag')->toString() : 'all',
                 'sort' => $request->string('sort')->toString() === 'oldest' ? 'oldest' : 'updated',
             ],
+        ];
+    }
+
+    /**
+     * @template TValue of Favorite|ResearchProject
+     *
+     * @param  LengthAwarePaginator<int, TValue>  $paginator
+     * @return array{current_page: int, last_page: int, from: int|null, to: int|null, total: int, per_page: int}
+     */
+    private function pagination(LengthAwarePaginator $paginator): array
+    {
+        return [
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'from' => $paginator->firstItem(),
+            'to' => $paginator->lastItem(),
+            'total' => $paginator->total(),
+            'per_page' => $paginator->perPage(),
         ];
     }
 

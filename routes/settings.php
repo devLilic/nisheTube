@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\RetentionController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\YouTubeIntegrationController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -38,4 +39,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::get('settings/retention', [RetentionController::class, 'index'])->name('retention.index');
+    Route::post('settings/retention/preview', [RetentionController::class, 'preview'])->name('retention.preview');
+    Route::post('settings/retention/cleanup', [RetentionController::class, 'cleanup'])
+        ->middleware('throttle:3,1')
+        ->name('retention.cleanup');
+    Route::delete('settings/retention/runs', [RetentionController::class, 'destroy'])
+        ->middleware('throttle:3,1')
+        ->name('retention.runs.destroy');
 });

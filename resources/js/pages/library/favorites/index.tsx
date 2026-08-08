@@ -3,6 +3,8 @@ import { Heart, Plus, Search } from 'lucide-react';
 import { StatePanel } from '@/components/data-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
+import { PaginationControls } from '@/components/pagination-controls';
+import type { PaginationMeta } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +14,7 @@ import type { LibraryContext, LibraryFavorite } from '@/types';
 
 type Props = {
     favorites: LibraryFavorite[];
+    pagination: PaginationMeta;
     library: LibraryContext;
     filters: {
         search: string;
@@ -22,7 +25,12 @@ type Props = {
     };
 };
 
-export default function FavoritesIndex({ favorites, library, filters }: Props) {
+export default function FavoritesIndex({
+    favorites,
+    pagination,
+    library,
+    filters,
+}: Props) {
     const update = (key: string, value: string) =>
         router.get(
             '/favorites',
@@ -176,6 +184,16 @@ export default function FavoritesIndex({ favorites, library, filters }: Props) {
                         ))}
                     </div>
                 )}
+                <PaginationControls
+                    pagination={pagination}
+                    onPageChange={(page) =>
+                        router.get(
+                            '/favorites',
+                            { ...filters, page },
+                            { preserveState: true, preserveScroll: true },
+                        )
+                    }
+                />
             </PageContainer>
         </>
     );

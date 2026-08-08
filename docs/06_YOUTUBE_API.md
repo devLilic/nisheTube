@@ -8,14 +8,14 @@ Future authenticated YouTube account features must use a separate OAuth adapter 
 
 ## 2. Primary endpoints
 
-| Need | Endpoint | Notes |
-|---|---|---|
-| Keyword and seed search | `search.list` | Request `type=video`; freeze query, market, filters, and page tokens in run metadata. |
-| Video details/statistics | `videos.list` or supported batch statistics method | Batch IDs and request only required parts. |
-| Channel statistics | `channels.list` | Batch channel IDs; subscriber counts may be hidden. |
-| Channel uploads | `channels.list` + `playlistItems.list` | Use uploads playlist when creator viability requires recent publishing samples. |
-| Regions/languages/categories | relevant `i18n*` and category list methods | Cache slowly changing reference data. |
-| Popular chart seed | `videos.list(chart=mostPopular)` | Treat as a limited seed source, not general YouTube Trending. |
+| Need                         | Endpoint                                           | Notes                                                                                 |
+| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Keyword and seed search      | `search.list`                                      | Request `type=video`; freeze query, market, filters, and page tokens in run metadata. |
+| Video details/statistics     | `videos.list` or supported batch statistics method | Batch IDs and request only required parts.                                            |
+| Channel statistics           | `channels.list`                                    | Batch channel IDs; subscriber counts may be hidden.                                   |
+| Channel uploads              | `channels.list` + `playlistItems.list`             | Use uploads playlist when creator viability requires recent publishing samples.       |
+| Regions/languages/categories | relevant `i18n*` and category list methods         | Cache slowly changing reference data.                                                 |
+| Popular chart seed           | `videos.list(chart=mostPopular)`                   | Treat as a limited seed source, not general YouTube Trending.                         |
 
 ## 3. Current quota constraints
 
@@ -83,6 +83,7 @@ YOUTUBE_API_KEY=
 YOUTUBE_API_BASE_URL=https://www.googleapis.com/youtube/v3
 YOUTUBE_SEARCH_DAILY_ALLOWANCE=100
 YOUTUBE_GENERAL_DAILY_ALLOWANCE=10000
+YOUTUBE_QUOTA_RESET_TIMEZONE=America/Los_Angeles
 ```
 
 Only the key is secret. Add the variable names with blank/sample-safe values to `.env.example`; keep the real key only in `.env`.
@@ -91,16 +92,16 @@ Only the key is secret. Add the variable names with blank/sample-safe values to 
 
 Normalize provider responses into safe internal errors:
 
-| Internal code | UI action |
-|---|---|
-| `youtube_key_missing` | Open Settings instructions. |
-| `youtube_key_invalid` | Replace or restrict the key correctly. |
-| `youtube_api_disabled` | Enable YouTube Data API v3 in Google Cloud. |
-| `youtube_quota_exhausted` | Show bucket and expected reset guidance. |
-| `youtube_rate_limited` | Retry later. |
-| `youtube_request_invalid` | Review filters; do not auto-retry. |
-| `youtube_unavailable` | Retry with bounded backoff. |
-| `youtube_partial_data` | Complete run with warning when useful data remains. |
+| Internal code             | UI action                                           |
+| ------------------------- | --------------------------------------------------- |
+| `youtube_key_missing`     | Open Settings instructions.                         |
+| `youtube_key_invalid`     | Replace or restrict the key correctly.              |
+| `youtube_api_disabled`    | Enable YouTube Data API v3 in Google Cloud.         |
+| `youtube_quota_exhausted` | Show bucket and expected reset guidance.            |
+| `youtube_rate_limited`    | Retry later.                                        |
+| `youtube_request_invalid` | Review filters; do not auto-retry.                  |
+| `youtube_unavailable`     | Retry with bounded backoff.                         |
+| `youtube_partial_data`    | Complete run with warning when useful data remains. |
 
 Do not store full provider messages if they may contain sensitive request details.
 
@@ -119,6 +120,17 @@ For each request:
 Initial buckets are `search.list` (100 calls/day by default) and the general API bucket (10,000 units/day by default). The implementation must support new granular buckets and user-configured approved limits without schema rewrites.
 
 Every request, including an invalid one, is charged at least one relevant quota unit according to Google documentation. If other software consumes the same project quota, the local estimate may be optimistic; the UI must state that Google Cloud Console is authoritative.
+
+### 9.1 Reset and operator behavior
+
+- The ledger day starts and resets at midnight in `YOUTUBE_QUOTA_RESET_TIMEZONE`, which defaults to `America/Los_Angeles`. This is daylight-saving aware; the UTC and user-local display time can change seasonally.
+- `YOUTUBE_SEARCH_DAILY_ALLOWANCE` and `YOUTUBE_GENERAL_DAILY_ALLOWANCE` are NisheTube guardrails for the two local buckets. They do not change the Google Cloud project quota.
+- The local estimate includes every provider attempt recorded by this application, including failed or invalid requests. It does not include requests made by another application using the same key or Google Cloud project.
+- A provider quota-exhausted response marks the relevant local bucket exhausted until the next configured ledger day, even when the arithmetic estimate still shows unused allowance.
+- Changing an allowance or reset timezone requires `php artisan optimize:clear` before long-running workers are restarted with `php artisan queue:restart`.
+- Do not edit or delete `api_usage_events` to make quota appear available. Use Google Cloud Console for the authoritative value and wait for the provider reset when it reports exhaustion.
+
+Operational troubleshooting is collected in [Backup, restore, and troubleshooting](11_BACKUP_AND_RECOVERY.md#troubleshooting).
 
 ## 10. Test strategy
 
