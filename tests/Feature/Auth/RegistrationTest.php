@@ -35,5 +35,43 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'timezone' => 'Europe/Chisinau',
+            'default_market_key' => null,
+        ]);
+    }
+
+    public function test_registration_rejects_invalid_and_duplicate_details(): void
+    {
+        $this->post(route('register.store'), [
+            'name' => '',
+            'email' => 'not-an-email',
+            'password' => 'short',
+            'password_confirmation' => 'different',
+        ])->assertSessionHasErrors(['name', 'email', 'password']);
+
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 0);
+
+        $this->post(route('register.store'), [
+            'name' => 'First User',
+            'email' => 'duplicate@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->post(route('logout'));
+
+        $this->post(route('register.store'), [
+            'name' => 'Second User',
+            'email' => 'duplicate@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 1);
     }
 }

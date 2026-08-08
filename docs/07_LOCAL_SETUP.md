@@ -12,11 +12,56 @@
 | MySQL | 8.4.3 |
 | Laravel | 13.8+ within major 13 |
 
+### 1.1 Codex and automation tool paths
+
+The Laragon terminal prepares these tools automatically, but a Codex or plain PowerShell process may not inherit the same `PATH`. During the FND-01/FND-02 verification, PHP was not discoverable, and Composer could not run until the Laragon PHP directory was added explicitly. Use these confirmed locations instead of searching the machine again:
+
+| Tool | Confirmed executable or directory |
+|---|---|
+| PHP | `C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe` |
+| Composer launcher | `C:\laragon\bin\composer\composer.bat` |
+| Composer PHAR | `C:\laragon\bin\composer\composer.phar` |
+| Laragon Node.js | `C:\laragon\bin\nodejs\node-v22\node.exe` |
+| Laragon npm | `C:\laragon\bin\nodejs\node-v22\npm.cmd` |
+| MySQL client | `C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysql.exe` |
+| Laragon terminal | `C:\laragon\bin\cmder\Cmder.exe` |
+
+For a Codex PowerShell command, prepend the tool directories to the process-local `PATH`:
+
+```powershell
+$env:Path = @(
+    'C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64'
+    'C:\laragon\bin\composer'
+    'C:\laragon\bin\nodejs\node-v22'
+    'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin'
+    $env:Path
+) -join ';'
+```
+
+Then verify resolution before running project checks:
+
+```powershell
+php --version
+composer.bat --version
+node --version
+npm.cmd --version
+mysql.exe --version
+```
+
+Use `composer.bat` and `npm.cmd` in automated PowerShell commands to avoid PowerShell execution-policy ambiguity. This setup is process-local and must not overwrite the user's global `PATH`.
+
+The Codex sandbox may also reject Git commands because the repository is owned by the desktop user. Pass the repository as a command-local safe directory instead of changing global Git configuration:
+
+```powershell
+git -c safe.directory=C:/laragon/www/NisheTube status --short
+git -c safe.directory=C:/laragon/www/NisheTube diff --check
+```
+
 ## 2. Foundation status
 
-The folder currently contains the plain Laravel application skeleton and installed PHP/Node dependencies. It does not yet contain the official React/Inertia starter-kit application structure. Backlog task `FND-01` establishes that foundation before product modules.
+Backlog task `FND-01` is complete. The application uses the official Laravel 13 React starter-kit conventions with Inertia 3, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Wayfinder typed routes, and Fortify authentication.
 
-Because the current repository has no product code, the implementation agent may adopt the official Laravel 13 React starter-kit scaffold. It must preserve this documentation and inspect local changes before replacing framework scaffold files.
+The enabled foundation authentication features are registration, password reset, email verification routes, and password confirmation. Optional passkey and two-factor authentication features are not enabled. Product-specific authentication and preference work remains in Phase 1.
 
 ## 3. Target local configuration
 
@@ -95,16 +140,34 @@ Do not use browser HTTP-referrer restrictions for server-side Laravel requests. 
 
 ## 8. Verification
 
-Expected final baseline:
+Full-project verification is manual-only. Codex must not run this aggregate command:
+
+```text
+composer ci:check
+```
+
+For a manual full verification, this command runs PHP formatting checks, PHPStan, PHPUnit, frontend formatting checks, ESLint, TypeScript checks, and the production Vite build. Tests use SQLite in memory and block external HTTP requests unless a test registers an explicit Laravel HTTP fake.
+
+The equivalent manual commands are:
+
+```text
+composer test
+vendor/bin/pint --test
+npm run types
+npm run lint:check
+npm run format:check
+npm run build
+```
+
+Codex may run only checks that explicitly target the current task's exact test files, test filters, or changed source files. It must not run `composer test`, bare `php artisan test`, `npm run check`, or any other full PHP or React/frontend suite. At task completion, Codex provides a manual checklist of at most three relevant items: `composer test` for PHP/backend work, `npm run check` for React/frontend work, and a concise manual UI flow only when the task needs one.
+
+Use `npm run lint` or `npm run format` only when intentionally applying fixes. They modify source files.
+
+For local environment diagnostics, separately run:
 
 ```text
 php artisan about
 php artisan migrate:status
-composer test
-vendor/bin/pint --test
-npm run types
-npm run lint
-npm run build
 ```
 
 Verify manually:
@@ -121,4 +184,3 @@ Verify manually:
 - Confirm `.env`, generated exports, logs, caches, and local database artifacts are ignored.
 - Make small commits by complete vertical slice.
 - Do not commit downloaded API payloads containing unnecessary user/provider data.
-

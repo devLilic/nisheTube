@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\YouTubeIntegrationController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -9,11 +11,23 @@ Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('settings/profile', [ProfileController::class, 'update'])
+        ->middleware('throttle:12,1')
+        ->name('profile.update');
+    Route::put('settings/preferences', [PreferencesController::class, 'update'])
+        ->middleware('throttle:12,1')
+        ->name('preferences.update');
+    Route::get('settings/youtube', [YouTubeIntegrationController::class, 'edit'])
+        ->name('youtube.edit');
+    Route::post('settings/youtube/test', [YouTubeIntegrationController::class, 'test'])
+        ->middleware('throttle:3,1')
+        ->name('youtube.test');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::delete('settings/profile', [ProfileController::class, 'destroy'])
+        ->middleware('throttle:3,1')
+        ->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])
         ->middleware(RequirePassword::class)

@@ -12,7 +12,7 @@ NisheTube is a local YouTube niche-research application. It searches and samples
 
 ## Current state
 
-The repository contains a Laravel 13.8 base application. The first development milestone is to adopt the official Laravel React starter-kit foundation with Inertia 3, React 19, TypeScript, Tailwind 4, shadcn/ui, and Laravel authentication. Product functionality has not yet been implemented.
+Foundation tasks FND-01 through FND-05 are complete. AUTH-01, the authentication backend and preference-storage foundation, is the active task. The live status of every task is maintained in `docs/TASK_STATUS.md`.
 
 ## Documentation
 
@@ -24,6 +24,7 @@ The repository contains a Laravel 13.8 base application. The first development m
 - [YouTube API integration](docs/06_YOUTUBE_API.md)
 - [Local setup](docs/07_LOCAL_SETUP.md)
 - [Implementation backlog](docs/08_BACKLOG.md)
+- [Live task status](docs/TASK_STATUS.md)
 - [Acceptance and testing](docs/09_ACCEPTANCE_AND_TESTING.md)
 - [Decision log](docs/10_DECISIONS.md)
 
@@ -40,4 +41,3 @@ Codex must read `AGENTS.md` before implementation and follow the vertical-slice 
 - Recommended local URL: `http://nishetube.test`
 
 Do not commit `.env` or a YouTube API key.
-

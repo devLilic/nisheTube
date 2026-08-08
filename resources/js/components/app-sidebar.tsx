@@ -1,5 +1,16 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import {
+    Beaker,
+    Compass,
+    FileDown,
+    FolderKanban,
+    Gauge,
+    Heart,
+    History,
+    LayoutDashboard,
+    Search,
+    Settings,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,26 +25,35 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { create as createResearch } from '@/routes/research';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
-        icon: LayoutGrid,
+        icon: LayoutDashboard,
     },
+    { title: 'Search', href: createResearch(), icon: Search },
+    { title: 'Discover', href: '/discover', icon: Compass, disabled: true },
+    {
+        title: 'Projects',
+        href: '/projects',
+        icon: FolderKanban,
+        disabled: true,
+    },
+    { title: 'Favorites', href: '/favorites', icon: Heart, disabled: true },
+    { title: 'History', href: '/history', icon: History, disabled: true },
+    { title: 'Exports', href: '/exports', icon: FileDown, disabled: true },
+    { title: 'Settings', href: '/settings/profile', icon: Settings },
+    { title: 'UI showcase', href: '/design-system', icon: Beaker },
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Local quota estimate',
+        href: '/design-system#status-and-feedback',
+        icon: Gauge,
     },
 ];
 

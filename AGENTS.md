@@ -15,7 +15,8 @@ Read these documents in order:
 5. `docs/05_UI_UX.md`
 6. `docs/06_YOUTUBE_API.md`
 7. `docs/08_BACKLOG.md`
-8. `docs/09_ACCEPTANCE_AND_TESTING.md`
+8. `docs/TASK_STATUS.md`
+9. `docs/09_ACCEPTANCE_AND_TESTING.md`
 
 If implementation requires changing a locked decision, update `docs/10_DECISIONS.md` in the same change and explain the reason.
 
@@ -57,13 +58,16 @@ A backend-only module is not done. A UI using hard-coded production data is not 
 
 ## Development workflow
 
-1. Select the next unblocked task group from `docs/08_BACKLOG.md`.
-2. State the task IDs being implemented.
-3. Inspect existing code and tests before editing.
-4. Implement the smallest complete vertical slice.
-5. Run focused tests, then the full relevant verification suite.
-6. Update checkboxes only after acceptance criteria pass.
-7. Record material architectural decisions in `docs/10_DECISIONS.md`.
+1. Read `docs/TASK_STATUS.md` first. It is the live task-state register.
+2. Work only on the single task marked `In progress`.
+3. If no task is `In progress`, select the next unblocked `Pending` task from `docs/08_BACKLOG.md`, mark it `In progress` in `docs/TASK_STATUS.md`, and state its ID before editing code.
+4. Inspect existing code and tests before editing.
+5. Implement the smallest complete vertical slice.
+6. Run only tests and checks strictly scoped to the current task and the files changed for it. Codex must never run a full or aggregate PHP, React, frontend, or project verification suite.
+7. Only when every acceptance criterion and Codex-scoped check passes: mark the task `Completed` in both `docs/TASK_STATUS.md` and `docs/08_BACKLOG.md`; include the date, passed focused commands, and a short manual verification checklist in the task-status file.
+8. Immediately mark the next unblocked backlog task `In progress` in `docs/TASK_STATUS.md`. Do not begin its implementation in the same turn unless the user explicitly asks.
+9. If verification fails or a dependency is missing, keep the current task `In progress`, record the blocker in `docs/TASK_STATUS.md`, and do not promote another task.
+10. Record material architectural decisions in `docs/10_DECISIONS.md`.
 
 Do not begin a later phase when an earlier dependency is incomplete, except for isolated design-system work that does not create throwaway behavior.
 
@@ -76,19 +80,26 @@ Do not begin a later phase when an earlier dependency is incomplete, except for 
 - Tests: Feature tests for user flows and authorization; Unit tests for scoring/math and provider normalization; frontend tests for calculation-heavy components when needed.
 - Copy: all labels, validation messages, empty states, and user-facing errors are in English.
 
-## Verification baseline
+## Verification boundary
 
-Run the commands available after the React starter kit is adopted:
+Codex may run only narrowly targeted commands that name the exact test files, filters, or changed source files relevant to the active task. Examples:
 
 ```text
-composer test
-vendor/bin/pint --test
-npm run types
-npm run lint
-npm run build
+php artisan test tests/Feature/Research/SpecificTest.php
+vendor/bin/pint --test app/Domain/Research tests/Feature/Research/SpecificTest.php
+npx eslint resources/js/features/research/specific-component.tsx
+npx prettier --check resources/js/features/research/specific-component.tsx
 ```
 
-If scripts differ in the installed starter kit, align this list and `docs/07_LOCAL_SETUP.md` with `composer.json` and `package.json`.
+Codex must not run aggregate or full-project commands, including `composer ci:check`, `composer test`, bare `php artisan test`, `npm run check`, `npm run types`, `npm run lint:check`, `npm run format:check`, or `npm run build`. These checks are manual-only and belong to the user.
+
+Before completing a task, Codex must tell the user that manual verification is required and provide a short checklist of no more than three relevant checks:
+
+- PHP/backend changes: `composer test`;
+- React/frontend changes: `npm run check`;
+- cross-stack changes: both commands, plus one concise task-specific manual UI flow when needed.
+
+When the task is complete, provide the checklist in commentary and make the final response exactly `TASK DONE`, with no other text, Markdown, or punctuation. Do not output `TASK DONE` when the task is blocked or incomplete.
 
 ## Safety and data rules
 
@@ -97,4 +108,3 @@ If scripts differ in the installed starter kit, align this list and `docs/07_LOC
 - Manual deletion must require confirmation, enforce ownership, and create an audit record.
 - Retention must target only snapshot/run data older than six months; never delete users, projects, settings, or favorites unintentionally.
 - External API failures must preserve the run record and expose a retryable status in the UI.
-

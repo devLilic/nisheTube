@@ -1,5 +1,5 @@
-// Components
 import { Form, Head } from '@inertiajs/react';
+import FormStatus from '@/components/form-status';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -11,24 +11,33 @@ export default function VerifyEmail({ status }: { status?: string }) {
         <>
             <Head title="Email verification" />
 
-            {status === 'verification-link-sent' && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
-                </div>
-            )}
+            <FormStatus
+                message={
+                    status === 'verification-link-sent'
+                        ? 'A fresh verification link was sent to your email address.'
+                        : undefined
+                }
+                title="Email sent"
+                className="mb-6"
+            />
 
-            <Form {...send.form()} className="space-y-6 text-center">
+            <Form {...send.form()} disableWhileProcessing className="space-y-4">
                 {({ processing }) => (
                     <>
-                        <Button disabled={processing} variant="secondary">
+                        <Button
+                            disabled={processing}
+                            variant="secondary"
+                            className="w-full"
+                        >
                             {processing && <Spinner />}
-                            Resend verification email
+                            {processing
+                                ? 'Sending email…'
+                                : 'Resend verification email'}
                         </Button>
 
                         <TextLink
                             href={logout()}
-                            className="mx-auto block text-sm"
+                            className="mx-auto block text-center text-sm"
                         >
                             Log out
                         </TextLink>
@@ -42,5 +51,5 @@ export default function VerifyEmail({ status }: { status?: string }) {
 VerifyEmail.layout = {
     title: 'Email verification',
     description:
-        'Please verify your email address by clicking on the link we just emailed to you.',
+        'Open the link we sent to activate your account and protect your research workspace.',
 };

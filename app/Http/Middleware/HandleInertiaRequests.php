@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\YouTube\Contracts\QuotaLedger;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'youtubeQuota' => fn (): ?array => $request->user() === null
+                ? null
+                : app(QuotaLedger::class)->summary()->toSafeArray(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

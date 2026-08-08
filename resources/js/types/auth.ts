@@ -4,6 +4,9 @@ export type User = {
     email: string;
     avatar?: string;
     email_verified_at: string | null;
+    timezone: string;
+    default_market_key: 'global_en' | 'ro_ro' | 'ru_ru' | null;
+    default_result_depth: 25 | 50 | 100 | 200;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;
@@ -22,4 +25,3 @@ export type Passkey = {
     last_used_at_diff: string | null;
 };
 /* @end-chisel-passkeys */
-

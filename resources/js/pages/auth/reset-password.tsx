@@ -22,6 +22,7 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                 {...update.form()}
                 transform={(data) => ({ ...data, token, email })}
                 resetOnSuccess={['password', 'password_confirmation']}
+                disableWhileProcessing
             >
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
@@ -35,6 +36,7 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 value={email}
                                 className="mt-1 block w-full"
                                 readOnly
+                                aria-invalid={Boolean(errors.email)}
                             />
                             <InputError
                                 message={errors.email}
@@ -52,6 +54,8 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 autoFocus
                                 placeholder="Password"
                                 passwordrules={passwordRules}
+                                required
+                                aria-invalid={Boolean(errors.password)}
                             />
                             <InputError message={errors.password} />
                         </div>
@@ -67,6 +71,10 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 className="mt-1 block w-full"
                                 placeholder="Confirm password"
                                 passwordrules={passwordRules}
+                                required
+                                aria-invalid={Boolean(
+                                    errors.password_confirmation,
+                                )}
                             />
                             <InputError
                                 message={errors.password_confirmation}
@@ -81,7 +89,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                             data-test="reset-password-button"
                         >
                             {processing && <Spinner />}
-                            Reset password
+                            {processing
+                                ? 'Resetting password…'
+                                : 'Reset password'}
                         </Button>
                     </div>
                 )}
@@ -92,5 +102,6 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
 
 ResetPassword.layout = {
     title: 'Reset password',
-    description: 'Please enter your new password below',
+    description:
+        'Choose a strong new password for this local NisheTube account.',
 };

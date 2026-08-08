@@ -18,16 +18,32 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
             <SidebarMenu>
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={isCurrentUrl(item.href)}
-                            tooltip={{ children: item.title }}
-                        >
-                            <Link href={item.href} prefetch>
+                        {item.disabled ? (
+                            <SidebarMenuButton
+                                disabled
+                                tooltip={{
+                                    children: `${item.title} — coming soon`,
+                                }}
+                                className="opacity-55"
+                            >
                                 {item.icon && <item.icon />}
                                 <span>{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
+                                <span className="ml-auto text-[10px] font-semibold tracking-wide uppercase group-data-[collapsible=icon]:hidden">
+                                    Soon
+                                </span>
+                            </SidebarMenuButton>
+                        ) : (
+                            <SidebarMenuButton
+                                asChild
+                                isActive={isCurrentUrl(item.href)}
+                                tooltip={{ children: item.title }}
+                            >
+                                <Link href={item.href} prefetch>
+                                    {item.icon && <item.icon />}
+                                    <span>{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        )}
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>

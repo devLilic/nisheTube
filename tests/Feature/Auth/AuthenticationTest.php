@@ -4,7 +4,6 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -57,11 +56,12 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->post(route('login.store'), [
+        $response = $this->post(route('login.store'), [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
 
+        $response->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
@@ -69,18 +69,28 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post(route('logout'));
+        $response = $this->actingAs($user)
+            ->withSession(['research_context' => 'private'])
+            ->post(route('logout'));
 
-        $response->assertRedirect(route('home'));
+        $response
+            ->assertRedirect(route('home'))
+            ->assertSessionMissing('research_context');
 
         $this->assertGuest();
+        $this->get(route('dashboard'))->assertRedirect(route('login'));
     }
 
     public function test_users_are_rate_limited()
     {
         $user = User::factory()->create();
 
-        RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->post(route('login.store'), [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ])->assertSessionHasErrors('email');
+        }
 
         $response = $this->post(route('login.store'), [
             'email' => $user->email,

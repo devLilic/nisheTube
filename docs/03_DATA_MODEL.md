@@ -55,11 +55,18 @@ Unique constraints should not prevent a user from intentionally saving similar q
 - frozen `parameters` JSON;
 - `requested_result_count`, `collected_result_count`, `enriched_result_count`;
 - `progress_percent`;
+- nullable `collection_warnings` JSON containing safe, user-facing partial-collection warnings;
 - `started_at`, `search_completed_at`, `completed_at`, `failed_at`;
 - safe `error_code`, `error_message`;
 - timestamps.
 
 Indexes: `(user_id, created_at)`, `(research_query_id, completed_at)`, `(status, created_at)`.
+
+### Search collection staging
+
+`research_run_search_pages` durably records each requested page number, request/next page tokens, normalized result count, approximate provider total, and safe warnings. `research_run_search_results` stores the first normalized occurrence of each provider video ID with channel ID, title, publish time, page, rank, and provider order. Both belong to a research run and cascade with it.
+
+This staging layer is the retry boundary between search collection and catalog enrichment. A redelivered search job resumes from the last persisted page and does not duplicate saved candidates; later catalog work converts these candidates into the canonical video/channel and snapshot tables.
 
 ## 3. Catalog and immutable metrics
 
@@ -228,4 +235,3 @@ Do not store full deleted payloads in the audit table.
 5. discovery;
 6. library/tags;
 7. exports, usage ledger, cleanup audit.
-

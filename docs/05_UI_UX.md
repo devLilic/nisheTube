@@ -11,7 +11,7 @@ Use the official Laravel React starter kit's Tailwind/shadcn foundation. Prefer 
 Authenticated layout:
 
 - collapsible left sidebar;
-- top bar with current page, global market selector where appropriate, quota indicator, and user menu;
+- top bar with current page, global market selector where appropriate, persistent `YouTube API Today` quota widget, and user menu;
 - main content width optimized for data tables and charts;
 - persistent toast/notification region;
 - breadcrumb only on nested detail pages.
@@ -39,6 +39,16 @@ Primary navigation:
 - `EmptyState`, `ErrorState`, `PartialDataBanner`, `LoadingSkeleton`.
 - sortable/filterable `DataTable` with column visibility and pagination.
 - confirmation dialog requiring clear target/count for destructive cleanup.
+
+### Persistent YouTube API Today widget
+
+Keep this compact enough for the authenticated header and expandable for detail:
+
+- show one chip per configured bucket, initially `Search: 72 / 100 left` and `General: 9,846 / 10,000 units left`;
+- tooltip/expanded panel shows `NisheTube estimate`, last endpoint, request cost, timestamp, reset at midnight Pacific Time, and a Google Cloud Console authoritative-value note;
+- refresh the server-supplied summary after every provider request; while a queued run is active, update through the existing status polling cycle;
+- include loading, stale, unavailable, and quota-exhausted states without exposing the API key;
+- when multiple local users share one configured key/project, show the project-wide remaining estimate and only show user-specific call history in detailed settings.
 
 ## 4. Pages by module
 
@@ -163,4 +173,3 @@ Never display a score without confidence and the collection timestamp.
 - Usable tablet target: 768px and wider.
 - On smaller screens, cards stack and tables may scroll horizontally.
 - Full mobile optimization is desirable but not a release blocker for this local desktop tool.
-

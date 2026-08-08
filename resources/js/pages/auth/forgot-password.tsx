@@ -1,11 +1,11 @@
-// Components
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import FormStatus from '@/components/form-status';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
@@ -14,14 +14,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
         <>
             <Head title="Forgot password" />
 
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+            <FormStatus
+                message={status}
+                title="Check your inbox"
+                className="mb-6"
+            />
 
             <div className="space-y-6">
-                <Form {...email.form()}>
+                <Form {...email.form()} disableWhileProcessing>
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -32,7 +32,9 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     name="email"
                                     autoComplete="off"
                                     autoFocus
+                                    required
                                     placeholder="email@example.com"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
 
                                 <InputError message={errors.email} />
@@ -44,10 +46,10 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     disabled={processing}
                                     data-test="email-password-reset-link-button"
                                 >
-                                    {processing && (
-                                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                                    )}
-                                    Email password reset link
+                                    {processing && <Spinner />}
+                                    {processing
+                                        ? 'Sending reset link…'
+                                        : 'Email password reset link'}
                                 </Button>
                             </div>
                         </>
@@ -65,5 +67,6 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
 ForgotPassword.layout = {
     title: 'Forgot password',
-    description: 'Enter your email to receive a password reset link',
+    description:
+        'Enter the email for your local account and we’ll send a secure reset link.',
 };

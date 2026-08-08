@@ -94,6 +94,9 @@ Every research run stores its market parameters so historical results remain rep
 - Show locally recorded quota calls by bucket/day and remaining estimated allowance.
 - Configure default market, search depth, timezone, and cleanup preferences.
 - Distinguish locally estimated quota from authoritative Google Cloud quota.
+- Display a compact persistent `YouTube API Today` widget in the authenticated application header. It shows estimated remaining allowance for each configured quota bucket, the latest endpoint/cost/time, and the daily reset time.
+- Refresh the widget after every provider request. During queued research, refresh from the locally recorded quota ledger while the run-progress page polls for status.
+- Label the value `NisheTube estimate`: it tracks all requests made by this application but can differ from Google Cloud Console if another app/key/project consumer uses quota.
 
 ### 4.11 Snapshot retention
 
@@ -140,4 +143,3 @@ These extensions are not part of the initial implementation unless explicitly mo
 ## 8. Product success criteria
 
 The first usable release succeeds when an authenticated user can run a market-specific search, watch its status, inspect normalized video/channel metrics and an explainable five-part score, save findings, compare later snapshots, export data, and safely clean old snapshots from the UI.
-

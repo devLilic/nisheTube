@@ -8,10 +8,14 @@ A task group is done only when:
 - authenticated ownership and unauthorized access are tested;
 - the UI exists and handles loading, empty, success, partial-data, and error states;
 - validation and destructive confirmations are present;
-- focused tests pass;
-- the full relevant PHP and frontend verification suite passes;
+- Codex-run tests and checks are strictly scoped to the current task and pass;
+- the user receives a short checklist for any full PHP, React/frontend, or cross-stack verification that must be run manually;
 - no secret appears in code, logs, fixtures, rendered pages, or committed files;
 - related documentation and backlog checkboxes are current.
+
+Codex must never run full or aggregate project suites. Commands such as `composer ci:check`, `composer test`, bare `php artisan test`, `npm run check`, `npm run types`, `npm run lint:check`, `npm run format:check`, and `npm run build` are manual-only. The absence of a Codex-run full suite does not prevent task completion when the focused checks and acceptance criteria pass.
+
+At completion, Codex provides the manual checklist in commentary and its final response is exactly `TASK DONE`. A blocked or incomplete task must not use that completion response.
 
 ## 2. Test layers
 
@@ -107,7 +111,7 @@ Every page is reviewed at approximately 1440px and 768px widths:
 10. Run discovery and validate a candidate.
 11. Export CSV and XLSX with Unicode data.
 12. Preview retention, manually remove a selected eligible snapshot, and inspect audit history.
-13. Run the full verification commands.
+13. Manually run the full verification commands; Codex must not run them.
 
 ## 9. Performance targets for the local MVP
 
@@ -119,4 +123,3 @@ These are engineering targets, not external service guarantees:
 - common dashboard and history queries must avoid N+1 loading;
 - batch external requests within API limits;
 - scoring should run from stored data and complete quickly for configured sample sizes.
-

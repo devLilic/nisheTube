@@ -60,6 +60,18 @@
 **Decision:** General discovery uses seed queries, sampling, breakout detection, topic extraction, and validation searches. `mostPopular` is supplementary only.  
 **Reason:** The current `mostPopular` chart is limited to trending music, movies, and gaming and no longer represents general Trending Now.
 
+## D-011 — Persistent local YouTube quota estimate
+
+**Status:** Accepted  
+**Decision:** Show a compact `YouTube API Today` widget in every authenticated page. It displays a locally calculated remaining amount per configured quota bucket, last request details, and reset time.  
+**Reason:** The user needs immediate visibility of the remaining daily budget during research. Google Cloud Console remains authoritative because quota can also be consumed outside NisheTube.
+
+## D-012 — Live task-status register
+
+**Status:** Accepted  
+**Decision:** `docs/TASK_STATUS.md` is the live task-state register. It tracks each task as Pending, In progress, Completed, or Blocked, stores completion verification, and contains exactly one active task unless the project is blocked.  
+**Reason:** Codex needs an auditable, durable handoff between chats and must only promote the next task after the prior one is correctly verified.
+
 ## Open decision O-001 — Favorites during retention cleanup
 
 **Status:** Must resolve before `RET-01`  
@@ -70,8 +82,20 @@ Choose and document one behavior:
 
 Recommended default: exempt favorited runs from automatic cleanup and require explicit manual deletion confirmation.
 
-## Open decision O-002 — Registration policy
+## D-013 — Loopback-only registration
 
-**Status:** May resolve during `AUTH-01`  
-Because this is a local tool, decide whether registration stays open on the local network or becomes disabled after the first user. Recommended default: allow registration while bound to localhost only; revisit if Laragon exposes the site to the LAN.
+**Status:** Accepted  
+**Decision:** Keep registration available for multiple local users, but permit the registration screen and submission only from loopback addresses.  
+**Reason:** NisheTube requires multiple local accounts while avoiding unintended account creation if the Laragon virtual host is exposed to the LAN. Revisit this boundary if trusted-proxy or intentional LAN access is introduced.
 
+## D-014 — Codex runs focused checks only
+
+**Status:** Accepted  
+**Decision:** Codex may run only tests and checks explicitly scoped to the active task's exact test files, filters, or changed source files. Full PHP, React/frontend, build, and aggregate verification commands are manual-only. At completion, Codex gives the user a checklist of at most three relevant manual checks in commentary and returns exactly `TASK DONE` as the final response.  
+**Reason:** Keep automated task work fast and bounded while leaving broad project verification under direct user control.
+
+## D-015 — Durable search staging before enrichment
+
+**Status:** Accepted  
+**Decision:** Persist normalized search pages, page tokens, and deduplicated video candidates per research run before dispatching enrichment. Treat these records as retry staging rather than canonical catalog snapshots.  
+**Reason:** Database-backed staging lets a redelivered search job resume pagination without duplicating saved entities and gives the later catalog enrichment job a durable handoff instead of relying on a large, fragile queue payload.

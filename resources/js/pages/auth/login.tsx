@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import FormStatus from '@/components/form-status';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -21,11 +22,13 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Log in" />
 
+            <FormStatus message={status} title="Ready to continue" />
 
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
+                disableWhileProcessing
+                className="mt-6 flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
                     <>
@@ -41,6 +44,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -65,6 +69,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    aria-invalid={Boolean(errors.password)}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -86,7 +91,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
-                                Log in
+                                {processing ? 'Signing in…' : 'Log in'}
                             </Button>
                         </div>
 
@@ -99,17 +104,12 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }
 
 Login.layout = {
     title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    description:
+        'Sign in to continue your private, market-specific YouTube research.',
 };

@@ -11,8 +11,11 @@ export default function ConfirmPassword() {
         <>
             <Head title="Confirm password" />
 
-
-            <Form {...store.form()} resetOnSuccess={['password']}>
+            <Form
+                {...store.form()}
+                resetOnSuccess={['password']}
+                disableWhileProcessing
+            >
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
@@ -23,6 +26,8 @@ export default function ConfirmPassword() {
                                 placeholder="Password"
                                 autoComplete="current-password"
                                 autoFocus
+                                required
+                                aria-invalid={Boolean(errors.password)}
                             />
 
                             <InputError message={errors.password} />
@@ -35,7 +40,9 @@ export default function ConfirmPassword() {
                                 data-test="confirm-password-button"
                             >
                                 {processing && <Spinner />}
-                                Confirm password
+                                {processing
+                                    ? 'Confirming…'
+                                    : 'Confirm password'}
                             </Button>
                         </div>
                     </div>
@@ -48,5 +55,5 @@ export default function ConfirmPassword() {
 ConfirmPassword.layout = {
     title: 'Confirm password',
     description:
-        'This is a secure area of the application. Please confirm your password before continuing.',
+        'For your security, confirm your password before changing sensitive account settings.',
 };

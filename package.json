@@ -5,6 +5,7 @@
     "scripts": {
         "build": "vite build",
         "build:ssr": "vite build && vite build --ssr",
+        "check": "npm run format:check && npm run lint:check && npm run types && npm run build",
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",

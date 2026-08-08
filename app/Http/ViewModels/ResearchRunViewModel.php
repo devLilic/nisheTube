@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Http\ViewModels;
+
+use App\Domain\Catalog\ReadModels\BuildResearchRunAnalysis;
+use App\Domain\Research\Enums\ResearchRunStatus;
+use App\Domain\Settings\Enums\MarketKey;
+use App\Models\ResearchRun;
+
+class ResearchRunViewModel
+{
+    public function __construct(private readonly BuildResearchRunAnalysis $buildAnalysis) {}
+
+    /** @return array<string, mixed> */
+    public function toArray(ResearchRun $run, bool $withResults = true): array
+    {
+        $data = [
+            'public_id' => $run->public_id,
+            'query_text' => $run->query_text,
+            'market' => [
+                'key' => $run->market_key,
+                'name' => MarketKey::tryFrom($run->market_key)?->label() ?? $run->market_key,
+            ],
+            'status' => $run->status->value,
+            'attempt_number' => $run->attempt_number,
+            'requested_result_count' => $run->requested_result_count,
+            'collected_result_count' => $run->collected_result_count,
+            'enriched_result_count' => $run->enriched_result_count,
+            'progress_percent' => $run->progress_percent,
+            'collection_warnings' => $run->collection_warnings ?? [],
+            'parameters' => [
+                'search_order' => $run->parameters['search_order'] ?? 'relevance',
+                'published_after' => $run->parameters['published_after'] ?? null,
+                'published_before' => $run->parameters['published_before'] ?? null,
+                'video_duration' => $run->parameters['video_duration'] ?? null,
+                'video_category_id' => $run->parameters['video_category_id'] ?? null,
+            ],
+            'created_at' => $run->created_at?->toIso8601String(),
+            'started_at' => $run->started_at?->toIso8601String(),
+            'search_completed_at' => $run->search_completed_at?->toIso8601String(),
+            'completed_at' => $run->completed_at?->toIso8601String(),
+            'failed_at' => $run->failed_at?->toIso8601String(),
+            'is_active' => ! $run->status->isTerminal(),
+            'can_retry' => $run->status === ResearchRunStatus::Failed,
+            'error' => $this->errorGuidance($run),
+        ];
+
+        if ($withResults) {
+            $data['collection'] = [
+                'pages_collected' => $run->searchPages()->count(),
+                'sample_results' => $run->searchResults()
+                    ->orderBy('result_rank')
+                    ->limit(6)
+                    ->get(['provider_video_id', 'title', 'provider_channel_id', 'published_at', 'result_rank'])
+                    ->map(fn ($result): array => [
+                        'provider_video_id' => $result->provider_video_id,
+                        'title' => $result->title,
+                        'provider_channel_id' => $result->provider_channel_id,
+                        'published_at' => $result->published_at->toIso8601String(),
+                        'result_rank' => $result->result_rank,
+                    ])->all(),
+            ];
+            $data['analysis'] = $this->buildAnalysis->handle($run);
+        }
+
+        return $data;
+    }
+
+    /** @return array{code: string, title: string, message: string, guidance: string, action: 'settings'|'new_search'|'retry'}|null */
+    private function errorGuidance(ResearchRun $run): ?array
+    {
+        if ($run->status !== ResearchRunStatus::Failed || $run->error_code === null) {
+            return null;
+        }
+
+        [$title, $guidance, $action] = match ($run->error_code) {
+            'youtube_key_missing' => [
+                'YouTube API key is missing',
+                'Add the server-side key in the local environment, then retry this saved run.',
+                'settings',
+            ],
+            'youtube_key_invalid', 'youtube_api_disabled' => [
+                'YouTube connection needs attention',
+                'Review the local integration settings before retrying this saved run.',
+                'settings',
+            ],
+            'youtube_quota_exhausted' => [
+                'Search quota is exhausted',
+                'Wait for the Pacific Time reset shown in the quota panel, then retry. Google Cloud Console is authoritative.',
+                'settings',
+            ],
+            'youtube_request_invalid' => [
+                'YouTube rejected these filters',
+                'Create a new search with adjusted filters. This failed attempt remains unchanged for history.',
+                'new_search',
+            ],
+            'youtube_rate_limited' => [
+                'YouTube is temporarily rate limiting requests',
+                'Wait briefly and retry this saved run.',
+                'retry',
+            ],
+            default => [
+                'Collection could not finish',
+                'The saved run is safe. Check the connection and retry when the provider is available.',
+                'retry',
+            ],
+        };
+
+        return [
+            'code' => $run->error_code,
+            'title' => $title,
+            'message' => $run->error_message ?? 'The research collection could not be completed.',
+            'guidance' => $guidance,
+            'action' => $action,
+        ];
+    }
+}

@@ -4,77 +4,81 @@
 
 - Execute phases in order unless a task explicitly has no dependency.
 - A module is complete only when its DB, backend, UI, states, authorization, and tests are complete.
-- Check a box only after the acceptance criteria in this file and `09_ACCEPTANCE_AND_TESTING.md` pass.
+- Check a box after the acceptance criteria and focused Codex checks in this file and `09_ACCEPTANCE_AND_TESTING.md` pass. Full PHP/React suites are manual-only and must be listed briefly for the user.
 - Every functional group below includes an explicit visual task.
+- `TASK_STATUS.md` is the live status register. At completion, mark the task complete there with focused verification evidence and a short manual-check list, then mark exactly one next unblocked task as in progress.
 
 ## Phase 0 — Foundation
 
-- [ ] **FND-01 — Adopt the Laravel 13 React starter-kit foundation**  
+- [x] **FND-01 — Adopt the Laravel 13 React starter-kit foundation**  
   Integrate official Laravel conventions for Inertia 3, React 19, TypeScript, Tailwind 4, shadcn/ui, and built-in Fortify authentication into this existing repository. Preserve documentation and local configuration. Acceptance: starter page compiles, auth routes exist, types/lint/build scripts are defined.
 
-- [ ] **FND-02 — Configure local MySQL and environment**  
+- [x] **FND-02 — Configure local MySQL and environment**  
   Configure `nishetube`, database queue/cache/session tables, `.env.example` variables, and safe Git ignores. Acceptance: clean migrations work without a real API key.
 
-- [ ] **FND-03 — Establish module structure and shared contracts**  
+- [x] **FND-03 — Establish module structure and shared contracts**  
   Add domain/application/provider boundaries described in Architecture without empty speculative classes. Start with contracts required by the first search slice.
 
-- [ ] **FND-04 — Create the UI design system and application shell (UI)**  
-  Add brand tokens, sidebar/top bar, navigation, page container, cards, badges, tables, skeletons, empty/error/partial states, and responsive behavior. Acceptance: a component showcase or Storybook-equivalent page demonstrates states using fixtures.
+- [x] **FND-04 — Create the UI design system and application shell (UI)**  
+  Add brand tokens, sidebar/top bar, navigation, page container, cards, badges, tables, skeletons, empty/error/partial states, responsive behavior, and a placeholder-safe `YouTube API Today` header area. Acceptance: a component showcase or Storybook-equivalent page demonstrates states using fixtures.
 
-- [ ] **FND-05 — Establish test and CI-like local scripts**  
+- [x] **FND-05 — Establish test and CI-like local scripts**
   Configure PHP tests, formatting, TypeScript checks, lint, build, and HTTP fakes. Acceptance: documented verification suite passes locally.
 
 ## Phase 1 — Authentication and preferences
 
-- [ ] **AUTH-01 — Authentication backend and storage**  
+- [x] **AUTH-01 — Authentication backend and storage**  
   Registration, login, logout, password reset, profile/password settings, timezone, default market, validation, rate limiting, and policies.
 
-- [ ] **AUTH-02 — Authentication and account interface (UI)**  
+- [x] **AUTH-02 — Authentication and account interface (UI)**  
   Implement polished English auth pages and account settings with loading, validation, success, and failure states.
 
-- [ ] **AUTH-03 — Authentication tests**  
+- [x] **AUTH-03 — Authentication tests**  
   Cover successful/failed flows, ownership boundaries, disabled sessions, timezone/default-market persistence, and rate limiting.
 
 ## Phase 2 — Markets, settings, and YouTube connection
 
-- [ ] **SET-01 — Market storage and seeding (DB/BE)**  
+- [x] **SET-01 — Market storage and seeding (DB/BE)**  
   Add and seed `global_en`, `ro_ro`, `ru_ru`; validate frozen request mapping.
 
-- [ ] **SET-02 — YouTube provider and quota ledger (BE)**  
-  Add provider DTOs, Laravel HTTP client adapter, safe configuration, quota-attempt ledger, normalized errors, pagination and batch helpers.
+- [x] **SET-02 — YouTube provider and quota ledger (BE)**  
+  Add provider DTOs, Laravel HTTP client adapter, safe configuration, quota-attempt ledger, normalized errors, pagination and batch helpers. Record every request, recompute quota-bucket estimates after each request, support current configurable buckets, and publish a safe project-wide quota summary for the UI.
 
-- [ ] **SET-03 — Integration and market settings interface (UI)**  
-  Add settings sections for masked key presence, connectivity test, quota meters/disclaimer, default market, timezone, and default depth.
+- [x] **SET-03 — Integration and market settings interface (UI)**  
+  Add settings sections for masked key presence, connectivity test, quota meters/disclaimer, default market, timezone, and default depth. Implement the persistent authenticated-header `YouTube API Today` widget with per-bucket remaining estimates, last call details, reset time, polling updates, and loading/stale/exhausted states.
 
-- [ ] **SET-04 — Provider/settings tests**  
+- [x] **SET-04 — Provider/settings tests**  
   Fake all API responses; cover market mapping, pagination, invalid/missing key, quota exhaustion, partial payloads, and no key leakage.
+
+- [x] **FIX-01 — Contain the YouTube API Today header widget (UI)**  
+  Keep the market and quota controls within the authenticated header at tablet and narrow desktop widths. Acceptance: quota values remain readable without crossing the page boundary at the reported width and at 768px.
 
 ## Phase 3 — Search and run lifecycle
 
-- [ ] **SRCH-01 — Research schema and authorization (DB/BE)**  
+- [x] **SRCH-01 — Research schema and authorization (DB/BE)**  
   Add projects, queries, runs, statuses, frozen parameters, policies, and run state transitions.
 
-- [ ] **SRCH-02 — Search orchestration jobs (BE)**  
+- [x] **SRCH-02 — Search orchestration jobs (BE)**  
   Queue search, pagination, enrichment handoff, progress, idempotency, retry, and safe failures.
 
-- [ ] **SRCH-03 — Search creation and live run interface (UI)**  
+- [x] **SRCH-03 — Search creation and live run interface (UI)**  
   Add query/market/filter form, estimated search-call cost, run progress page, partial states, error guidance, and retry action.
 
-- [ ] **SRCH-04 — Search tests**  
+- [x] **SRCH-04 — Search tests**  
   Cover validation, ownership, frozen parameters, state machine, job retries, duplicated delivery, and quota failure.
 
 ## Phase 4 — Video and channel analysis
 
-- [ ] **ANL-01 — Catalog and immutable snapshot schema (DB)**  
+- [x] **ANL-01 — Catalog and immutable snapshot schema (DB)**  
   Add videos, channels, run pivots, video snapshots, channel snapshots, constraints, and indexes.
 
-- [ ] **ANL-02 — Enrichment and derived metrics (BE)**  
+- [x] **ANL-02 — Enrichment and derived metrics (BE)**  
   Batch enrichment, normalize nullable/hidden metrics, compute age and display metrics from stored data, and preserve collection timestamps.
 
-- [ ] **ANL-03 — Research analysis interface (UI)**  
+- [x] **ANL-03 — Research analysis interface (UI)**  
   Add aggregate metric cards, video/channel charts, searchable tables, detail drawers, freshness labels, exact values, partial-data warnings, and responsive behavior.
 
-- [ ] **ANL-04 — Analysis tests**  
+- [x] **ANL-04 — Analysis tests**  
   Cover batch limits, missing statistics, deduplication, immutable refreshes, derived metrics, authorization, and query performance.
 
 ## Phase 5 — Opportunity scoring
@@ -174,4 +178,3 @@
 - **M2 — Explainable:** Phases 5–6.
 - **M3 — Discoverable:** Phases 7–9.
 - **M4 — Manageable:** Phases 10–12.
-

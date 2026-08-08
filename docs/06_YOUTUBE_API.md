@@ -104,10 +104,25 @@ Normalize provider responses into safe internal errors:
 
 Do not store full provider messages if they may contain sensitive request details.
 
-## 9. Test strategy
+## 9. In-application quota widget and ledger
+
+NisheTube cannot present a Google-authoritative remaining-quota value after each request. Google directs developers to the Google Cloud Console Quotas page for that value. Instead, NisheTube maintains a local estimate from every API attempt it makes and labels the interface accordingly.
+
+For each request:
+
+1. identify the configured quota bucket and cost from versioned provider configuration;
+2. create an `api_usage_events` ledger entry with endpoint, bucket, estimated cost, user/run context, timestamp, and outcome;
+3. recompute the current day summary using the quota reset boundary at midnight Pacific Time;
+4. include the safe summary in the next Inertia response/status poll so the persistent header widget refreshes;
+5. when the provider returns a quota-exceeded response, mark that bucket exhausted in the current estimate and show an actionable warning.
+
+Initial buckets are `search.list` (100 calls/day by default) and the general API bucket (10,000 units/day by default). The implementation must support new granular buckets and user-configured approved limits without schema rewrites.
+
+Every request, including an invalid one, is charged at least one relevant quota unit according to Google documentation. If other software consumes the same project quota, the local estimate may be optimistic; the UI must state that Google Cloud Console is authoritative.
+
+## 10. Test strategy
 
 - Fake HTTP responses; automated tests must not consume real quota.
 - Cover pagination, batching, missing statistics, quota ledger writes, transient retries, invalid key, quota exhaustion, malformed payloads, and partial enrichment.
 - Keep sanitized JSON fixtures small and document their source shape.
 - A manual connectivity test is the only routine path allowed to make a real API call during setup.
-

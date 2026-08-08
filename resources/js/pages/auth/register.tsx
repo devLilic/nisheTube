@@ -37,6 +37,7 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="name"
                                     name="name"
                                     placeholder="Full name"
+                                    aria-invalid={Boolean(errors.name)}
                                 />
                                 <InputError
                                     message={errors.name}
@@ -54,6 +55,7 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
+                                    aria-invalid={Boolean(errors.email)}
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -68,6 +70,7 @@ export default function Register({ passwordRules }: Props) {
                                     name="password"
                                     placeholder="Password"
                                     passwordrules={passwordRules}
+                                    aria-invalid={Boolean(errors.password)}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -84,6 +87,9 @@ export default function Register({ passwordRules }: Props) {
                                     name="password_confirmation"
                                     placeholder="Confirm password"
                                     passwordrules={passwordRules}
+                                    aria-invalid={Boolean(
+                                        errors.password_confirmation,
+                                    )}
                                 />
                                 <InputError
                                     message={errors.password_confirmation}
@@ -97,7 +103,9 @@ export default function Register({ passwordRules }: Props) {
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}
-                                Create account
+                                {processing
+                                    ? 'Creating account…'
+                                    : 'Create account'}
                             </Button>
                         </div>
 
@@ -116,5 +124,6 @@ export default function Register({ passwordRules }: Props) {
 
 Register.layout = {
     title: 'Create an account',
-    description: 'Enter your details below to create your account',
+    description:
+        'Create a local account to keep your projects, runs, and saved findings private.',
 };
