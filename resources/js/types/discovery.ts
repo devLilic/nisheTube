@@ -38,6 +38,11 @@ export type NicheCandidate = {
         member_phrases?: string[];
         source_video_count?: number;
         seed_count?: number;
+        analyzer_run_ids?: string[];
+        evidence_provenance?: ('research_snapshot' | 'analyzer_profile')[];
+        opportunity_score_status?: 'requires_validation_search';
+        inferred_topics?: string[];
+        inferred_topic_provenance?: string | null;
     };
     validation_run: {
         public_id: string;

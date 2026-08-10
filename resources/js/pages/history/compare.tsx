@@ -1,4 +1,5 @@
 import { Deferred, Head, usePage } from '@inertiajs/react';
+import { AnalyticsGlossary } from '@/components/analytics-glossary';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { ComparisonView } from '@/features/history/comparison-view';
@@ -26,6 +27,7 @@ export default function HistoryCompare({ pair, comparison }: Props) {
                     title="Snapshot changes"
                     description="Inspect score, metric, video, and channel composition changes from immutable stored evidence."
                 />
+                <AnalyticsGlossary page="history_compare" />
                 <Deferred
                     data="comparison"
                     fallback={<HistoryLoading />}

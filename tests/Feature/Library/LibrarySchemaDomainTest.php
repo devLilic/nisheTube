@@ -18,6 +18,7 @@ use App\Domain\Library\Actions\UpdateProject;
 use App\Domain\Library\Actions\UpdateTag;
 use App\Domain\Research\Actions\CreateResearchQuery;
 use App\Domain\Research\Actions\CreateResearchRun;
+use App\Models\AnalyzerRun;
 use App\Models\Channel;
 use App\Models\Market;
 use App\Models\NicheCandidate;
@@ -25,6 +26,7 @@ use App\Models\ResearchQuery;
 use App\Models\ResearchRun;
 use App\Models\User;
 use App\Models\Video;
+use App\Models\WatchlistItem;
 use Database\Seeders\MarketSeeder;
 use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -57,11 +59,13 @@ class LibrarySchemaDomainTest extends TestCase
         $this->assertTrue(Schema::hasColumns('taggables', ['tag_id', 'target_type', 'target_id']));
         $this->assertTrue(Schema::hasIndex('taggables', ['tag_id', 'target_type', 'target_id'], 'unique'));
         $this->assertSame([
-            'niche_candidate' => NicheCandidate::class,
             'video' => Video::class,
             'channel' => Channel::class,
             'research_query' => ResearchQuery::class,
             'research_run' => ResearchRun::class,
+            'niche_candidate' => NicheCandidate::class,
+            'analyzer_run' => AnalyzerRun::class,
+            'watchlist_item' => WatchlistItem::class,
         ], Relation::morphMap());
     }
 

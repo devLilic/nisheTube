@@ -83,10 +83,7 @@ class BuildResearchRunComparison
         /** @var Collection<int, stdClass> $rows */
         $rows = DB::table('research_run_videos as membership')
             ->join('videos as video', 'video.id', '=', 'membership.video_id')
-            ->leftJoin('video_snapshots as snapshot', function ($join): void {
-                $join->on('snapshot.video_id', '=', 'membership.video_id')
-                    ->on('snapshot.research_run_id', '=', 'membership.research_run_id');
-            })
+            ->leftJoin('video_snapshots as snapshot', 'snapshot.id', '=', 'membership.video_snapshot_id')
             ->whereIn('membership.research_run_id', $runIds)
             ->select([
                 'membership.research_run_id',
@@ -117,10 +114,7 @@ class BuildResearchRunComparison
         $rows = DB::table('research_run_videos as membership')
             ->join('videos as video', 'video.id', '=', 'membership.video_id')
             ->join('channels as channel', 'channel.id', '=', 'video.channel_id')
-            ->leftJoin('channel_snapshots as snapshot', function ($join): void {
-                $join->on('snapshot.channel_id', '=', 'channel.id')
-                    ->on('snapshot.research_run_id', '=', 'membership.research_run_id');
-            })
+            ->leftJoin('channel_snapshots as snapshot', 'snapshot.id', '=', 'membership.channel_snapshot_id')
             ->whereIn('membership.research_run_id', $runIds)
             ->select([
                 'membership.research_run_id',

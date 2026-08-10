@@ -75,9 +75,15 @@ export function RetentionWorkspace({
     const selectedFavorites = selectedRuns.filter(
         (run) => run.favorite_impacted,
     ).length;
-    const eligibleRuns = preview.counts.research_runs;
+    const eligibleResearchRuns = preview.counts.research_runs;
+    const eligibleAnalyzerRuns = preview.counts.analyzer_runs;
+    const eligibleRuns = eligibleResearchRuns + eligibleAnalyzerRuns;
     const expiredExports = preview.counts.expired_exports;
     const preservedFavorites = preview.counts.preserved_favorites;
+    const preservedSharedSources = preview.counts.preserved_shared_sources;
+    const selectableRunCount = preview.runs.filter(
+        (run) => !run.shared_source_impacted,
+    ).length;
     const nothingDue = eligibleRuns === 0 && expiredExports === 0;
 
     function toggleRun(publicId: string, checked: boolean) {
@@ -89,7 +95,13 @@ export function RetentionWorkspace({
     }
 
     function toggleAll(checked: boolean) {
-        setSelectedIds(checked ? preview.runs.map((run) => run.public_id) : []);
+        setSelectedIds(
+            checked
+                ? preview.runs
+                      .filter((run) => !run.shared_source_impacted)
+                      .map((run) => run.public_id)
+                : [],
+        );
     }
 
     return (
@@ -140,7 +152,7 @@ export function RetentionWorkspace({
                         <Summary
                             label="Eligible runs"
                             value={eligibleRuns}
-                            detail="Completed or failed"
+                            detail={`${number.format(eligibleResearchRuns)} Research · ${number.format(eligibleAnalyzerRuns)} Analyzer`}
                         />
                         <Summary
                             label="Video snapshots"
@@ -157,6 +169,21 @@ export function RetentionWorkspace({
                             value={expiredExports}
                             detail="Private generated files"
                         />
+                        <Summary
+                            label="Public comments"
+                            value={preview.counts.public_comments}
+                            detail={`${number.format(preview.counts.comment_collections)} opt-in collection(s)`}
+                        />
+                        <Summary
+                            label="Transcript segments"
+                            value={preview.counts.transcript_segments}
+                            detail={`${number.format(preview.counts.transcript_documents)} user-provided transcript revision(s)`}
+                        />
+                        <Summary
+                            label="Thumbnail analysis items"
+                            value={preview.counts.thumbnail_analysis_items}
+                            detail={`${number.format(preview.counts.thumbnail_analysis_profiles)} profile(s) · ${number.format(preview.counts.thumbnail_performance_aggregates)} association row(s)`}
+                        />
                     </div>
 
                     {preservedFavorites > 0 && (
@@ -164,6 +191,14 @@ export function RetentionWorkspace({
                             tone="info"
                             title={`${number.format(preservedFavorites)} favorited run${preservedFavorites === 1 ? '' : 's'} preserved`}
                             message="Automatic and retention cleanup skip these runs. A selected favorited run requires a second explicit confirmation."
+                        />
+                    )}
+
+                    {preservedSharedSources > 0 && (
+                        <FormStatus
+                            tone="info"
+                            title={`${number.format(preservedSharedSources)} shared source run${preservedSharedSources === 1 ? '' : 's'} preserved`}
+                            message="These observations are pinned by another retained Research or Analyzer result, so cleanup keeps the original source and timestamp intact."
                         />
                     )}
 
@@ -439,10 +474,11 @@ export function RetentionWorkspace({
                                 <TableRow>
                                     <TableHead className="w-12">
                                         <Checkbox
-                                            aria-label="Select all historical snapshots"
+                                            aria-label="Select all deletable historical snapshots"
                                             checked={
+                                                selectableRunCount > 0 &&
                                                 selectedIds.length ===
-                                                preview.runs.length
+                                                    selectableRunCount
                                                     ? true
                                                     : selectedIds.length > 0
                                                       ? 'indeterminate'
@@ -503,6 +539,7 @@ function SnapshotRow({
                 <Checkbox
                     aria-label={`Select ${run.query_text}`}
                     checked={selected}
+                    disabled={run.shared_source_impacted}
                     onCheckedChange={(checked) => onSelected(checked === true)}
                 />
             </TableCell>
@@ -529,7 +566,9 @@ function SnapshotRow({
                 {number.format(run.artifacts)}
             </TableCell>
             <TableCell>
-                {run.favorite_impacted ? (
+                {run.shared_source_impacted ? (
+                    <Badge variant="outline">Shared source preserved</Badge>
+                ) : run.favorite_impacted ? (
                     <Badge
                         variant="outline"
                         className="border-rose-300 text-rose-700 dark:text-rose-300"
@@ -626,8 +665,8 @@ function AuditEntry({
     const deleted = entry.items.filter(
         (item) => item.outcome === 'deleted',
     ).length;
-    const preserved = entry.items.filter(
-        (item) => item.outcome === 'preserved_favorite',
+    const preserved = entry.items.filter((item) =>
+        item.outcome.startsWith('preserved'),
     ).length;
     const active = entry.status === 'queued' || entry.status === 'processing';
 
@@ -710,11 +749,17 @@ function AuditEntry({
                 <div className="grid gap-3 sm:grid-cols-3">
                     <AuditMetric
                         label="Eligible runs"
-                        value={entry.eligible_counts.research_runs ?? 0}
+                        value={
+                            (entry.eligible_counts.research_runs ?? 0) +
+                            (entry.eligible_counts.analyzer_runs ?? 0)
+                        }
                     />
                     <AuditMetric
                         label="Deleted runs"
-                        value={entry.deleted_counts.research_runs ?? 0}
+                        value={
+                            (entry.deleted_counts.research_runs ?? 0) +
+                            (entry.deleted_counts.analyzer_runs ?? 0)
+                        }
                     />
                     <AuditMetric
                         label="Deleted exports"

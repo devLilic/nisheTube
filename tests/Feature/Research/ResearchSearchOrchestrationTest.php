@@ -239,6 +239,9 @@ class ResearchSearchOrchestrationTest extends TestCase
         $this->assertSame($run->market_key, $retry->market_key);
         $this->assertSame($run->parameters, $retry->parameters);
         $this->assertSame($run->requested_result_count, $retry->requested_result_count);
+        $this->assertNotSame($run->collection_run_id, $retry->collection_run_id);
+        $this->assertSame($run->collectionRun->cache_policy, $retry->collectionRun->cache_policy);
+        $this->assertSame($run->collectionRun->frozen_request, $retry->collectionRun->frozen_request);
         $this->assertSame(ResearchRunStatus::Failed, $run->fresh()->status);
         Queue::assertPushed(CollectResearchRunSearch::class, function (CollectResearchRunSearch $job) use ($retry): bool {
             return $job->researchRunId === $retry->id;

@@ -4,6 +4,7 @@ namespace App\Domain\Catalog\ReadModels;
 
 use App\Models\ResearchRun;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use stdClass;
@@ -15,17 +16,11 @@ class BuildResearchRunAnalysis
     {
         /** @var Collection<int, stdClass> $records */
         $records = DB::table('video_snapshots as video_snapshot')
-            ->join('videos as video', 'video.id', '=', 'video_snapshot.video_id')
+            ->join('research_run_videos as membership', 'membership.video_snapshot_id', '=', 'video_snapshot.id')
+            ->join('videos as video', 'video.id', '=', 'membership.video_id')
             ->join('channels as channel', 'channel.id', '=', 'video.channel_id')
-            ->join('research_run_videos as membership', function ($join) use ($run): void {
-                $join->on('membership.video_id', '=', 'video.id')
-                    ->where('membership.research_run_id', '=', $run->id);
-            })
-            ->leftJoin('channel_snapshots as channel_snapshot', function ($join) use ($run): void {
-                $join->on('channel_snapshot.channel_id', '=', 'channel.id')
-                    ->where('channel_snapshot.research_run_id', '=', $run->id);
-            })
-            ->where('video_snapshot.research_run_id', $run->id)
+            ->leftJoin('channel_snapshots as channel_snapshot', 'channel_snapshot.id', '=', 'membership.channel_snapshot_id')
+            ->where('membership.research_run_id', $run->id)
             ->orderBy('membership.result_rank')
             ->select([
                 'video.provider_video_id',
@@ -55,6 +50,12 @@ class BuildResearchRunAnalysis
                 'channel_snapshot.subscriber_count_hidden',
                 'channel_snapshot.metadata as channel_metadata',
                 'channel_snapshot.collected_at as channel_collected_at',
+                'video_detected_niche' => $this->semanticSubquery($run, 'video', 'video.id', 'niche_label'),
+                'video_semantic_language' => $this->semanticSubquery($run, 'video', 'video.id', 'language'),
+                'video_semantic_version' => $this->semanticSubquery($run, 'video', 'video.id', 'algorithm_version'),
+                'channel_detected_niche' => $this->semanticSubquery($run, 'channel', 'channel.id', 'niche_label'),
+                'channel_semantic_language' => $this->semanticSubquery($run, 'channel', 'channel.id', 'language'),
+                'channel_semantic_version' => $this->semanticSubquery($run, 'channel', 'channel.id', 'algorithm_version'),
             ])
             ->get();
 
@@ -139,6 +140,7 @@ class BuildResearchRunAnalysis
             'is_short' => $record->is_short !== null ? (bool) $record->is_short : null,
             'published_at' => CarbonImmutable::parse((string) $record->published_at)->toIso8601String(),
             'collected_at' => CarbonImmutable::parse((string) $record->video_collected_at)->toIso8601String(),
+            'detected_topic_profile' => $this->semanticSummary($record, 'video'),
         ];
     }
 
@@ -179,6 +181,36 @@ class BuildResearchRunAnalysis
             'median_views_per_day' => $this->median($records->pluck('views_per_day')->all()),
             'median_reach_ratio' => $this->median($records->pluck('views_to_subscribers_ratio')->all()),
             'collected_at' => $collectedAt?->toIso8601String(),
+            'detected_topic_profile' => $this->semanticSummary($first, 'channel'),
+        ];
+    }
+
+    private function semanticSubquery(ResearchRun $run, string $targetKind, string $targetColumn, string $column): Builder
+    {
+        return DB::table('semantic_topic_profiles as profile')
+            ->join('analyzer_runs as analyzer', 'analyzer.id', '=', 'profile.analyzer_run_id')
+            ->select('profile.'.$column)
+            ->where('profile.user_id', $run->user_id)
+            ->whereIn('profile.status', ['complete', 'partial'])
+            ->where('analyzer.target_kind', $targetKind)
+            ->whereColumn($targetKind === 'video' ? 'analyzer.video_id' : 'analyzer.channel_id', $targetColumn)
+            ->orderByDesc('profile.calculated_at')
+            ->limit(1);
+    }
+
+    /** @return array{niche: string, topics: list<string>, language: string, version: string}|null */
+    private function semanticSummary(stdClass $record, string $prefix): ?array
+    {
+        $niche = $record->{$prefix.'_detected_niche'};
+        if (! is_string($niche) || $niche === '') {
+            return null;
+        }
+
+        return [
+            'niche' => $niche,
+            'topics' => [$niche],
+            'language' => (string) $record->{$prefix.'_semantic_language'},
+            'version' => (string) $record->{$prefix.'_semantic_version'},
         ];
     }
 

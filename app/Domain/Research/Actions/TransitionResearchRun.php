@@ -2,6 +2,7 @@
 
 namespace App\Domain\Research\Actions;
 
+use App\Domain\Collection\Actions\SyncResearchCollectionRun;
 use App\Domain\Research\Data\RunFailure;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Research\Exceptions\InvalidResearchRunTransition;
@@ -11,6 +12,8 @@ use InvalidArgumentException;
 
 class TransitionResearchRun
 {
+    public function __construct(private readonly SyncResearchCollectionRun $syncCollectionRun) {}
+
     public function handle(
         ResearchRun $run,
         ResearchRunStatus $nextStatus,
@@ -62,6 +65,7 @@ class TransitionResearchRun
             }
 
             $lockedRun->update($attributes);
+            $this->syncCollectionRun->handle($lockedRun);
 
             return $lockedRun;
         });

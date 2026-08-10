@@ -1,4 +1,5 @@
 import { Deferred, Head, usePage } from '@inertiajs/react';
+import { AnalyticsGlossary } from '@/components/analytics-glossary';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import {
@@ -20,11 +21,8 @@ export default function HistoryIndex({ history }: Props) {
         <>
             <Head title="History" />
             <PageContainer>
-                <PageHeader
-                    eyebrow="Immutable research record"
-                    title="History"
-                    description="Review timestamped search and validation runs, then compare useful snapshots without rewriting their stored metrics or score versions."
-                />
+                <PageHeader title="History" compact />
+                <AnalyticsGlossary page="history" />
                 <Deferred
                     data="history"
                     fallback={<HistoryLoading />}

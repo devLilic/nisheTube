@@ -3,8 +3,10 @@
 namespace Tests\Feature\YouTube;
 
 use App\Domain\Settings\Data\FrozenMarketParameters;
+use App\Domain\YouTube\Contracts\ChannelUploadsProvider;
 use App\Domain\YouTube\Contracts\QuotaLedger;
 use App\Domain\YouTube\Contracts\VideoResearchProvider;
+use App\Domain\YouTube\Data\ChannelUploadsRequest;
 use App\Domain\YouTube\Data\ProviderRequestContext;
 use App\Domain\YouTube\Data\VideoSearchRequest;
 use App\Domain\YouTube\Enums\QuotaUsageOutcome;
@@ -98,6 +100,45 @@ class YouTubeProviderTest extends TestCase
                 ->where('youtubeQuota.buckets.0.used', 1)
                 ->where('youtubeQuota.buckets.0.remaining', 99)
                 ->where('youtubeQuota.buckets.0.last_endpoint', 'search.list'));
+    }
+
+    public function test_channel_uploads_use_bounded_playlist_pages_and_normalize_missing_items(): void
+    {
+        $user = User::factory()->create();
+        Http::fake([
+            'https://www.googleapis.com/youtube/v3/playlistItems*' => Http::response([
+                'nextPageToken' => 'next-uploads-page',
+                'items' => [
+                    ['contentDetails' => ['videoId' => 'upload-1']],
+                    ['snippet' => ['resourceId' => ['videoId' => 'upload-2']]],
+                    ['contentDetails' => []],
+                ],
+            ]),
+        ]);
+
+        $page = app(ChannelUploadsProvider::class)->listUploads(new ChannelUploadsRequest(
+            playlistId: 'UUchannel',
+            maxResults: 30,
+            pageToken: 'page-1',
+            context: new ProviderRequestContext(userId: $user->id),
+        ));
+
+        $this->assertSame(['upload-1', 'upload-2'], array_map(
+            static fn ($upload): string => $upload->videoId,
+            $page->uploads,
+        ));
+        $this->assertSame('next-uploads-page', $page->nextPageToken);
+        $this->assertNotEmpty($page->warnings);
+        Http::assertSent(fn (Request $request): bool => $request['part'] === 'contentDetails'
+            && $request['playlistId'] === 'UUchannel'
+            && $request['maxResults'] === 30
+            && $request['pageToken'] === 'page-1');
+        $this->assertDatabaseHas('api_usage_events', [
+            'user_id' => $user->id,
+            'endpoint' => 'playlistItems.list',
+            'quota_bucket' => 'general',
+            'estimated_cost' => 1,
+        ]);
     }
 
     #[DataProvider('marketRequestMappings')]

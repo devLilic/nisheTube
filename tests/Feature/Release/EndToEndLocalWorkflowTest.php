@@ -2,21 +2,30 @@
 
 namespace Tests\Feature\Release;
 
+use App\Domain\Analyzer\Enums\AnalyzerRunStatus;
+use App\Domain\Discovery\Enums\DiscoveryRunStatus;
 use App\Domain\Exports\Enums\ExportStatus;
 use App\Domain\Library\Enums\LibraryTargetType;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Retention\Enums\CleanupStatus;
 use App\Domain\Retention\Enums\DeletionOutcome;
+use App\Jobs\Analyzer\CollectAnalyzerRun;
+use App\Jobs\Discovery\GenerateDiscoveryCandidates;
 use App\Jobs\Exports\GenerateResearchExport;
 use App\Jobs\Research\CollectResearchRunSearch;
 use App\Jobs\Research\EnrichResearchRun;
 use App\Jobs\Research\ScoreResearchRun;
 use App\Jobs\Retention\ExecuteCleanupRun;
+use App\Models\AnalyzerRun;
+use App\Models\ApiUsageEvent;
 use App\Models\CleanupRun;
+use App\Models\DiscoveryRun;
 use App\Models\ResearchExport;
 use App\Models\ResearchProject;
 use App\Models\ResearchRun;
+use App\Models\TopicWorkspace;
 use App\Models\User;
+use App\Models\WatchlistItem;
 use Carbon\CarbonImmutable;
 use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -157,6 +166,125 @@ final class EndToEndLocalWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_integrated_expansion_keeps_canonical_evidence_quota_and_ownership_boundaries_intact(): void
+    {
+        $this->fakeYouTubeWorkflow();
+
+        $owner = User::factory()->create([
+            'timezone' => 'Europe/Bucharest',
+            'default_market_key' => 'ro_ro',
+            'default_result_depth' => 25,
+        ]);
+        $other = User::factory()->create();
+        $this->actingAs($owner);
+
+        $firstRun = $this->submitAndCompleteResearch('organizare pentru apartamente mici');
+        $video = $firstRun->videos()->sole();
+
+        $this->from(route('research.runs.show', $firstRun))->post(route('analyzer.store'), [
+            'video_reference' => $video->provider_video_id,
+            'origin_kind' => 'search',
+            'origin_reference' => $firstRun->public_id,
+            'return_to' => "/research/runs/{$firstRun->public_id}?tab=videos",
+        ])->assertRedirect();
+
+        $analyzerRun = AnalyzerRun::query()->latest('id')->firstOrFail();
+        app()->call([new CollectAnalyzerRun($analyzerRun->id), 'handle']);
+        $analyzerRun->refresh();
+
+        $this->assertSame(AnalyzerRunStatus::Completed, $analyzerRun->status);
+        $this->assertSame($video->id, $analyzerRun->video_id);
+        $this->assertSame($firstRun->public_id, $analyzerRun->origin_reference);
+        $this->assertGreaterThanOrEqual(3, $analyzerRun->videoMemberships()->count());
+
+        $quotaBeforeReadOnlySurfaces = ApiUsageEvent::query()->count();
+        $this->get(route('analyzer.runs.show', $analyzerRun))->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->where('run.video.title', 'Mobilier compact pentru spații mici — хранение для квартиры')
+                ->where('run.origin.reference', $firstRun->public_id));
+        $this->get(route('explore.index', ['source' => 'analyzer']))->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->where('capabilities.provider_io_during_browsing', false)
+                ->where('results.data.0.id', $video->provider_video_id));
+        $this->assertSame($quotaBeforeReadOnlySurfaces, ApiUsageEvent::query()->count());
+
+        $this->from(route('analyzer.runs.show', $analyzerRun))->post(route('watchlist.store'), [
+            'target_type' => 'video',
+            'target_reference' => $video->provider_video_id,
+            'note' => 'Urmărește evoluția — отслеживать динамику.',
+        ])->assertRedirect();
+        $watchlistItem = WatchlistItem::query()->where('user_id', $owner->id)->sole();
+
+        $this->post(route('topics.store'), [
+            'name' => 'Spații mici — хранение и организация',
+            'description' => 'Evidence across Romanian and Russian titles.',
+            'market_key' => 'ro_ro',
+        ])->assertRedirect();
+        $workspace = TopicWorkspace::query()->where('user_id', $owner->id)->sole();
+
+        $this->patch(route('watchlist.update', $watchlistItem), [
+            'status' => 'monitoring',
+            'is_active' => true,
+            'workspace' => $workspace->public_id,
+            'note' => 'Urmărește evoluția — отслеживать динамику.',
+        ])->assertRedirect();
+        $this->post(route('topics.evidence.store', $workspace), [
+            'target_type' => 'analyzer_run',
+            'target_reference' => $analyzerRun->public_id,
+            'evidence_role' => 'example',
+            'note' => 'Canonical Analyzer evidence.',
+        ])->assertRedirect();
+        $this->post(route('topics.evidence.store', $workspace), [
+            'target_type' => 'research_run',
+            'target_reference' => $firstRun->public_id,
+            'evidence_role' => 'evidence',
+        ])->assertRedirect();
+
+        $this->post(route('topics.launch.discovery', $workspace), [
+            'confirmed' => true,
+            'research_run' => $firstRun->public_id,
+        ])->assertRedirect();
+        $discoveryRun = DiscoveryRun::query()->where('user_id', $owner->id)->sole();
+        app()->call([new GenerateDiscoveryCandidates($discoveryRun->id), 'handle']);
+        $this->assertSame(DiscoveryRunStatus::Completed, $discoveryRun->fresh()->status);
+        $candidate = $discoveryRun->candidates()->firstOrFail();
+
+        $this->post(route('discovery.candidates.validate', $candidate), [
+            'requested_result_count' => 25,
+        ])->assertRedirect();
+        $validationRun = $candidate->fresh()->validationResearchRun;
+        $this->assertNotNull($validationRun);
+        $this->assertSame('discovery_validation', $validationRun->kind->value);
+
+        CarbonImmutable::setTestNow('2026-08-08 12:00:00 UTC');
+        $secondRun = $this->submitAndCompleteResearch(' Organizare pentru apartamente mici ');
+        $this->get(route('history.compare', [$firstRun, $secondRun]))->assertOk();
+
+        $this->post(route('exports.store'), [
+            'format' => 'csv',
+            'research_run_ids' => [$firstRun->public_id, $secondRun->public_id],
+            'columns' => ['run_id', 'query', 'market', 'run_completed_at', 'video_title', 'views'],
+        ])->assertRedirect(route('exports.index'));
+        $export = ResearchExport::query()->sole();
+        app()->call([new GenerateResearchExport($export->id), 'handle']);
+        $this->get(route('exports.download', $export->fresh()))->assertOk();
+
+        CarbonImmutable::setTestNow('2027-03-01 12:00:00 UTC');
+        $this->post(route('retention.preview'))->assertRedirect(route('retention.index'));
+        $preview = CleanupRun::query()->where('dry_run', true)->latest('id')->firstOrFail();
+        $this->assertGreaterThan(0, array_sum($preview->eligible_counts));
+
+        $this->actingAs($other)->get(route('analyzer.runs.show', $analyzerRun))->assertForbidden();
+        $this->actingAs($other)->get(route('topics.show', $workspace))->assertForbidden();
+        $this->actingAs($other)->patch(route('watchlist.update', $watchlistItem), [
+            'status' => 'monitoring',
+            'is_active' => true,
+        ])->assertForbidden();
+        $this->actingAs($other)->get(route('exports.download', $export))->assertForbidden();
+        $this->actingAs($other)->get(route('explore.index', ['search' => 'хранение']))->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page->has('results.data', 0));
+    }
+
     private function submitAndCompleteResearch(string $query): ResearchRun
     {
         $this->post(route('research.store'), [
@@ -190,35 +318,55 @@ final class EndToEndLocalWorkflowTest extends TestCase
         Http::fake(function (Request $request) use (&$videoRequest) {
             if (str_contains($request->url(), '/search')) {
                 return Http::response(['items' => [[
-                    'id' => ['videoId' => 'workflow-video'],
+                    'id' => ['videoId' => 'workflow01A'],
                     'snippet' => [
                         'channelId' => 'workflow-channel',
-                        'title' => 'Mobilier compact pentru spații mici',
+                        'title' => 'Mobilier compact pentru spații mici — хранение для квартиры',
                         'publishedAt' => '2026-07-01T12:00:00Z',
                     ],
+                ]]]);
+            }
+
+            if (str_contains($request->url(), '/playlistItems')) {
+                return Http::response(['items' => [
+                    ['contentDetails' => ['videoId' => 'cohort00001']],
+                    ['contentDetails' => ['videoId' => 'cohort00002']],
+                    ['contentDetails' => ['videoId' => 'cohort00003']],
+                ]]);
+            }
+
+            if (str_contains($request->url(), '/videoCategories')) {
+                return Http::response(['items' => [[
+                    'id' => '26',
+                    'snippet' => ['title' => 'Howto & Style', 'assignable' => true],
                 ]]]);
             }
 
             if (str_contains($request->url(), '/videos')) {
                 $videoRequest++;
 
-                return Http::response(['items' => [[
-                    'id' => 'workflow-video',
+                $ids = explode(',', (string) $request->data()['id']);
+                $items = array_map(fn (string $id, int $index): array => [
+                    'id' => $id,
                     'snippet' => [
                         'channelId' => 'workflow-channel',
                         'channelTitle' => 'Atelier Compact',
-                        'title' => 'Mobilier compact pentru spații mici',
-                        'publishedAt' => '2026-07-01T12:00:00Z',
+                        'title' => $id === 'workflow01A'
+                            ? 'Mobilier compact pentru spații mici — хранение для квартиры'
+                            : "Idei compacte {$index} — организация дома",
+                        'publishedAt' => sprintf('2026-07-%02dT12:00:00Z', min(28, $index + 1)),
                         'categoryId' => '26',
-                        'thumbnails' => ['high' => ['url' => 'https://example.test/workflow-video.jpg']],
+                        'thumbnails' => ['high' => ['url' => "https://i.ytimg.com/vi/{$id}/hqdefault.jpg"]],
                     ],
                     'contentDetails' => ['duration' => 'PT8M30S'],
                     'statistics' => [
-                        'viewCount' => (string) (10000 * $videoRequest),
-                        'likeCount' => (string) (500 * $videoRequest),
-                        'commentCount' => (string) (50 * $videoRequest),
+                        'viewCount' => (string) ((10000 * $videoRequest) + ($index * 1000)),
+                        'likeCount' => (string) ((500 * $videoRequest) + ($index * 50)),
+                        'commentCount' => (string) ((50 * $videoRequest) + $index),
                     ],
-                ]]]);
+                ], $ids, array_keys($ids));
+
+                return Http::response(['items' => $items]);
             }
 
             return Http::response(['items' => [[

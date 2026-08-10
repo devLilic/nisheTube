@@ -49,6 +49,18 @@ class ResearchProject extends Model
         return $this->hasMany(Favorite::class);
     }
 
+    /** @return HasMany<WatchlistItem, $this> */
+    public function watchlistItems(): HasMany
+    {
+        return $this->hasMany(WatchlistItem::class);
+    }
+
+    /** @return HasMany<TopicWorkspace, $this> */
+    public function topicWorkspaces(): HasMany
+    {
+        return $this->hasMany(TopicWorkspace::class);
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

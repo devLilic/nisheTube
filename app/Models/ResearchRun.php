@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $public_id
  * @property int $user_id
  * @property int $research_query_id
+ * @property int|null $collection_run_id
  * @property ResearchRunKind $kind
  * @property ResearchRunStatus $status
  * @property int $attempt_number
@@ -44,6 +45,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'user_id',
     'research_query_id',
+    'collection_run_id',
     'kind',
     'status',
     'attempt_number',
@@ -72,6 +74,7 @@ class ResearchRun extends Model
         'public_id',
         'user_id',
         'research_query_id',
+        'collection_run_id',
         'kind',
         'attempt_number',
         'query_text',
@@ -103,6 +106,24 @@ class ResearchRun extends Model
                 throw new DomainException('Frozen research run parameters cannot be changed.');
             }
         });
+
+        static::deleting(function (self $run): void {
+            $run->setRelation('collectionRunPendingCleanup', $run->collectionRun()->first());
+        });
+
+        static::deleted(function (self $run): void {
+            /** @var CollectionRun|null $collectionRun */
+            $collectionRun = $run->getRelation('collectionRunPendingCleanup');
+
+            if (
+                $collectionRun !== null
+                && ! $collectionRun->researchRuns()->exists()
+                && ! $collectionRun->videoSnapshots()->exists()
+                && ! $collectionRun->channelSnapshots()->exists()
+            ) {
+                $collectionRun->delete();
+            }
+        });
     }
 
     /** @return BelongsTo<User, $this> */
@@ -115,6 +136,12 @@ class ResearchRun extends Model
     public function researchQuery(): BelongsTo
     {
         return $this->belongsTo(ResearchQuery::class, 'research_query_id');
+    }
+
+    /** @return BelongsTo<CollectionRun, $this> */
+    public function collectionRun(): BelongsTo
+    {
+        return $this->belongsTo(CollectionRun::class);
     }
 
     /** @return HasMany<ResearchRunSearchPage, $this> */
@@ -134,7 +161,14 @@ class ResearchRun extends Model
     {
         return $this->belongsToMany(Video::class, 'research_run_videos')
             ->using(ResearchRunVideo::class)
-            ->withPivot(['result_rank', 'page_number', 'provider_order', 'matched_query_metadata'])
+            ->withPivot([
+                'video_snapshot_id',
+                'channel_snapshot_id',
+                'result_rank',
+                'page_number',
+                'provider_order',
+                'matched_query_metadata',
+            ])
             ->withTimestamps();
     }
 

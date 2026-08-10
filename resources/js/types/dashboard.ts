@@ -55,6 +55,10 @@ export type DashboardData = {
         failed_runs_this_month: number;
         saved_projects: number;
         saved_items: number | null;
+        analyzer_profiles: number;
+        monitored_targets: number;
+        topic_workspaces: number;
+        inferred_topic_profiles: number;
     };
     availability: {
         saved_items: boolean;

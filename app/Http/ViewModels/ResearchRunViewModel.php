@@ -3,6 +3,7 @@
 namespace App\Http\ViewModels;
 
 use App\Domain\Catalog\ReadModels\BuildResearchRunAnalysis;
+use App\Domain\Collection\ReadModels\BuildResearchRunProvenance;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Settings\Enums\MarketKey;
 use App\Models\OpportunityScore;
@@ -10,7 +11,10 @@ use App\Models\ResearchRun;
 
 class ResearchRunViewModel
 {
-    public function __construct(private readonly BuildResearchRunAnalysis $buildAnalysis) {}
+    public function __construct(
+        private readonly BuildResearchRunAnalysis $buildAnalysis,
+        private readonly BuildResearchRunProvenance $buildProvenance,
+    ) {}
 
     /** @return array<string, mixed> */
     public function toArray(ResearchRun $run, bool $withResults = true): array
@@ -63,6 +67,7 @@ class ResearchRunViewModel
                     ])->all(),
             ];
             $data['analysis'] = $this->buildAnalysis->handle($run);
+            $data['provenance'] = $this->buildProvenance->handle($run);
         }
 
         return $data;

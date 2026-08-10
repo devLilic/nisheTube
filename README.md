@@ -7,12 +7,12 @@ NisheTube is a local YouTube niche-research application. It searches and samples
 - English application interface.
 - Multiple local users with login and registration.
 - Three research markets: Global/English, Romania/Romanian, and Russia/Russian.
-- Keyword search, video and channel analysis, niche discovery, opportunity scoring, history and comparisons, projects and favorites, CSV/Excel export, API/quota settings, and snapshot retention.
+- Keyword search, canonical video/channel Analyzer, stored-evidence Explore, Watchlist, Topic Workspaces, niche discovery and validation, semantic/audience/transcript/thumbnail evidence, history and comparisons, projects and favorites, CSV/Excel export, API/quota settings, and snapshot retention.
 - Data stored locally in MySQL and automatically eligible for cleanup after six months, with selective manual deletion.
 
 ## Current state
 
-The local MVP feature backlog is implemented through release hardening. The live status and focused verification evidence are maintained in `docs/TASK_STATUS.md`.
+The integrated local research expansion is implemented through its final release-hardening gate. The live status and focused verification evidence are maintained in `docs/TASK_STATUS.md`.
 
 ## Documentation
 

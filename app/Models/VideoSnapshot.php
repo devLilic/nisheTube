@@ -11,7 +11,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $video_id
- * @property int $research_run_id
+ * @property int|null $research_run_id
+ * @property int|null $collection_run_id
  * @property int|null $view_count
  * @property int|null $like_count
  * @property int|null $comment_count
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'video_id',
     'research_run_id',
+    'collection_run_id',
     'view_count',
     'like_count',
     'comment_count',
@@ -45,6 +47,12 @@ class VideoSnapshot extends Model
     public function researchRun(): BelongsTo
     {
         return $this->belongsTo(ResearchRun::class);
+    }
+
+    /** @return BelongsTo<CollectionRun, $this> */
+    public function collectionRun(): BelongsTo
+    {
+        return $this->belongsTo(CollectionRun::class);
     }
 
     /** @return array<string, string> */

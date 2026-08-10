@@ -1,16 +1,31 @@
 <?php
 
+use App\Http\Controllers\Analyzer\AnalyzerAudienceSignalController;
+use App\Http\Controllers\Analyzer\AnalyzerAudienceSignalExclusionController;
+use App\Http\Controllers\Analyzer\AnalyzerCommentController;
+use App\Http\Controllers\Analyzer\AnalyzerComparisonController;
+use App\Http\Controllers\Analyzer\AnalyzerController;
+use App\Http\Controllers\Analyzer\AnalyzerCurationController;
+use App\Http\Controllers\Analyzer\AnalyzerPerformanceExportController;
+use App\Http\Controllers\Analyzer\AnalyzerRunController;
+use App\Http\Controllers\Analyzer\AnalyzerThumbnailController;
+use App\Http\Controllers\Analyzer\AnalyzerTranscriptController;
+use App\Http\Controllers\Analyzer\AnalyzerTranscriptStructureController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Discovery\DiscoveryController;
 use App\Http\Controllers\Discovery\DiscoveryRunController;
 use App\Http\Controllers\Discovery\NicheCandidateController;
+use App\Http\Controllers\Explore\ExploreController;
 use App\Http\Controllers\Exports\ExportController;
 use App\Http\Controllers\History\HistoryController;
+use App\Http\Controllers\Ideas\SavedCommentIdeaController;
 use App\Http\Controllers\Library\FavoriteController;
 use App\Http\Controllers\Library\ProjectController;
 use App\Http\Controllers\Library\TagController;
 use App\Http\Controllers\Research\ResearchController;
 use App\Http\Controllers\Research\ResearchRunController;
+use App\Http\Controllers\Topics\TopicWorkspaceController;
+use App\Http\Controllers\Watchlist\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -23,6 +38,46 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('search', [ResearchController::class, 'store'])->name('research.store');
     Route::get('research/runs/{researchRun}', [ResearchRunController::class, 'show'])->name('research.runs.show');
     Route::post('research/runs/{researchRun}/retry', [ResearchRunController::class, 'retry'])->name('research.runs.retry');
+
+    Route::get('analyzer', [AnalyzerController::class, 'index'])->name('analyzer.index');
+    Route::post('analyzer', [AnalyzerController::class, 'store'])->name('analyzer.store');
+    Route::get('analyzer/compare', AnalyzerComparisonController::class)->name('analyzer.compare');
+    Route::get('analyzer/runs/{analyzerRun}', [AnalyzerRunController::class, 'show'])->name('analyzer.runs.show');
+    Route::post('analyzer/runs/{analyzerRun}/refresh', [AnalyzerRunController::class, 'refresh'])->name('analyzer.runs.refresh');
+    Route::post('analyzer/runs/{analyzerRun}/comments', AnalyzerCommentController::class)->name('analyzer.runs.comments.store');
+    Route::post('analyzer/runs/{analyzerRun}/audience-signals', AnalyzerAudienceSignalController::class)->name('analyzer.runs.audience-signals.store');
+    Route::post('analyzer/runs/{analyzerRun}/audience-signal-exclusions', [AnalyzerAudienceSignalExclusionController::class, 'store'])->name('analyzer.runs.audience-signal-exclusions.store');
+    Route::delete('analyzer/runs/{analyzerRun}/audience-signal-exclusions/{audienceSignalExclusion}', [AnalyzerAudienceSignalExclusionController::class, 'destroy'])->name('analyzer.runs.audience-signal-exclusions.destroy');
+    Route::post('analyzer/runs/{analyzerRun}/transcripts', [AnalyzerTranscriptController::class, 'store'])->name('analyzer.runs.transcripts.store');
+    Route::delete('analyzer/runs/{analyzerRun}/transcripts/{transcriptDocument}', [AnalyzerTranscriptController::class, 'destroy'])->name('analyzer.runs.transcripts.destroy');
+    Route::post('analyzer/runs/{analyzerRun}/transcripts/{transcriptDocument}/structure', AnalyzerTranscriptStructureController::class)->name('analyzer.runs.transcripts.structure.store');
+    Route::post('analyzer/runs/{analyzerRun}/thumbnails', AnalyzerThumbnailController::class)->name('analyzer.runs.thumbnails.store');
+    Route::post('analyzer/runs/{analyzerRun}/performance-export', AnalyzerPerformanceExportController::class)->name('analyzer.runs.performance-export');
+    Route::patch('analyzer/runs/{analyzerRun}/curation', [AnalyzerCurationController::class, 'update'])->name('analyzer.runs.curation.update');
+
+    Route::get('explore', ExploreController::class)->name('explore.index');
+
+    Route::get('ideas', [SavedCommentIdeaController::class, 'index'])->name('ideas.index');
+    Route::post('ideas/comments/{publicComment}', [SavedCommentIdeaController::class, 'store'])->name('ideas.comments.store');
+    Route::delete('ideas/{savedCommentIdea}', [SavedCommentIdeaController::class, 'destroy'])->name('ideas.destroy');
+
+    Route::get('watchlist', [WatchlistController::class, 'index'])->name('watchlist.index');
+    Route::post('watchlist', [WatchlistController::class, 'store'])->name('watchlist.store');
+    Route::patch('watchlist/{watchlistItem}', [WatchlistController::class, 'update'])->name('watchlist.update');
+    Route::post('watchlist/{watchlistItem}/refresh', [WatchlistController::class, 'refresh'])->name('watchlist.refresh');
+    Route::post('watchlist/refreshes/{watchlistRefreshRun}/retry', [WatchlistController::class, 'retry'])->name('watchlist.refreshes.retry');
+    Route::delete('watchlist/{watchlistItem}', [WatchlistController::class, 'destroy'])->name('watchlist.destroy');
+
+    Route::get('topics', [TopicWorkspaceController::class, 'index'])->name('topics.index');
+    Route::post('topics', [TopicWorkspaceController::class, 'store'])->name('topics.store');
+    Route::get('topics/{topicWorkspace}', [TopicWorkspaceController::class, 'show'])->name('topics.show');
+    Route::patch('topics/{topicWorkspace}', [TopicWorkspaceController::class, 'update'])->name('topics.update');
+    Route::post('topics/{topicWorkspace}/archive', [TopicWorkspaceController::class, 'archive'])->name('topics.archive');
+    Route::post('topics/{topicWorkspace}/restore', [TopicWorkspaceController::class, 'restore'])->name('topics.restore');
+    Route::post('topics/{topicWorkspace}/evidence', [TopicWorkspaceController::class, 'addEvidence'])->name('topics.evidence.store');
+    Route::delete('topics/{topicWorkspace}/evidence/{topicWorkspaceItem}', [TopicWorkspaceController::class, 'removeEvidence'])->name('topics.evidence.destroy');
+    Route::post('topics/{topicWorkspace}/launch-search', [TopicWorkspaceController::class, 'launchSearch'])->name('topics.launch.search');
+    Route::post('topics/{topicWorkspace}/launch-discovery', [TopicWorkspaceController::class, 'launchDiscovery'])->name('topics.launch.discovery');
 
     Route::get('discover', [DiscoveryController::class, 'index'])->name('discovery.index');
     Route::post('discover', [DiscoveryController::class, 'store'])->name('discovery.store');

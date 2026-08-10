@@ -1,5 +1,6 @@
-import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, Inbox, RefreshCw } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +11,7 @@ type StatePanelProps = {
     description: string;
     icon?: LucideIcon;
     actionLabel?: string;
+    action?: ReactNode;
     tone?: 'neutral' | 'danger';
 };
 
@@ -18,6 +20,7 @@ export function StatePanel({
     description,
     icon: Icon = Inbox,
     actionLabel,
+    action,
     tone = 'neutral',
 }: StatePanelProps) {
     return (
@@ -41,11 +44,15 @@ export function StatePanel({
                 <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
                     {description}
                 </p>
-                {actionLabel && (
-                    <Button variant="outline" size="sm" className="mt-5">
-                        <RefreshCw />
-                        {actionLabel}
-                    </Button>
+                {action ? (
+                    <div className="mt-5">{action}</div>
+                ) : (
+                    actionLabel && (
+                        <Button variant="outline" size="sm" className="mt-5">
+                            <RefreshCw />
+                            {actionLabel}
+                        </Button>
+                    )
                 )}
             </CardContent>
         </Card>

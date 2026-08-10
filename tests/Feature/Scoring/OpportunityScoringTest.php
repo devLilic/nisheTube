@@ -227,10 +227,11 @@ class OpportunityScoringTest extends TestCase
                 'provider_order' => $number,
             ]);
 
-            ChannelSnapshot::query()->firstOrCreate([
+            $channelSnapshot = ChannelSnapshot::query()->firstOrCreate([
                 'research_run_id' => $run->id,
                 'channel_id' => $channel->id,
             ], [
+                'collection_run_id' => $run->collection_run_id,
                 'subscriber_count' => $sparse ? null : $channelNumber * 1000,
                 'view_count' => $channelNumber * 100000,
                 'video_count' => $sparse ? null : $channelNumber * 50,
@@ -239,8 +240,9 @@ class OpportunityScoringTest extends TestCase
                 'collected_at' => now(),
             ]);
 
-            VideoSnapshot::query()->create([
+            $videoSnapshot = VideoSnapshot::query()->create([
                 'research_run_id' => $run->id,
+                'collection_run_id' => $run->collection_run_id,
                 'video_id' => $video->id,
                 'view_count' => $number * 10000,
                 'like_count' => $sparse ? null : $number * 500,
@@ -250,6 +252,10 @@ class OpportunityScoringTest extends TestCase
                 'views_to_subscribers_ratio' => $sparse ? null : ($number * 10000) / ($channelNumber * 1000),
                 'collected_at' => now(),
             ]);
+            $run->videoMemberships()
+                ->where('video_id', $video->id)
+                ->firstOrFail()
+                ->pinSources($videoSnapshot, $channelSnapshot);
         }
 
         $run->update([

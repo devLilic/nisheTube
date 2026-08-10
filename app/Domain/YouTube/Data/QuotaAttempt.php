@@ -13,6 +13,7 @@ final readonly class QuotaAttempt
         public int $estimatedCost,
         public ?int $userId = null,
         public ?int $researchRunId = null,
+        public ?int $collectionRunId = null,
     ) {
         if (trim($provider) === '' || trim($bucket) === '' || trim($endpoint) === '') {
             throw new InvalidArgumentException('Quota attempts require provider, bucket, and endpoint values.');
@@ -28,6 +29,10 @@ final readonly class QuotaAttempt
 
         if ($researchRunId !== null && $researchRunId < 1) {
             throw new InvalidArgumentException('Quota attempt run identifiers must be positive.');
+        }
+
+        if ($collectionRunId !== null && $collectionRunId < 1) {
+            throw new InvalidArgumentException('Quota attempt collection identifiers must be positive.');
         }
     }
 }

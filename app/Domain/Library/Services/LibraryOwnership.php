@@ -35,11 +35,17 @@ class LibraryOwnership
                 ->exists(),
             LibraryTargetType::Video => Video::query()
                 ->whereKey($target->getKey())
-                ->whereHas('researchRuns', fn ($query) => $query->where('research_runs.user_id', $user->id))
+                ->where(function ($query) use ($user): void {
+                    $query->whereHas('researchRuns', fn ($research) => $research->where('research_runs.user_id', $user->id))
+                        ->orWhereHas('analyzerRuns', fn ($analyzer) => $analyzer->where('analyzer_runs.user_id', $user->id));
+                })
                 ->exists(),
             LibraryTargetType::Channel => Channel::query()
                 ->whereKey($target->getKey())
-                ->whereHas('videos.researchRuns', fn ($query) => $query->where('research_runs.user_id', $user->id))
+                ->where(function ($query) use ($user): void {
+                    $query->whereHas('videos.researchRuns', fn ($research) => $research->where('research_runs.user_id', $user->id))
+                        ->orWhereHas('analyzerRuns', fn ($analyzer) => $analyzer->where('analyzer_runs.user_id', $user->id));
+                })
                 ->exists(),
         };
 

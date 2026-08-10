@@ -11,7 +11,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $channel_id
- * @property int $research_run_id
+ * @property int|null $research_run_id
+ * @property int|null $collection_run_id
  * @property int|null $subscriber_count
  * @property int|null $view_count
  * @property int|null $video_count
@@ -22,6 +23,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'channel_id',
     'research_run_id',
+    'collection_run_id',
     'subscriber_count',
     'view_count',
     'video_count',
@@ -43,6 +45,12 @@ class ChannelSnapshot extends Model
     public function researchRun(): BelongsTo
     {
         return $this->belongsTo(ResearchRun::class);
+    }
+
+    /** @return BelongsTo<CollectionRun, $this> */
+    public function collectionRun(): BelongsTo
+    {
+        return $this->belongsTo(CollectionRun::class);
     }
 
     /** @return array<string, string> */

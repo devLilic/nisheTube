@@ -193,6 +193,7 @@ class CollectResearchRunSearch implements ShouldBeUniqueUntilProcessing, ShouldQ
             context: new ProviderRequestContext(
                 userId: $run->user_id,
                 researchRunId: $run->id,
+                collectionRunId: $run->collection_run_id,
             ),
             order: $this->stringParameter($run, 'search_order'),
             publishedAfter: $this->stringParameter($run, 'published_after'),

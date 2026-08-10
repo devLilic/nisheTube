@@ -95,3 +95,171 @@
 **Status:** Accepted  
 **Decision:** Persist normalized search pages, page tokens, and deduplicated video candidates per research run before dispatching enrichment. Treat these records as retry staging rather than canonical catalog snapshots.  
 **Reason:** Database-backed staging lets a redelivered search job resume pagination without duplicating saved entities and gives the later catalog enrichment job a durable handoff instead of relying on a large, fragile queue payload.
+
+## D-017 — Shared collection boundary for public observations
+
+**Status:** Accepted
+
+**Decision:** Introduce user-owned `collection_runs` and workflow-specific source links so Search, Analyzer, and Watchlist share provider DTOs, cache policy, persistence, quota tracking, and immutable video/channel observations. Search pagination/rank staging remains Research-specific.
+
+**Reason:** Existing snapshots are tied directly to Research runs, which would force Analyzer and Watchlist either to fake a search or duplicate snapshot/API logic. A staged shared boundary preserves historical Search behavior while enabling all workflows to pin the exact observation inputs they used.
+
+## D-018 — Explore, Favorites, and Watchlist have different semantics
+
+**Status:** Accepted
+
+**Decision:** Explore is a no-provider-I/O read surface over the authenticated user's stored evidence. Favorites are bookmarks. Watchlist is an explicit opt-in to repeated queued observation of videos, channels, or later topics. No state is converted automatically between them.
+
+**Reason:** Separating browsing, curation, and monitoring prevents surprise quota usage and makes retention and user intent auditable.
+
+## D-019 — Structural metric provenance
+
+**Status:** Accepted
+
+**Decision:** Separate API observations, deterministic calculated metrics, inferred semantic analysis, and future estimates in persistence and UI. Use typed tables/read models rather than a universal metric EAV schema.
+
+**Reason:** Users must know what YouTube actually returned versus what NisheTube calculated or inferred, while typed fields preserve validation, indexing, comparison, and export safety.
+
+## D-020 — Analyzer MVP and deferred semantic/media scope
+
+**Status:** Accepted
+
+**Decision:** Analyzer MVP includes video/channel public data, a configurable recent-upload cohort, relative performance, channel behavior, immutable snapshots, first-seen history, and complete UI states. Semantic classification, comments/Audience Signals, transcripts, and thumbnail analysis are later vertical slices. Transcript implementation is blocked until an accepted provider/compliance decision exists.
+
+**Reason:** The supplied specification's explicit MVP list excludes those advanced inputs, and YouTube Data API does not provide arbitrary third-party transcript text through the server-side API-key flow. This resolves the scope ambiguity without weakening the target model.
+
+## D-021 — Bounded shared observation freshness
+
+**Status:** Accepted
+
+**Decision:** Shared collection callers choose `fresh_only`, `allow_fresh_cache`, or `force_refresh`. Cache reuse is limited to completed observations for the same owner and provider, uses a frozen six-hour default window clamped between five minutes and seven days, and always pins the original snapshot/time. Search remains fresh-only by default; Force Refresh bypasses reuse without adding another provider or persistence path.
+
+**Reason:** This preserves current Search collection and scoring behavior while making cache savings and refresh semantics reusable, explicit, owner-safe, and auditable for Analyzer and Watchlist.
+
+## D-022 — Analyzer relative-performance tie and threshold semantics
+
+**Status:** Accepted
+
+**Decision:** Analyzer relative performance version `video-relative-performance-v1` excludes the anchor from its median/average baseline, requires at least three other videos with public views, and includes the anchor in its comparison population. Rank uses competition ranking (`1 + count strictly greater`), so equal view counts share a rank. Percentile uses empirical midrank (`below + 0.5 × equal`) divided by the comparison count. Raw-view classes are `<0.5x` Underperformer, `0.5x–<1.5x` Normal, `1.5x–<3x` Above Average, `3x–5x` Strong, and `>5x` Breakout. Channel Strong share is `>=3x` the cohort median and Breakout share is `>5x`.
+
+**Reason:** The unified model required deterministic ties, percentile boundaries, anchor exclusion, and configurable thresholds but did not freeze their exact statistical semantics. Versioning these choices makes stored Analyzer evidence reproducible and prevents later threshold changes from silently rewriting history.
+
+## D-023 — Analyzer channel-behavior and observed-growth semantics
+
+**Status:** Accepted
+
+**Decision:** `channel-behavior-v1` uses median Lifetime Average Views/Day across fixed 5+5 playlist-position blocks for momentum (`<0.8x` declining, `0.8x–1.2x` stable, `>1.2x` growing). Consistency requires five values and scores `clamp(100 × (1 - MAD / median), 0, 100)`, with a zero median treated as insufficient (`>=75` consistent, `50–<75` mixed, `<50` volatile). Duration/performance is a five-sample-minimum Spearman rank correlation labeled as observed association, not causation. Growth uses only a strictly earlier owner-scoped immutable snapshot; cached duplicate snapshots do not create points, rates use actual elapsed time, and no period before first seen is inferred. Analyzer observations are six-month retention targets, while sources pinned by another retained result and canonical entities are preserved.
+
+**Reason:** The unified model required a named robust formula, exact fixtures, age-aware momentum, honest observed history, and retention behavior but intentionally left the first formula implementation to this task. These rules keep results deterministic, prevent cross-user or pre-observation inference, and preserve immutable source lineage.
+
+## D-024 — Standalone channel analysis and curation reuse canonical aggregates
+
+**Status:** Accepted
+
+**Decision:** Video and standalone channel intake create the same `analyzer_runs` aggregate and invoke one Analyzer metric orchestration service. Each resolved run pins its exact channel snapshot directly; a channel target omits only anchor-video metrics. Owner-scoped notes/status use `analyzer_curations`, while Favorites and tags continue through the existing Library aggregate. Watchlist and Topic Workspace actions expose canonical handoff references but remain unavailable until their own slices.
+
+**Reason:** A parallel channel analyzer or duplicate curation store would fragment formulas, ownership, retention, and future handoffs. Direct source pinning preserves immutable lineage for both target kinds, while separating private curation from immutable attempts lets repeated analyses share one user decision state without silently creating monitoring or workspace records.
+
+## D-025 — Watchlist refreshes are Analyzer-backed immutable attempts
+
+**Status:** Accepted
+
+**Decision:** Each manual video/channel Watchlist refresh creates one owner-scoped `watchlist_refresh_run` linked to an immutable Analyzer attempt and a `watchlist_refresh` collection run. Duplicate submissions reuse the active refresh, terminal refreshes pin the exact previous/current video or channel snapshots and store nullable public-count deltas, and worker exhaustion schedules a safe finalization path. Watchlist items retain only mutable organization state; Favorites remain independent. Retention preserves Analyzer/collection sources while any Watchlist refresh history pins or directly references them.
+
+**Reason:** Reusing the full Analyzer orchestration keeps provider calls, cache policy, quota accounting, calculations, retries, and snapshot provenance on one tested boundary. Separate Watchlist refresh records preserve monitoring history and user intent without inventing a parallel metric pipeline or turning bookmarks into quota-consuming work.
+
+## D-026 — Topic Workspace evidence and workflow lineage are separate
+
+**Status:** Accepted
+
+**Decision:** Topic Workspace items store only allow-listed typed references and an evidence role/note. Confirmed Search and Discover actions create normal immutable workflow runs and record their origin in a separate `topic_workspace_launches` history. A Search result may also be linked as Research-run evidence; a Discovery run remains lineage rather than a new evidence type, while its individual candidates may be linked explicitly.
+
+**Reason:** Discovery runs are useful workspace history but are not part of the approved evidence allow-list. Separate lineage preserves that contract, prevents copied metric/candidate payloads, and keeps quota-consuming launches explicit and auditable.
+
+## D-027 — Cross-surface handoffs persist references, not metric claims
+
+**Status:** Accepted
+
+**Decision:** Analyzer attempts may persist a sanitized same-application return URL alongside an owner-authorized typed origin. Search, Explore, Discover, Watchlist, and Topic Workspace pass canonical public/provider references through shared actions; they do not copy metric payloads. Discover may cite completed owner-scoped Analyzer attempts as supporting provenance, but its deterministic evidence rank remains distinct from the opportunity score, which requires an explicit validation Search.
+
+**Reason:** Persisted, allow-listed navigation restores filtered research context without enabling open redirects or leaking foreign lineage. Reference-only handoffs keep formulas and provider access behind their existing domain boundaries, while the validation guard prevents richer Analyzer evidence from being presented as demand validation.
+
+## D-028 — Semantic profiles are versioned Analyzer evidence
+
+**Status:** Accepted
+
+**Decision:** `semantic-title-terms-v1` deterministically classifies the frozen, provider-ID-deduplicated Analyzer cohort from stored video titles only. Unicode tokenization, language-specific stop words for English, Romanian, and Russian, repeated bigrams/unigrams, stable tie ordering, and explicit sparse/mixed-language warnings produce niche, subniche, topics, content pillars, concentration, and confidence. One immutable owner-scoped semantic profile belongs to one Analyzer attempt; retrying that calculation is idempotent, while a new Analyzer attempt creates a new version. Official YouTube category data remains structurally and visually separate.
+
+**Reason:** Anchoring inference to immutable Analyzer inputs makes results reproducible without new provider I/O, avoids cross-user evidence leakage, and lets future semantic providers evolve without rewriting history or presenting inferred labels as YouTube facts or validated demand.
+
+## D-029 — Semantic performance uses overlapping evidence groups and metric-specific minimum samples
+
+**Status:** Accepted
+
+**Decision:** `semantic-performance-v1` calculates only from an Analyzer attempt's pinned recent-upload memberships. Topic groups reuse the exact `semantic-title-terms-v1` evidence IDs; `editorial-title-patterns-v1` deterministically detects multilingual how-to, question, numbered-list, comparison, guide/tutorial, review, and challenge structures. A video may belong to multiple groups. Every unmatched video remains in an explicit Unclassified group. Counts and evidence remain visible at every size, while each median, average, or Breakout rate remains null until that metric has at least the frozen two-input minimum. One immutable owner-scoped result belongs to one Analyzer attempt; a refresh creates another version and reference-only handoffs do not copy the aggregates.
+
+**Reason:** Overlapping groups preserve the real evidence behind multi-topic/editorial titles, while metric-specific coverage prevents one public value from becoming a misleading performance claim. Pinning versions and evidence to the Analyzer attempt makes filter, queued-export, and workspace use consistent without changing the validation-search opportunity score or implying causation.
+
+## D-030 — Comment evidence is opt-in, minimal, and independently retained
+
+**Status:** Accepted
+
+**Decision:** Public comments use a separate owner-scoped queued collection run attached to a completed video Analyzer attempt. The first slice stores only plain top-level text, provider comment ID, like count, YouTube-reported reply count, and provider timestamps; it stores neither author identity nor reply text. Page position and a frozen maximum make bounded samples explicit, provider IDs make retries idempotent, and comment collections are independent six-month cleanup targets even when shared-source rules preserve the parent Analyzer evidence.
+
+**Reason:** Comment text adds quota cost and personal public text that should not be collected by merely viewing an Analyzer result or retained as long as an otherwise preserved metric snapshot. Top-level-only storage supplies the requested research context while minimizing personal data and avoiding a false claim that replies were completely retrieved.
+
+## D-031 — Audience Signals are immutable safe inference over one comment collection
+
+**Status:** Accepted
+
+**Decision:** `audience-comment-terms-v1` runs inside the existing queued comment workflow after a completed or useful partial collection. It derives only repeated questions, topics, entities, suggestions, complaints, and confusion points from that pinned stored sample through an `AudienceSignalProvider` contract. Profiles are immutable and idempotent per collection/provider/version; relational evidence links pin every signal to its exact source comments. Labels exclude URLs, email addresses, phone-like identifiers, and explicitly unsafe phrases, while sparse, mixed-language, unsafe-withheld, failed, partial, and complete states remain explicit.
+
+**Reason:** Local deterministic inference adds no YouTube quota and keeps the first implementation reproducible, while the provider/version boundary permits later adapters without rewriting history. Exact evidence and conservative safety filtering make every displayed pattern auditable without presenting a sampled inference as authoritative sentiment or exposing avoidable identifying content.
+
+## D-032 — Transcripts are optional user-provided evidence
+
+**Status:** Accepted
+
+**Decision:** TRN-01 uses a local `user_provided_transcript-v1` provider. An authenticated owner may paste plain text or timestamped text copied for the exact completed video Analyzer attempt; `.srt` and `.vtt` structures are accepted through the same parser boundary. Timestamped input is preferred because it preserves navigation/evidence offsets, while plain input becomes one untimed segment. NisheTube performs no YouTube caption/audio retrieval, scraping, or third-party transcription. The user explicitly confirms the right to use the pasted material. Transcript absence, unavailability, parsing failure, or deletion never changes video/channel observations, metrics, classifications, score, or Analyzer completion.
+
+**Reason:** Manual user-supplied text is the only approved path that supports arbitrary analyzed videos without unsupported YouTube API claims or platform scraping. Keeping transcript evidence in a separate owner-scoped, retention-aware aggregate makes it genuinely optional, auditable, replaceable, and ready for later approved providers without coupling core analysis to transcript availability.
+
+## D-033 — Transcript structure is deterministic, revision-pinned inferred evidence
+
+**Status:** Accepted
+
+**Decision:** `transcript-structure-v1` runs only on an explicit action for one immutable owner-provided transcript revision. A `TranscriptStructureProvider` returns summary, topics, entities, hook, sections, calls to action, questions, and script structure with inferred provenance, language, confidence, and exact normalized-text character offsets plus nullable source timestamps. Profiles are immutable and idempotent per transcript/provider/version; another transcript revision or algorithm version creates separate history. Fewer than 30 readable words is insufficient, while short, sparsely segmented, or unknown/mixed-language evidence is partial. The deterministic baseline runs locally without YouTube/network calls and does not affect Analyzer completion, public metrics, semantic results, or opportunity scoring.
+
+**Reason:** Pinning every inferred claim to exact retained evidence makes structure auditable and reproducible while preserving the original/inferred boundary. An explicit local action avoids hidden work and quota claims, and the provider/version boundary permits a future approved implementation without rewriting historical output.
+
+## D-034 — Thumbnail analysis uses transient allow-listed image retrieval and local versioned features
+
+**Status:** Accepted
+
+**Decision:** THMB-01 runs only after an authenticated owner explicitly requests analysis for a completed Analyzer attempt. A dedicated fetcher accepts configured HTTPS YouTube thumbnail hosts, refuses redirects, enforces bounded supported image types/sizes, and passes bytes transiently to `gd_visual_features`; raw image bytes are never persisted. Immutable attempts pin per-membership inferred features/classes, safe unavailable states, provider/algorithm versions, confidence, and exact bounded owner-scoped cache lineage. Cluster associations use only pinned recent uploads and keep metric claims null below the frozen minimum.
+
+**Reason:** A narrow retrieval boundary prevents thumbnail URLs from becoming general server-side fetches, while local deterministic extraction adds no Data API quota and makes results reproducible. Immutable provenance and exact cohort evidence support useful pattern research without presenting visual correlation as causation or feeding it into opportunity scoring.
+
+## D-035 — Cross-channel comparison is a bounded read model, not a new score
+
+**Status:** Accepted
+
+**Decision:** XCMP-01 compares two or three different completed owner-scoped Analyzer attempts through their existing pinned channel metrics, semantic topic/title-pattern aggregates, and latest useful immutable thumbnail aggregates. It creates no comparison persistence and performs no provider request. The channel-first selection query returns at most 24 recent channels and at most five recent attempts for each channel; each evidence family returns at most 100 rows. Compatibility is evaluated across the complete selection independently by model/version, while market origin, observation time, source policy, cohort size, missing groups, and nullable metric coverage remain visible warnings and exact values.
+
+**Reason:** Comparing immutable evidence by reference preserves ownership, retention, and historical integrity without copying results or inventing a cross-channel formula. A maximum of three columns remains readable while making multi-channel patterns easier to inspect; grouping attempts by channel prevents repeated analyses from obscuring the available choices. Independent compatibility guards keep partially useful evidence inspectable while preventing side-by-side differences from being presented as a like-for-like opportunity score, causal finding, or channel recommendation.
+
+## D-036 — Audience Signal exclusions are reversible owner preferences
+
+**Status:** Accepted
+
+**Decision:** A user may hide a generated Audience Signal only when its complete normalized `label_key` is one word and exactly equals an active owner-scoped exclusion. Exclusions live outside immutable profiles and evidence, retain active/excluded/restored timestamps, apply across that owner's Audience Signal views, and can be restored without recalculation. A phrase such as `audio setup` remains visible when `audio` is excluded. Hide and restore actions perform no comment collection, provider request, or signal-profile mutation.
+
+**Reason:** Manual curation immediately removes noisy unigram output without introducing AI or rewriting historical inference. Exact equality prevents a broad stop-word action from erasing meaningful phrases, while a durable reversible preference avoids accidental permanent loss and preserves the provenance of the original generated signals.
+
+## D-037 — Saved comment ideas outlive raw comment retention
+
+**Status:** Accepted
+
+**Decision:** A heart action creates one owner-scoped `saved_comment_ideas` record per canonical video and provider comment ID. It intentionally copies the exact selected top-level text and source publish time, pins the canonical video, and keeps a nullable link to the retained `public_comments` row. Raw comment cleanup nulls that link but preserves the private idea and its video URL. Removing the heart deletes only the saved idea and never mutates the immutable comment collection.
+
+**Reason:** A research idea is explicit durable user intent, while a raw public-comment collection remains a bounded six-month evidence sample. A nullable provenance link plus a minimal intentional copy prevents retention from unexpectedly erasing the user's curated list, avoids preserving an entire comment collection for one selection, and keeps save/remove actions local, idempotent, and quota-free.

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\YouTube;
 
+use App\Domain\Collection\Actions\CreateResearchCollectionRun;
 use App\Domain\YouTube\Contracts\QuotaLedger;
 use App\Domain\YouTube\Data\QuotaAttempt;
 use App\Domain\YouTube\Enums\QuotaUsageOutcome;
@@ -68,6 +69,33 @@ class QuotaLedgerTest extends TestCase
         $this->assertDatabaseHas('api_usage_events', [
             'id' => $eventId,
             'outcome' => QuotaUsageOutcome::Succeeded->value,
+        ]);
+    }
+
+    public function test_begin_accepts_shared_collection_context_without_a_research_run(): void
+    {
+        $user = User::factory()->create();
+        $collectionRun = app(CreateResearchCollectionRun::class)->handle(
+            user: $user,
+            attemptNumber: 1,
+            requestedCount: 1,
+            frozenRequest: ['target' => 'provider-video-id'],
+        );
+
+        $eventId = app(QuotaLedger::class)->begin(new QuotaAttempt(
+            provider: 'youtube',
+            bucket: 'general',
+            endpoint: 'videos.list',
+            estimatedCost: 1,
+            userId: $user->id,
+            collectionRunId: $collectionRun->id,
+        ));
+
+        $this->assertDatabaseHas('api_usage_events', [
+            'id' => $eventId,
+            'user_id' => $user->id,
+            'research_run_id' => null,
+            'collection_run_id' => $collectionRun->id,
         ]);
     }
 

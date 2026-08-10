@@ -63,11 +63,11 @@ git -c safe.directory=C:/laragon/www/NisheTube status --short
 git -c safe.directory=C:/laragon/www/NisheTube diff --check
 ```
 
-## 2. Foundation status
+## 2. Application status
 
-Backlog task `FND-01` is complete. The application uses the official Laravel 13 React starter-kit conventions with Inertia 3, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Wayfinder typed routes, and Fortify authentication.
+The integrated local research expansion is implemented through the `REL-05` release-hardening gate. Search, Analyzer, Explore, Watchlist, Topic Workspaces, Discover validation, History, Export, and Retention share canonical stored evidence and owner-scoped authorization.
 
-The enabled foundation authentication features are registration, password reset, email verification routes, and password confirmation. Optional passkey and two-factor authentication features are not enabled. Product-specific authentication and preference work remains in Phase 1.
+The application uses the official Laravel 13 React starter-kit conventions with Inertia 3, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Wayfinder typed routes, and Fortify authentication. Registration, password reset, email verification routes, password confirmation, timezone, default market, and research preferences are implemented. Optional passkey and two-factor authentication features are not enabled.
 
 ## 3. Target local configuration
 
@@ -109,6 +109,21 @@ Using Laragon/HeidiSQL or the Laragon terminal:
 5. Run migrations and seed the three markets.
 
 Do not run destructive migration refresh commands after real research data exists.
+
+### 4.1 Upgrade an existing NisheTube database
+
+Before applying expansion migrations, stop the queue worker, create the database/export/`.env` backup described in [Backup, restore, and troubleshooting](11_BACKUP_AND_RECOVERY.md), and verify its hash manifest. Then run:
+
+```text
+php artisan migrate:status
+php artisan migrate --force
+php artisan optimize:clear
+php artisan queue:restart
+```
+
+Start the worker again and verify Search → Analyzer → Explore, one Watchlist/Topic Workspace handoff, and Retention preview. Completed research, pinned observations, scores, exports, and cleanup audits must remain readable with their original timestamps.
+
+Never rehearse rollback against the live `nishetube` database. Section 3.1 of the recovery guide provides an isolated SQLite rehearsal for the 19 expansion migrations and the safe restore path if a real upgrade fails.
 
 ## 5. Daily development workflow
 
@@ -206,4 +221,4 @@ Verify manually:
 
 Before migrations, dependency upgrades, retention execution, or other material local changes, back up both MySQL and private generated exports. Database rows alone do not contain the CSV/XLSX file bytes.
 
-Follow [Backup, restore, and troubleshooting](11_BACKUP_AND_RECOVERY.md) for the verified PowerShell workflow, restore safety checks, quota reset reference, and common failure recovery.
+Follow [Backup, restore, and troubleshooting](11_BACKUP_AND_RECOVERY.md) for the verified PowerShell workflow, isolated expansion-migration rehearsal, restore safety checks, quota reset reference, and common failure recovery.

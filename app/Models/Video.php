@@ -60,8 +60,27 @@ class Video extends Model
     {
         return $this->belongsToMany(ResearchRun::class, 'research_run_videos')
             ->using(ResearchRunVideo::class)
-            ->withPivot(['result_rank', 'page_number', 'provider_order', 'matched_query_metadata'])
+            ->withPivot([
+                'video_snapshot_id',
+                'channel_snapshot_id',
+                'result_rank',
+                'page_number',
+                'provider_order',
+                'matched_query_metadata',
+            ])
             ->withTimestamps();
+    }
+
+    /** @return HasMany<AnalyzerRun, $this> */
+    public function analyzerRuns(): HasMany
+    {
+        return $this->hasMany(AnalyzerRun::class);
+    }
+
+    /** @return HasMany<WatchlistItem, $this> */
+    public function watchlistItems(): HasMany
+    {
+        return $this->hasMany(WatchlistItem::class, 'target_id')->where('target_type', 'video');
     }
 
     /** @return array<string, string> */

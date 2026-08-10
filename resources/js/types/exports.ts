@@ -1,10 +1,12 @@
+import type { MarketKey } from './research';
+
 export type ExportFormat = 'csv' | 'xlsx';
 export type ExportStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
 export type ExportBuilderRun = {
     public_id: string;
     query_text: string;
-    market_key: string;
+    market_key: MarketKey;
     completed_at: string | null;
     video_count: number;
     warning_count: number;
@@ -31,6 +33,8 @@ export type ExportJob = {
     format: ExportFormat;
     status: ExportStatus;
     run_count: number;
+    selection_type: 'research_runs' | 'semantic_performance';
+    selection_label: string;
     column_count: number;
     size_bytes: number | null;
     created_at: string | null;

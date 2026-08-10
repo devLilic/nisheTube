@@ -293,7 +293,7 @@ class ExportAcceptanceTest extends TestCase
             'title' => 'Creator România — Канал',
         ]);
 
-        ChannelSnapshot::query()->create([
+        $channelSnapshot = ChannelSnapshot::query()->create([
             'research_run_id' => $run->id,
             'channel_id' => $channel->id,
             'subscriber_count' => 1000,
@@ -329,12 +329,7 @@ class ExportAcceptanceTest extends TestCase
                     : "Video {$index} — Știință Пример",
                 'published_at' => '2026-08-01 09:00:00',
             ]);
-            $run->videos()->attach($video->id, [
-                'result_rank' => $index,
-                'page_number' => (int) ceil($index / 50),
-                'provider_order' => (($index - 1) % 50) + 1,
-            ]);
-            VideoSnapshot::query()->create([
+            $videoSnapshot = VideoSnapshot::query()->create([
                 'research_run_id' => $run->id,
                 'video_id' => $video->id,
                 'view_count' => 1000 + $index,
@@ -344,6 +339,13 @@ class ExportAcceptanceTest extends TestCase
                 'views_per_day' => 150 + $index,
                 'views_to_subscribers_ratio' => 1 + ($index / 1000),
                 'collected_at' => '2026-08-08 10:00:00',
+            ]);
+            $run->videos()->attach($video->id, [
+                'video_snapshot_id' => $videoSnapshot->id,
+                'channel_snapshot_id' => $channelSnapshot->id,
+                'result_rank' => $index,
+                'page_number' => (int) ceil($index / 50),
+                'provider_order' => (($index - 1) % 50) + 1,
             ]);
         }
 

@@ -1,6 +1,7 @@
 import { Deferred, Head, Link, usePage, usePoll } from '@inertiajs/react';
 import { Search, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
+import { AnalyticsGlossary } from '@/components/analytics-glossary';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -41,9 +42,9 @@ export default function Dashboard({ dashboard: dashboardData }: PageProps) {
             <Head title="Dashboard" />
             <PageContainer>
                 <PageHeader
-                    eyebrow="Research command center"
-                    title={`Welcome back, ${auth.user.name.split(' ')[0]}`}
-                    description="Track active collection, compare recent opportunity signals, and decide what to research next. Scores summarize observed returned-video evidence, not YouTube search volume."
+                    title="Dashboard"
+                    description={`Welcome back, ${auth.user.name.split(' ')[0]}. Review current research signals and choose your next action.`}
+                    compact
                     actions={
                         <>
                             <Button asChild>
@@ -52,17 +53,16 @@ export default function Dashboard({ dashboard: dashboardData }: PageProps) {
                                     New search
                                 </Link>
                             </Button>
-                            <Button
-                                variant="outline"
-                                disabled
-                                title="Discovery becomes available in the Discovery milestone"
-                            >
-                                <Sparkles aria-hidden="true" />
-                                Start discovery
+                            <Button variant="outline" asChild>
+                                <Link href="/discover">
+                                    <Sparkles aria-hidden="true" />
+                                    Discovery
+                                </Link>
                             </Button>
                         </>
                     }
                 />
+                <AnalyticsGlossary page="dashboard" />
 
                 <Deferred
                     data="dashboard"

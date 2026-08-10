@@ -36,6 +36,10 @@ class LibraryViewModel
                 ->get()
             : collect();
 
+        if ($includeFavorites) {
+            $this->loadTags($favorites->all());
+        }
+
         return [
             'projects' => ResearchProject::query()->where('user_id', $user->id)->whereNull('archived_at')->orderBy('name')->get()
                 ->map(fn (ResearchProject $project): array => $this->projectOption($project))->values()->all(),

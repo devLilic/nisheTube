@@ -66,6 +66,9 @@ class YouTubeIntegrationController extends Controller
             YouTubeErrorCode::RequestInvalid => 'The connectivity request was rejected. Review the local integration configuration.',
             YouTubeErrorCode::Unavailable => 'YouTube is temporarily unavailable. Try again later.',
             YouTubeErrorCode::PartialData => 'YouTube returned an incomplete response. Try the check again.',
+            YouTubeErrorCode::VideoNotFound, YouTubeErrorCode::ChannelNotFound => 'YouTube did not return the connectivity-check resource. Try the check again.',
+            YouTubeErrorCode::PlaylistUnavailable => 'The channel uploads playlist is unavailable. Try again later or analyze another channel.',
+            YouTubeErrorCode::CommentsDisabled => 'Comments are disabled for that video. Analyzer comment collection is unavailable for it.',
         };
     }
 }

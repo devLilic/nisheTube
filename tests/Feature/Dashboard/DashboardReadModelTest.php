@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Domain\Analyzer\Actions\CreateAnalyzerRun;
+use App\Domain\Collection\Enums\CollectionCachePolicy;
 use App\Domain\Dashboard\ReadModels\BuildDashboard;
 use App\Domain\Research\Enums\ResearchRunKind;
 use App\Domain\Research\Enums\ResearchRunStatus;
@@ -17,6 +19,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -117,6 +120,10 @@ class DashboardReadModelTest extends TestCase
                     ->where('dashboard.counts.failed_runs_this_month', 0)
                     ->where('dashboard.counts.saved_projects', 1)
                     ->where('dashboard.counts.saved_items', null)
+                    ->where('dashboard.counts.analyzer_profiles', 0)
+                    ->where('dashboard.counts.monitored_targets', 0)
+                    ->where('dashboard.counts.topic_workspaces', 0)
+                    ->where('dashboard.counts.inferred_topic_profiles', 0)
                     ->where('dashboard.availability.saved_items', false)
                     ->where('dashboard.availability.discovery_candidates', false)
                     ->where('dashboard.best_opportunity.public_id', $best->public_id)
@@ -154,6 +161,10 @@ class DashboardReadModelTest extends TestCase
                     ->where('dashboard.counts.research_runs_this_month', 0)
                     ->where('dashboard.counts.active_runs', 0)
                     ->where('dashboard.counts.saved_projects', 0)
+                    ->where('dashboard.counts.analyzer_profiles', 0)
+                    ->where('dashboard.counts.monitored_targets', 0)
+                    ->where('dashboard.counts.topic_workspaces', 0)
+                    ->where('dashboard.counts.inferred_topic_profiles', 0)
                     ->where('dashboard.best_opportunity', null)
                     ->has('dashboard.recent_runs', 0)
                     ->has('dashboard.top_opportunities', 0)
@@ -161,6 +172,73 @@ class DashboardReadModelTest extends TestCase
                     ->where('dashboard.cleanup.status', 'current')
                     ->where('dashboard.cleanup.candidate_run_count', 0))
             );
+    }
+
+    public function test_dashboard_toolkit_counts_are_owner_scoped(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $ownerRun = app(CreateAnalyzerRun::class)->handle(
+            $owner,
+            'owner-video',
+            CollectionCachePolicy::AllowFreshCache,
+        );
+        $foreignRun = app(CreateAnalyzerRun::class)->handle(
+            $otherUser,
+            'foreign-video',
+            CollectionCachePolicy::AllowFreshCache,
+        );
+
+        DB::table('analyzer_runs')->whereIn('id', [$ownerRun->id, $foreignRun->id])->update([
+            'status' => 'completed',
+            'completed_at' => '2026-08-08 11:00:00',
+        ]);
+
+        foreach ([[$owner, $ownerRun], [$otherUser, $foreignRun]] as [$user, $run]) {
+            DB::table('watchlist_items')->insert([
+                'public_id' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'target_type' => 'analyzer_run',
+                'target_id' => $run->id,
+                'status' => 'monitoring',
+                'is_active' => true,
+                'refresh_mode' => 'manual',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('topic_workspaces')->insert([
+                'public_id' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'market_id' => Market::query()->where('key', 'global_en')->value('id'),
+                'name' => "{$user->id} workspace",
+                'name_key' => "{$user->id}-workspace",
+                'market_key' => 'global_en',
+                'relevance_language' => 'en',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('semantic_topic_profiles')->insert([
+                'public_id' => (string) Str::uuid(),
+                'user_id' => $user->id,
+                'analyzer_run_id' => $run->id,
+                'status' => 'complete',
+                'provenance' => 'inferred',
+                'provider' => 'local-test',
+                'algorithm_version' => 'test-v1',
+                'language' => 'en',
+                'evidence_summary' => json_encode([]),
+                'calculated_at' => '2026-08-08 11:00:00',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $dashboard = app(BuildDashboard::class)->handle($owner);
+
+        $this->assertSame(1, $dashboard['counts']['analyzer_profiles']);
+        $this->assertSame(1, $dashboard['counts']['monitored_targets']);
+        $this->assertSame(1, $dashboard['counts']['topic_workspaces']);
+        $this->assertSame(1, $dashboard['counts']['inferred_topic_profiles']);
     }
 
     public function test_dashboard_exposes_active_partial_and_failed_run_states_for_the_owner(): void
@@ -374,7 +452,7 @@ class DashboardReadModelTest extends TestCase
 
         DB::disableQueryLog();
 
-        $this->assertCount(7, $queries, 'Dashboard read queries must remain bounded as run volume grows.');
+        $this->assertCount(8, $queries, 'Dashboard read queries must remain bounded as run volume grows.');
         $this->assertSame(20, $dashboard['counts']['active_runs']);
         $this->assertCount(8, $dashboard['recent_runs']);
     }

@@ -2,24 +2,34 @@
 
 namespace App\Domain\YouTube\Providers;
 
+use App\Domain\YouTube\Contracts\ChannelUploadsProvider;
+use App\Domain\YouTube\Contracts\CommentProvider;
 use App\Domain\YouTube\Contracts\VideoResearchProvider;
 use App\Domain\YouTube\Contracts\YouTubeApiClient;
 use App\Domain\YouTube\Data\ChannelDetailsBatch;
+use App\Domain\YouTube\Data\ChannelUploadsPage;
+use App\Domain\YouTube\Data\ChannelUploadsRequest;
+use App\Domain\YouTube\Data\CommentThreadsPage;
+use App\Domain\YouTube\Data\CommentThreadsRequest;
 use App\Domain\YouTube\Data\VideoDetailsBatch;
 use App\Domain\YouTube\Data\VideoSearchPage;
 use App\Domain\YouTube\Data\VideoSearchRequest;
 use App\Domain\YouTube\Data\YouTubeIdBatchRequest;
 use App\Domain\YouTube\Services\YouTubeChannelDetailsNormalizer;
+use App\Domain\YouTube\Services\YouTubeChannelUploadsNormalizer;
+use App\Domain\YouTube\Services\YouTubeCommentThreadsNormalizer;
 use App\Domain\YouTube\Services\YouTubeSearchNormalizer;
 use App\Domain\YouTube\Services\YouTubeVideoDetailsNormalizer;
 
-class YouTubeDataApiProvider implements VideoResearchProvider
+class YouTubeDataApiProvider implements ChannelUploadsProvider, CommentProvider, VideoResearchProvider
 {
     public function __construct(
         private readonly YouTubeApiClient $client,
         private readonly YouTubeSearchNormalizer $normalizer,
         private readonly YouTubeVideoDetailsNormalizer $videoDetailsNormalizer,
         private readonly YouTubeChannelDetailsNormalizer $channelDetailsNormalizer,
+        private readonly YouTubeChannelUploadsNormalizer $channelUploadsNormalizer,
+        private readonly YouTubeCommentThreadsNormalizer $commentThreadsNormalizer,
     ) {}
 
     public function search(VideoSearchRequest $request): VideoSearchPage
@@ -91,6 +101,41 @@ class YouTubeDataApiProvider implements VideoResearchProvider
             $payload,
             $request->ids,
             now()->toDateTimeImmutable(),
+        );
+    }
+
+    public function listUploads(ChannelUploadsRequest $request): ChannelUploadsPage
+    {
+        $parameters = [
+            'part' => 'contentDetails',
+            'playlistId' => $request->playlistId,
+            'maxResults' => $request->maxResults,
+        ];
+
+        if ($request->pageToken !== null) {
+            $parameters['pageToken'] = $request->pageToken;
+        }
+
+        return $this->channelUploadsNormalizer->normalize(
+            $this->client->get('playlistItems.list', $parameters, $request->context),
+        );
+    }
+
+    public function listCommentThreads(CommentThreadsRequest $request): CommentThreadsPage
+    {
+        $parameters = [
+            'part' => 'snippet',
+            'videoId' => $request->videoId,
+            'maxResults' => $request->maxResults,
+            'textFormat' => 'plainText',
+            'order' => 'relevance',
+        ];
+        if ($request->pageToken !== null) {
+            $parameters['pageToken'] = $request->pageToken;
+        }
+
+        return $this->commentThreadsNormalizer->normalize(
+            $this->client->get('commentThreads.list', $parameters, $request->context),
         );
     }
 }

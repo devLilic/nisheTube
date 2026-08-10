@@ -131,6 +131,49 @@ Run `migrate --force` only when the restored database predates the checked-out c
 
 After restarting `composer run dev`, verify login, recent research/history counts, one completed score, the Exports list, and one unexpired download. Review `php artisan queue:failed`; restored in-flight jobs may need investigation before an individual `php artisan queue:retry <job-id>`.
 
+### 3.1 Rehearse expansion migration rollback without user data
+
+The shared-collection and integrated Analyzer expansion consists of the 19 migrations from `2026_08_08_070000_create_shared_collection_foundation.php` through `2026_08_10_040000_create_thumbnail_analysis_profiles.php`. Rehearse their `down` and `up` paths only against a new disposable database. Never point this command sequence at MySQL or a copy containing user research.
+
+From the project directory, use a uniquely named SQLite file under the ignored testing directory:
+
+```powershell
+$rehearsalDatabase = Join-Path (Get-Location) 'storage\framework\testing\rel05-migration-rehearsal.sqlite'
+$resolvedProject = (Resolve-Path (Get-Location)).Path
+
+if (Test-Path -LiteralPath $rehearsalDatabase) {
+    throw 'The rehearsal target already exists; choose a new disposable filename.'
+}
+if (-not ([System.IO.Path]::GetFullPath($rehearsalDatabase).StartsWith($resolvedProject, [System.StringComparison]::OrdinalIgnoreCase))) {
+    throw 'The rehearsal database must stay inside this project testing directory.'
+}
+
+New-Item -ItemType File -Path $rehearsalDatabase -ErrorAction Stop | Out-Null
+$env:DB_CONNECTION = 'sqlite'
+$env:DB_DATABASE = $rehearsalDatabase
+$env:CACHE_STORE = 'array'
+$env:SESSION_DRIVER = 'array'
+$env:QUEUE_CONNECTION = 'sync'
+
+php artisan migrate --force
+if ($LASTEXITCODE -ne 0) { throw 'Disposable migration failed.' }
+
+php artisan migrate:rollback --step=19 --force
+if ($LASTEXITCODE -ne 0) { throw 'Expansion rollback rehearsal failed.' }
+
+php artisan migrate --force
+if ($LASTEXITCODE -ne 0) { throw 'Expansion re-apply rehearsal failed.' }
+
+php artisan migrate:status
+if ($LASTEXITCODE -ne 0) { throw 'Disposable migration status failed.' }
+
+Remove-Item -LiteralPath $rehearsalDatabase
+```
+
+Run this in a fresh PowerShell process so the temporary database environment variables disappear when the terminal closes. If a step fails, keep the disposable file for diagnosis, do not continue a live upgrade, and restore the verified pre-upgrade MySQL/export backup using Section 3. Do not use `migrate:fresh`, `migrate:refresh`, or `migrate:reset` as recovery shortcuts.
+
+After a successful real upgrade or restore, sign in as two local users and verify that each sees only their own Analyzer, Watchlist, Topic Workspace, Export, and Retention records. Open one Romanian or Russian long-title result at 1440px and 768px, confirm the exact-value tables remain usable, and confirm that loading Explore does not add a quota-ledger event.
+
 ## 4. Export lifecycle and recovery limits
 
 - With the default `EXPORT_DISK=local`, generated files live at `storage\app\private\exports\<user-id>\<export-public-id>.<csv|xlsx>` and are never public web assets.

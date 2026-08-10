@@ -31,6 +31,22 @@ class DeterministicDiscoveryEngine
         foreach (array_slice($clusters, 0, $candidateLimit) as $cluster) {
             $videoCount = count($cluster->videoIds);
             $seedCount = count($cluster->seedQueries);
+            $analyzerRunIds = collect($observations)
+                ->whereIn('providerVideoId', $cluster->videoIds)
+                ->pluck('analyzerRunPublicId')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            $inferredTopics = collect($observations)
+                ->whereIn('providerVideoId', $cluster->videoIds)
+                ->flatMap(fn (DiscoveryObservation $observation): array => $observation->inferredTopics)
+                ->countBy()
+                ->sortDesc()
+                ->keys()
+                ->take(8)
+                ->values()
+                ->all();
             $drafts[] = new DiscoveryCandidateDraft(
                 phrase: $cluster->representativePhrase,
                 clusterKey: $cluster->clusterKey,
@@ -42,6 +58,11 @@ class DeterministicDiscoveryEngine
                     'member_phrases' => $cluster->memberPhrases,
                     'source_video_count' => $videoCount,
                     'seed_count' => $seedCount,
+                    'analyzer_run_ids' => $analyzerRunIds,
+                    'evidence_provenance' => $analyzerRunIds === [] ? ['research_snapshot'] : ['research_snapshot', 'analyzer_profile'],
+                    'opportunity_score_status' => 'requires_validation_search',
+                    'inferred_topics' => $inferredTopics,
+                    'inferred_topic_provenance' => $inferredTopics === [] ? null : 'semantic-title-terms-v1',
                 ],
                 overallScore: round(min($cluster->strength / max($videoCount, 1), 100), 4),
                 confidenceScore: round(min(25 + ($videoCount * 15) + ($seedCount * 10), 100), 4),

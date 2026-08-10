@@ -1,6 +1,7 @@
 import { Form, Head, Link, usePage, usePoll } from '@inertiajs/react';
 import { AlertTriangle, ArrowLeft, RefreshCw, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
+import { AnalyticsGlossary } from '@/components/analytics-glossary';
 import { MarketBadge } from '@/components/market-badge';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -11,15 +12,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { CandidateList } from '@/features/discovery/candidate-list';
 import { DiscoveryProgress } from '@/features/discovery/discovery-progress';
+import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import type { DiscoveryRun, LibraryContext, QuotaSummary } from '@/types';
 
 type PageProps = {
     run: DiscoveryRun;
     youtubeQuota: QuotaSummary | null;
     library: LibraryContext;
+    workspaces: WorkspaceOption[];
 };
 
-export default function DiscoveryRunShow({ run, library }: PageProps) {
+export default function DiscoveryRunShow({
+    run,
+    library,
+    workspaces,
+}: PageProps) {
     const { youtubeQuota } = usePage<PageProps>().props;
     const { start, stop } = usePoll(
         2000,
@@ -80,6 +87,7 @@ export default function DiscoveryRunShow({ run, library }: PageProps) {
                         </>
                     }
                 />
+                <AnalyticsGlossary page="discovery" />
 
                 <div className="flex flex-wrap items-center gap-2">
                     <MarketBadge market={run.market.key} />
@@ -185,6 +193,8 @@ export default function DiscoveryRunShow({ run, library }: PageProps) {
                         candidates={run.candidates}
                         validationBlocked={validationBlocked}
                         library={library}
+                        workspaces={workspaces}
+                        discoveryRunPublicId={run.public_id}
                     />
                 ) : null}
             </PageContainer>

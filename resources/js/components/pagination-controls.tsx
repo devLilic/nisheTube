@@ -12,9 +12,11 @@ export type PaginationMeta = {
 export function PaginationControls({
     pagination,
     onPageChange,
+    ariaLabel = 'Results pagination',
 }: {
     pagination: PaginationMeta;
     onPageChange: (page: number) => void;
+    ariaLabel?: string;
 }) {
     if (pagination.last_page <= 1) {
         return null;
@@ -23,7 +25,7 @@ export function PaginationControls({
     return (
         <nav
             className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-            aria-label="Results pagination"
+            aria-label={ariaLabel}
         >
             <p className="text-sm text-muted-foreground">
                 Showing {pagination.from ?? 0}–{pagination.to ?? 0} of{' '}

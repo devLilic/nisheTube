@@ -18,16 +18,10 @@ class BuildScoringInput
     {
         /** @var Collection<int, stdClass> $records */
         $records = DB::table('video_snapshots as video_snapshot')
-            ->join('videos as video', 'video.id', '=', 'video_snapshot.video_id')
-            ->join('research_run_videos as membership', function ($join) use ($run): void {
-                $join->on('membership.video_id', '=', 'video.id')
-                    ->where('membership.research_run_id', '=', $run->id);
-            })
-            ->leftJoin('channel_snapshots as channel_snapshot', function ($join) use ($run): void {
-                $join->on('channel_snapshot.channel_id', '=', 'video.channel_id')
-                    ->where('channel_snapshot.research_run_id', '=', $run->id);
-            })
-            ->where('video_snapshot.research_run_id', $run->id)
+            ->join('research_run_videos as membership', 'membership.video_snapshot_id', '=', 'video_snapshot.id')
+            ->join('videos as video', 'video.id', '=', 'membership.video_id')
+            ->leftJoin('channel_snapshots as channel_snapshot', 'channel_snapshot.id', '=', 'membership.channel_snapshot_id')
+            ->where('membership.research_run_id', $run->id)
             ->orderBy('membership.result_rank')
             ->select([
                 'video.id as video_id',

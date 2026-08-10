@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Catalog;
 
+use App\Domain\Collection\Enums\CollectionCachePolicy;
+use App\Domain\Collection\Enums\CollectionRunStatus;
+use App\Domain\Collection\ReadModels\BuildResearchRunProvenance;
 use App\Domain\Research\Actions\CreateResearchQuery;
 use App\Domain\Research\Actions\CreateResearchRun;
 use App\Domain\Research\Actions\MarkResearchRunSearchComplete;
@@ -80,10 +83,13 @@ class ResearchRunEnrichmentTest extends TestCase
         $firstVideoSnapshot = VideoSnapshot::query()->where('video_id', $firstVideo->id)->firstOrFail();
         $firstChannel = Channel::query()->where('provider_channel_id', 'channel-1')->firstOrFail();
         $firstChannelSnapshot = ChannelSnapshot::query()->where('channel_id', $firstChannel->id)->firstOrFail();
+        $firstMembership = $run->videoMemberships()->where('video_id', $firstVideo->id)->firstOrFail();
 
         $this->assertSame(ResearchRunStatus::Scoring, $run->status);
         $this->assertSame(75, $run->enriched_result_count);
         $this->assertSame(90, $run->progress_percent);
+        $this->assertSame(CollectionRunStatus::Completed, $run->collectionRun->status);
+        $this->assertSame(75, $run->collectionRun->processed_count);
         $this->assertDatabaseCount('videos', 75);
         $this->assertDatabaseCount('channels', 75);
         $this->assertDatabaseCount('research_run_videos', 75);
@@ -97,6 +103,10 @@ class ResearchRunEnrichmentTest extends TestCase
         $this->assertSame('10.00000000', $firstVideoSnapshot->views_to_subscribers_ratio);
         $this->assertSame('2026-08-08 12:00:00', $firstVideoSnapshot->collected_at->format('Y-m-d H:i:s'));
         $this->assertSame('2026-08-08 12:00:00', $firstChannelSnapshot->collected_at->format('Y-m-d H:i:s'));
+        $this->assertSame($run->collection_run_id, $firstVideoSnapshot->collection_run_id);
+        $this->assertSame($run->collection_run_id, $firstChannelSnapshot->collection_run_id);
+        $this->assertSame($firstVideoSnapshot->id, $firstMembership->video_snapshot_id);
+        $this->assertSame($firstChannelSnapshot->id, $firstMembership->channel_snapshot_id);
         $this->assertSame(['uploads_playlist_id' => 'uploads-1', 'published_at' => '2020-01-01T00:00:00Z'], $firstChannelSnapshot->metadata);
         $this->assertCount(4, $requests);
         $this->assertSame([50, 50, 25, 25], array_map(fn (array $request): int => count($request['ids']), $requests));
@@ -115,6 +125,7 @@ class ResearchRunEnrichmentTest extends TestCase
         $this->assertSame([null, 50, null, 25], array_column($requests, 'max_results'));
         $this->assertDatabaseCount('api_usage_events', 4);
         $this->assertSame(4, ApiUsageEvent::query()->where('research_run_id', $run->id)->count());
+        $this->assertSame(4, ApiUsageEvent::query()->where('collection_run_id', $run->collection_run_id)->count());
         $this->assertSame(4, ApiUsageEvent::query()->where('user_id', $run->user_id)->count());
         $this->assertSame(['channels.list', 'videos.list'], ApiUsageEvent::query()->distinct()->orderBy('endpoint')->pluck('endpoint')->all());
         Queue::assertPushed(ScoreResearchRun::class, fn (ScoreResearchRun $job): bool => $job->researchRunId === $run->id);
@@ -179,18 +190,20 @@ class ResearchRunEnrichmentTest extends TestCase
     public function test_retry_resumes_from_persisted_batches_without_duplicate_snapshots(): void
     {
         $run = $this->searchingRunWithResults(51);
-        $failVideo51 = true;
+        $video51Attempts = 0;
         $retriedVideoIds = [];
 
-        Http::fake(function (Request $request) use (&$failVideo51, &$retriedVideoIds) {
+        Http::fake(function (Request $request) use (&$video51Attempts, &$retriedVideoIds) {
             $ids = explode(',', (string) $request['id']);
 
             if (str_contains($request->url(), '/videos')) {
-                if ($failVideo51 && in_array('video-51', $ids, true)) {
-                    return Http::response(['error' => ['errors' => [['reason' => 'backendError']]]], 500);
-                }
+                if (in_array('video-51', $ids, true)) {
+                    $video51Attempts++;
 
-                if (! $failVideo51) {
+                    if ($video51Attempts === 1) {
+                        return Http::response(['error' => ['errors' => [['reason' => 'backendError']]]], 500);
+                    }
+
                     $retriedVideoIds = [...$retriedVideoIds, ...$ids];
                 }
 
@@ -210,8 +223,6 @@ class ResearchRunEnrichmentTest extends TestCase
         $this->assertSame(ResearchRunStatus::Enriching, $run->fresh()->status);
         $this->assertDatabaseCount('video_snapshots', 50);
         $this->assertDatabaseCount('channel_snapshots', 50);
-        $failVideo51 = false;
-
         app()->call([new EnrichResearchRun($run->id), 'handle']);
 
         $this->assertSame(['video-51'], $retriedVideoIds);
@@ -288,6 +299,92 @@ class ResearchRunEnrichmentTest extends TestCase
         $this->assertSame('2026-08-09 12:00:00', $secondVideoSnapshot->collected_at->format('Y-m-d H:i:s'));
     }
 
+    public function test_allow_fresh_cache_pins_owned_sources_without_provider_calls_or_new_snapshots(): void
+    {
+        $firstRun = $this->searchingRunWithResults(1);
+
+        Http::fake(function (Request $request) {
+            $ids = explode(',', (string) $request['id']);
+
+            return str_contains($request->url(), '/videos')
+                ? Http::response(['items' => $this->videoItems($ids)])
+                : Http::response(['items' => $this->channelItems($ids)]);
+        });
+        app()->call([new EnrichResearchRun($firstRun->id), 'handle']);
+
+        $firstMembership = $firstRun->videoMemberships()->sole();
+        $firstVideoSnapshot = $firstMembership->videoSnapshot()->firstOrFail();
+        $firstChannelSnapshot = $firstMembership->channelSnapshot()->firstOrFail();
+        $secondRun = $this->searchingRunForExistingQuery(
+            $firstRun,
+            CollectionCachePolicy::AllowFreshCache,
+            3_600,
+        );
+        $attemptCount = ApiUsageEvent::query()->count();
+        Http::fake(fn () => throw new \RuntimeException('Fresh cached sources must bypass the provider.'));
+
+        app()->call([new EnrichResearchRun($secondRun->id), 'handle']);
+
+        $secondRun->refresh();
+        $secondMembership = $secondRun->videoMemberships()->sole();
+        $provenance = app(BuildResearchRunProvenance::class)->handle($secondRun);
+
+        $this->assertSame(ResearchRunStatus::Scoring, $secondRun->status);
+        $this->assertSame($firstVideoSnapshot->id, $secondMembership->video_snapshot_id);
+        $this->assertSame($firstChannelSnapshot->id, $secondMembership->channel_snapshot_id);
+        $this->assertSame($attemptCount, ApiUsageEvent::query()->count());
+        $this->assertDatabaseCount('video_snapshots', 1);
+        $this->assertDatabaseCount('channel_snapshots', 1);
+        $this->assertSame('cached', $provenance['source']['freshness_state']);
+        $this->assertSame(2, $provenance['source']['cached_observation_count']);
+        $this->assertSame('2026-08-08T12:00:00+00:00', $provenance['source']['observed_from']);
+        $this->assertSame(1, $secondRun->collectionRun->processed_count);
+    }
+
+    public function test_force_refresh_bypasses_cache_and_captures_new_owned_observations(): void
+    {
+        $firstRun = $this->searchingRunWithResults(1);
+        $viewCount = 1000;
+
+        Http::fake(function (Request $request) use (&$viewCount) {
+            $ids = explode(',', (string) $request['id']);
+
+            if (str_contains($request->url(), '/videos')) {
+                $items = $this->videoItems($ids);
+                $items[0]['statistics']['viewCount'] = (string) $viewCount;
+
+                return Http::response(['items' => $items]);
+            }
+
+            return Http::response(['items' => $this->channelItems($ids)]);
+        });
+        app()->call([new EnrichResearchRun($firstRun->id), 'handle']);
+
+        CarbonImmutable::setTestNow('2026-08-08 13:00:00 UTC');
+        $viewCount = 2500;
+        $secondRun = $this->searchingRunForExistingQuery(
+            $firstRun,
+            CollectionCachePolicy::ForceRefresh,
+            3_600,
+        );
+
+        app()->call([new EnrichResearchRun($secondRun->id), 'handle']);
+
+        $secondRun->refresh();
+        $membership = $secondRun->videoMemberships()->sole();
+        $snapshot = $membership->videoSnapshot()->firstOrFail();
+        $provenance = app(BuildResearchRunProvenance::class)->handle($secondRun);
+
+        $this->assertSame(2500, $snapshot->view_count);
+        $this->assertSame($secondRun->collection_run_id, $snapshot->collection_run_id);
+        $this->assertDatabaseCount('video_snapshots', 2);
+        $this->assertDatabaseCount('channel_snapshots', 2);
+        $this->assertSame(4, ApiUsageEvent::query()->count());
+        $this->assertSame('fresh', $provenance['source']['freshness_state']);
+        $this->assertSame(0, $provenance['source']['cached_observation_count']);
+        $this->assertSame('2026-08-08T13:00:00+00:00', $provenance['source']['observed_from']);
+    }
+
     public function test_non_retryable_enrichment_failure_preserves_the_run_with_safe_guidance(): void
     {
         $run = $this->searchingRunWithResults(1);
@@ -344,6 +441,35 @@ class ResearchRunEnrichmentTest extends TestCase
                 'provider_order' => (($number - 1) % 50) + 1,
             ]);
         }
+
+        return app(MarkResearchRunSearchComplete::class)->handle($run);
+    }
+
+    private function searchingRunForExistingQuery(
+        ResearchRun $sourceRun,
+        CollectionCachePolicy $cachePolicy,
+        int $freshnessWindowSeconds,
+    ): ResearchRun {
+        $run = app(CreateResearchRun::class)->handle(
+            user: $sourceRun->user,
+            query: $sourceRun->researchQuery,
+            requestedResultCount: 1,
+            cachePolicy: $cachePolicy,
+            freshnessWindowSeconds: $freshnessWindowSeconds,
+        );
+        $transition = app(TransitionResearchRun::class);
+        $run = $transition->handle($run, ResearchRunStatus::Queued);
+        $run = $transition->handle($run, ResearchRunStatus::Searching);
+        ResearchRunSearchResult::query()->create([
+            'research_run_id' => $run->id,
+            'provider_video_id' => 'video-1',
+            'provider_channel_id' => 'channel-1',
+            'title' => 'Search video 1',
+            'published_at' => '2026-08-07 12:00:00',
+            'result_rank' => 1,
+            'page_number' => 1,
+            'provider_order' => 1,
+        ]);
 
         return app(MarkResearchRunSearchComplete::class)->handle($run);
     }

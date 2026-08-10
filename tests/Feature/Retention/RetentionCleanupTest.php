@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Retention;
 
+use App\Domain\Collection\Enums\CollectionCachePolicy;
+use App\Domain\Collection\Enums\CollectionRunKind;
+use App\Domain\Collection\Enums\CollectionRunStatus;
 use App\Domain\Exports\Enums\ExportFormat;
 use App\Domain\Exports\Enums\ExportStatus;
 use App\Domain\Library\Enums\LibraryTargetType;
@@ -387,6 +390,50 @@ final class RetentionCleanupTest extends TestCase
                     ->where('retention.history.1.items.0.outcome', DeletionOutcome::Deleted->value)));
     }
 
+    public function test_manual_cleanup_preserves_observations_pinned_by_another_research_run(): void
+    {
+        Queue::fake([ExecuteCleanupRun::class]);
+        $user = User::factory()->create();
+        $source = $this->makeRun($user, 'Shared source', ResearchRunStatus::Completed, '2026-08-08 10:00:00');
+        $this->snapshot($source);
+        $dependent = $this->makeRun($user, 'Cached dependent', ResearchRunStatus::Completed, '2026-08-08 11:00:00');
+        $sourceMembership = $source->videoMemberships()->sole();
+        $dependent->videos()->attach($sourceMembership->video_id, [
+            'result_rank' => 1,
+            'page_number' => 1,
+            'provider_order' => 1,
+        ]);
+        $dependent->videoMemberships()->sole()->pinSources(
+            $sourceMembership->videoSnapshot()->firstOrFail(),
+            $sourceMembership->channelSnapshot()->firstOrFail(),
+        );
+
+        $plan = app(BuildRetentionPlan::class)->handle(
+            $user,
+            CleanupMode::ManualSelection,
+            [$source->public_id],
+        );
+        $cleanup = app(CreateCleanupRun::class)->handle(
+            user: $user,
+            mode: CleanupMode::ManualSelection,
+            dryRun: false,
+            selectedRunPublicIds: [$source->public_id],
+        );
+
+        $this->assertSame(DeletionOutcome::PreservedSharedSource, $plan->items[0]['outcome']);
+        $this->assertSame(1, $plan->counts['preserved_shared_sources']);
+        $this->assertSame(0, $plan->counts['research_runs']);
+        $this->assertSame(
+            DeletionOutcome::PreservedSharedSource,
+            $cleanup->items()->sole()->outcome,
+        );
+        $this->assertDatabaseHas('research_runs', ['id' => $source->id]);
+        $this->assertSame(
+            $sourceMembership->video_snapshot_id,
+            $dependent->videoMemberships()->sole()->video_snapshot_id,
+        );
+    }
+
     private function makeRun(User $user, string $queryText, ResearchRunStatus $status, string $terminalAt): ResearchRun
     {
         $market = Market::query()->where('key', 'global_en')->firstOrFail();
@@ -395,10 +442,26 @@ final class RetentionCleanupTest extends TestCase
             'market_id' => $market->id,
             'query_text' => $queryText,
         ]);
+        $collectionRun = $user->collectionRuns()->create([
+            'provider' => 'youtube',
+            'kind' => CollectionRunKind::SearchEnrichment,
+            'status' => $status === ResearchRunStatus::Completed
+                ? CollectionRunStatus::Completed
+                : CollectionRunStatus::Failed,
+            'attempt_number' => 1,
+            'frozen_request' => ['query_text' => $queryText],
+            'cache_policy' => CollectionCachePolicy::FreshOnly,
+            'requested_count' => 25,
+            'processed_count' => $status === ResearchRunStatus::Completed ? 1 : 0,
+            'progress_percent' => $status === ResearchRunStatus::Completed ? 100 : 75,
+            'completed_at' => $status === ResearchRunStatus::Completed ? $terminalAt : null,
+            'failed_at' => $status === ResearchRunStatus::Failed ? $terminalAt : null,
+        ]);
 
         return ResearchRun::query()->create([
             'user_id' => $user->id,
             'research_query_id' => $query->id,
+            'collection_run_id' => $collectionRun->id,
             'kind' => ResearchRunKind::Search,
             'status' => $status,
             'attempt_number' => 1,
@@ -435,21 +498,24 @@ final class RetentionCleanupTest extends TestCase
             'page_number' => 1,
             'provider_order' => 1,
         ]);
-        VideoSnapshot::query()->create([
+        $videoSnapshot = VideoSnapshot::query()->create([
             'research_run_id' => $run->id,
+            'collection_run_id' => $run->collection_run_id,
             'video_id' => $video->id,
             'view_count' => 100,
             'age_seconds' => 100,
             'views_per_day' => 10,
             'collected_at' => $run->completed_at ?? $run->failed_at,
         ]);
-        ChannelSnapshot::query()->create([
+        $channelSnapshot = ChannelSnapshot::query()->create([
             'research_run_id' => $run->id,
+            'collection_run_id' => $run->collection_run_id,
             'channel_id' => $channel->id,
             'view_count' => 1000,
             'subscriber_count_hidden' => false,
             'collected_at' => $run->completed_at ?? $run->failed_at,
         ]);
+        $run->videoMemberships()->sole()->pinSources($videoSnapshot, $channelSnapshot);
         OpportunityScore::query()->create([
             'research_run_id' => $run->id,
             'formula_version' => 'niche-opportunity-v1',

@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Discovery;
 
+use App\Domain\Analyzer\Actions\CreateAnalyzerRun;
+use App\Domain\Analyzer\Enums\AnalyzerRunStatus;
+use App\Domain\Collection\Enums\CollectionCachePolicy;
 use App\Domain\Discovery\Actions\CreateDiscoveryRun;
 use App\Domain\Discovery\Actions\LinkCandidateValidationRun;
 use App\Domain\Discovery\Actions\LinkDiscoverySeedResearchRun;
@@ -52,6 +55,14 @@ class DiscoveryGenerationTest extends TestCase
             ['small apartment storage ideas', 2000, 2.5],
             ['small apartment storage makeover', 2500, 3.0],
         ]);
+        $analyzerRun = app(CreateAnalyzerRun::class)->handle(
+            $user,
+            "discovery-video-{$sample->id}-2",
+            CollectionCachePolicy::AllowFreshCache,
+            originKind: 'search',
+            originReference: $sample->public_id,
+        );
+        $analyzerRun->update(['status' => AnalyzerRunStatus::Completed, 'completed_at' => now()]);
         $discovery = app(CreateDiscoveryRun::class)->handle($user, $market, ['compact living']);
         app(LinkDiscoverySeedResearchRun::class)->handle($user, $discovery->seeds->firstOrFail(), $sample);
 
@@ -79,6 +90,9 @@ class DiscoveryGenerationTest extends TestCase
         $this->assertSame('discovery-breakout-v1', $candidate->formula_version);
         $this->assertSame('returned_video_breakout', $candidate->evidence['observed_signal']);
         $this->assertSame(2, $candidate->evidence['source_video_count']);
+        $this->assertSame([$analyzerRun->public_id], $candidate->evidence['analyzer_run_ids']);
+        $this->assertSame(['research_snapshot', 'analyzer_profile'], $candidate->evidence['evidence_provenance']);
+        $this->assertSame('requires_validation_search', $candidate->evidence['opportunity_score_status']);
         $this->assertTrue(Gate::forUser($user)->allows('view', $candidate));
         $this->assertDatabaseCount('api_usage_events', 0);
 
@@ -266,13 +280,18 @@ class DiscoveryGenerationTest extends TestCase
                 'page_number' => 1,
                 'provider_order' => $index + 1,
             ]);
-            $run->videoSnapshots()->create([
+            $videoSnapshot = $run->videoSnapshots()->create([
                 'video_id' => $video->id,
+                'collection_run_id' => $run->collection_run_id,
                 'view_count' => $viewsPerDay * 10,
                 'views_per_day' => $viewsPerDay,
                 'views_to_subscribers_ratio' => $reachRatio,
                 'collected_at' => '2026-08-08 12:00:00',
             ]);
+            $run->videoMemberships()
+                ->where('video_id', $video->id)
+                ->firstOrFail()
+                ->pinSources($videoSnapshot, null);
         }
 
         $run->update([

@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int|null $user_id
  * @property int|null $research_run_id
+ * @property int|null $collection_run_id
  * @property string $provider
  * @property string $quota_bucket
  * @property string $endpoint
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'user_id',
     'research_run_id',
+    'collection_run_id',
     'provider',
     'quota_bucket',
     'endpoint',
@@ -41,6 +43,12 @@ class ApiUsageEvent extends Model
     public function researchRun(): BelongsTo
     {
         return $this->belongsTo(ResearchRun::class);
+    }
+
+    /** @return BelongsTo<CollectionRun, $this> */
+    public function collectionRun(): BelongsTo
+    {
+        return $this->belongsTo(CollectionRun::class);
     }
 
     /** @return array<string, string> */

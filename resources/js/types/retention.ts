@@ -1,5 +1,13 @@
 export type RetentionCounts = {
     research_runs: number;
+    analyzer_runs: number;
+    comment_collections: number;
+    public_comments: number;
+    transcript_documents: number;
+    transcript_segments: number;
+    thumbnail_analysis_profiles: number;
+    thumbnail_analysis_items: number;
+    thumbnail_performance_aggregates: number;
     video_snapshots: number;
     channel_snapshots: number;
     opportunity_scores: number;
@@ -8,6 +16,7 @@ export type RetentionCounts = {
     video_memberships: number;
     expired_exports: number;
     preserved_favorites: number;
+    preserved_shared_sources: number;
 };
 
 export type RetentionPreviewRun = {
@@ -16,6 +25,7 @@ export type RetentionPreviewRun = {
     status: 'completed' | 'failed';
     terminal_at: string;
     favorite_impacted: boolean;
+    shared_source_impacted: boolean;
     video_snapshots: number;
     channel_snapshots: number;
     opportunity_scores: number;
@@ -23,12 +33,13 @@ export type RetentionPreviewRun = {
 };
 
 export type RetentionAuditItem = {
-    target_type: 'research_run' | 'export';
+    target_type: 'research_run' | 'analyzer_run' | 'export';
     target_reference: string;
     original_collection_at: string;
     outcome:
         | 'eligible'
         | 'preserved_favorite'
+        | 'preserved_shared_source'
         | 'deleted'
         | 'skipped_missing'
         | 'skipped_ineligible';

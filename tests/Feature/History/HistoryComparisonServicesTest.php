@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\History;
 
+use App\Domain\Collection\Enums\CollectionCachePolicy;
+use App\Domain\Collection\Enums\CollectionRunKind;
+use App\Domain\Collection\Enums\CollectionRunStatus;
 use App\Domain\History\ReadModels\BuildResearchRunComparison;
 use App\Domain\History\ReadModels\ListComparableResearchRuns;
 use App\Domain\Research\Enums\ResearchRunKind;
@@ -308,10 +311,29 @@ class HistoryComparisonServicesTest extends TestCase
             'market_id' => $market->id,
             'query_text' => $queryText,
         ]);
+        $collectionRun = $user->collectionRuns()->create([
+            'provider' => 'youtube',
+            'kind' => CollectionRunKind::SearchEnrichment,
+            'status' => $status === ResearchRunStatus::Completed
+                ? CollectionRunStatus::Completed
+                : CollectionRunStatus::Queued,
+            'attempt_number' => 1,
+            'frozen_request' => [
+                'query_text' => $queryText,
+                'market_key' => $marketKey,
+                'parameters' => $parameters,
+            ],
+            'cache_policy' => CollectionCachePolicy::FreshOnly,
+            'requested_count' => $requestedCount,
+            'processed_count' => $status === ResearchRunStatus::Completed ? $requestedCount : 0,
+            'progress_percent' => $status === ResearchRunStatus::Completed ? 100 : 0,
+            'completed_at' => $status === ResearchRunStatus::Completed ? $completedAt : null,
+        ]);
 
         return ResearchRun::query()->create([
             'user_id' => $user->id,
             'research_query_id' => $query->id,
+            'collection_run_id' => $collectionRun->id,
             'kind' => $kind,
             'status' => $status,
             'attempt_number' => 1,
@@ -389,8 +411,9 @@ class HistoryComparisonServicesTest extends TestCase
             'page_number' => 1,
             'provider_order' => $rank,
         ]);
-        VideoSnapshot::query()->create([
+        $videoSnapshot = VideoSnapshot::query()->create([
             'research_run_id' => $run->id,
+            'collection_run_id' => $run->collection_run_id,
             'video_id' => $video->id,
             'view_count' => $views,
             'like_count' => $views === null ? null : (int) ($views * 0.1),
@@ -402,15 +425,20 @@ class HistoryComparisonServicesTest extends TestCase
                 : null,
             'collected_at' => $run->completed_at,
         ]);
-        ChannelSnapshot::query()->firstOrCreate([
+        $channelSnapshot = ChannelSnapshot::query()->firstOrCreate([
             'research_run_id' => $run->id,
             'channel_id' => $video->channel_id,
         ], [
+            'collection_run_id' => $run->collection_run_id,
             'subscriber_count' => $subscribers,
             'view_count' => $views === null ? null : $views * 100,
             'video_count' => 20,
             'subscriber_count_hidden' => $subscribersHidden,
             'collected_at' => $run->completed_at,
         ]);
+        $run->videoMemberships()
+            ->where('video_id', $video->id)
+            ->firstOrFail()
+            ->pinSources($videoSnapshot, $channelSnapshot);
     }
 }

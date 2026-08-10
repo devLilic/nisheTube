@@ -39,6 +39,7 @@ final class BuildDashboard
                 ...$this->runCounts($user, $monthStartsAt),
                 'saved_projects' => $this->savedProjectCount($user),
                 'saved_items' => null,
+                ...$this->toolkitCounts($user),
             ],
             'availability' => [
                 'saved_items' => false,
@@ -98,6 +99,36 @@ final class BuildDashboard
             ->where('user_id', $user->id)
             ->whereNull('archived_at')
             ->count();
+    }
+
+    /** @return array{analyzer_profiles: int, monitored_targets: int, topic_workspaces: int, inferred_topic_profiles: int} */
+    private function toolkitCounts(User $user): array
+    {
+        $record = DB::selectOne(
+            <<<'SQL'
+                SELECT
+                    (SELECT COUNT(*) FROM analyzer_runs WHERE user_id = ? AND status = ?) AS analyzer_profiles,
+                    (SELECT COUNT(*) FROM watchlist_items WHERE user_id = ? AND is_active = 1) AS monitored_targets,
+                    (SELECT COUNT(*) FROM topic_workspaces WHERE user_id = ? AND archived_at IS NULL) AS topic_workspaces,
+                    (SELECT COUNT(*) FROM semantic_topic_profiles WHERE user_id = ? AND status IN (?, ?)) AS inferred_topic_profiles
+                SQL,
+            [
+                $user->id,
+                ResearchRunStatus::Completed->value,
+                $user->id,
+                $user->id,
+                $user->id,
+                'complete',
+                'partial',
+            ],
+        );
+
+        return [
+            'analyzer_profiles' => (int) ($record->analyzer_profiles ?? 0),
+            'monitored_targets' => (int) ($record->monitored_targets ?? 0),
+            'topic_workspaces' => (int) ($record->topic_workspaces ?? 0),
+            'inferred_topic_profiles' => (int) ($record->inferred_topic_profiles ?? 0),
+        ];
     }
 
     /** @return list<array<string, mixed>> */

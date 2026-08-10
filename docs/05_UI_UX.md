@@ -20,12 +20,17 @@ Primary navigation:
 
 1. Dashboard
 2. Search
-3. Discover
-4. Projects
-5. Favorites
-6. History
-7. Exports
-8. Settings
+3. Explore
+4. Discover
+5. Analyzer
+6. Watchlist
+7. Topic Workspaces
+8. Projects
+9. Favorites
+10. Ideas
+11. History
+12. Exports
+13. Settings
 
 ## 3. Global components
 
@@ -39,6 +44,9 @@ Primary navigation:
 - `EmptyState`, `ErrorState`, `PartialDataBanner`, `LoadingSkeleton`.
 - sortable/filterable `DataTable` with column visibility and pagination.
 - confirmation dialog requiring clear target/count for destructive cleanup.
+- `ProvenanceLabel`: `YouTube Data`, `Calculated Metrics`, `Detected Analysis`, or `Estimate`, with source/version context.
+- `ObservationContext`: original observed time, cache/freshness state, first-seen boundary, and refresh action.
+- `BreakoutBadge`: channel-relative class with threshold version and cohort coverage, never shown without age context.
 
 ### Persistent YouTube API Today widget
 
@@ -106,25 +114,86 @@ During processing, show real progress and partial-data banners rather than fake 
 - Progress timeline for seeds and validations.
 - Candidate cards show phrase, score, confidence, evidence chips, and save/dismiss/validate actions.
 - Filters for status, score, confidence, and market.
+- Evidence links for videos/channels open the canonical Analyzer rather than a duplicate statistics panel.
 
-### 4.6 Projects and favorites
+### 4.6 Explore
+
+- User-scoped filter/search surface over stored videos, channels, research results, Analyzer runs, candidates, watched items, and workspace evidence.
+- Result cards/rows show source workflow, official category, available opportunity score/confidence, relative-performance class, observation time, and organization state without conflating missing fields.
+- Loading/filtering does not call YouTube. Explicit Analyze, Refresh, Validate, Watch, and Add to Workspace actions show quota/cache consequences.
+
+### 4.7 Analyzer
+
+Landing page:
+
+- Explicit video/channel target selection; supported video URL/ID and canonical `/channel/` URL/raw channel-ID intake; Analyze action; recent analyses; and initial/validation states.
+
+Live/result page:
+
+1. compact Video Profile with thumbnail, identity, official category, detected classification when available, origin, and actions;
+2. Video Performance cards for public counts and calculated ratios;
+3. Author Channel Profile and recent baseline;
+4. sortable/filterable Recent Videos table;
+5. Strong/Breakout outliers;
+6. Topic Profile/Performance when implemented;
+7. observed Growth History with first-seen boundary;
+8. opt-in Comments and later Audience Signals/Transcript status;
+9. notes, tags, research status, Watchlist, and Topic Workspace actions.
+
+Notes and research status are saved per owner and canonical video/channel. Favorites and tags reuse Library controls with confirmed favorite removal and ruled-out status changes. Watchlist and Topic Workspace controls expose reusable canonical handoff references but remain visibly unavailable until their own vertical slices.
+
+Persisted progress labels are `Fetching video`, `Fetching channel`, `Loading recent videos`, `Calculating metrics`, and `Saving analysis`. Normal Refresh respects cache; Force Refresh explains added provider calls and creates a new attempt.
+
+The Video Profile and Channel Profile must let the user answer the five decision questions in `12_UNIFIED_ANALYZER_MODEL.md` before requiring detailed-table inspection.
+
+Channel Behavior shows the exact recent/preceding Lifetime Average Views/Day block medians and sizes, momentum class, robust consistency score/sample, and duration/performance Spearman coefficient with exact duration-bucket alternatives. Growth History keeps `Observed Recent Views/Day` visibly distinct from `Lifetime Average Views/Day`, includes an accessible exact-value table beside its visual trend, marks first seen and the retention cutoff, deduplicates cached snapshots, and uses an explicit one-snapshot empty state.
+
+Topic Profile labels niche, subniche, topics, content pillars, language, concentration, and confidence as inferred from the frozen recent-video titles. It shows provider/version, evidence count, calculation time, mixed-language or sparse-input warnings, and distinct loading, insufficient, partial, failed, and success states. The official YouTube category stays in the Video Profile and is never presented as the inferred niche; Search, Discover, Explore, and Topic Workspace use the same inferred badge and preserve the validation-search boundary.
+
+Topic and title-pattern performance follows Topic Profile. A keyboard-operable grouping filter switches between detected topics and editorial title patterns. The section shows a compact median-views bar comparison plus an exact accessible table with video count, metric sample counts, median/average views, median/average Lifetime Average Views/Day, and Breakout rate numerator/denominator. Below-minimum and Unclassified groups remain visible, mixed-language/partial states retain their warnings, and the section always says the evidence is an observed association rather than causation. Version, minimum sample, frozen cohort size, and calculation time remain visible. CSV/XLSX actions queue an owner-scoped export of the same immutable profile and exact rows; Analyzer/Workspace handoffs keep referencing the Analyzer attempt rather than copying these values.
+
+Topic and title-pattern performance follows Topic Profile. A keyboard-operable grouping filter switches between detected topics and editorial title patterns. The section shows a compact median-views bar comparison plus an exact accessible table with video count, metric sample counts, median/average views, median/average Lifetime Average Views/Day, and Breakout rate numerator/denominator. Below-minimum and Unclassified groups remain visible, mixed-language/partial states retain their warnings, and the section always says the evidence is an observed association rather than causation. Version, minimum sample, frozen cohort size, and calculation time remain visible; Analyzer/Workspace handoffs keep referencing the immutable Analyzer attempt rather than copying these values.
+
+Comments follows Growth History for completed video analyses. Loading a profile never collects comments. The explicit action explains added quota and renders off, queued/collecting, empty, complete, partial, comments-disabled, unavailable, quota-exhausted, and failed states. Results show top-level text with like and reported reply counts, collection time, and retention eligibility; copy states that reply text and author identity are not stored and reported reply counts do not imply reply completeness.
+
+Every stored comment exposes a keyboard-accessible heart control that saves it to the owner's Ideas list or removes an accidental save. The dedicated Ideas page paginates saved messages, shows the exact text and source-video title/thumbnail, opens the canonical YouTube video safely in a new tab, and keeps an explicit partial-source notice when raw comment retention has removed the original collection. These actions are local and never collect provider data.
+
+Audience Signals follows Comments when a completed or partial stored sample has been analyzed. It labels the complete section as inferred rather than authoritative sentiment, shows sample coverage, detected language, confidence, provider/version, and calculation time, and groups repeated questions, topics, entities, suggestions, complaints, and confusion points. Every signal expands to exact source-comment evidence. An owner may hide an unhelpful single-word signal and restore it from the visible exclusion manager; copy states that only exact one-word labels are affected and longer phrases remain visible. Sparse, mixed-language/partial, unsafe-withheld, failed, fully-hidden, and successful states remain distinct and non-color-only.
+
+Transcript follows the completed video analysis as an optional, owner-managed evidence section. Its default state says `No transcript provided` and explicitly confirms that video/channel analysis remains complete. The paste form prefers `[m:ss]` timestamped text but accepts plain text, SRT, and VTT, requires a language and rights confirmation, and reports validation/partial parsing without changing other results. The viewer supports exact-text search, keyboard-accessible timestamp links to the source video, provider/version and retention context, immutable replacement revisions, no-match state, and a confirmation dialog before deleting the current revision.
+
+Transcript Structure follows the original transcript viewer in a separate card. An explicit quota-free action runs versioned inferred analysis for the current immutable revision. The card exposes summary, topics, entities, hook, sections, calls to action, questions, and script structure with `Detected Analysis`, provider/version, language, confidence, and calculation time. Every item expands to the exact original evidence excerpt, character offsets, and a timestamp link when available. Not-analyzed, analyzing, insufficient, partial, failed, and complete states remain distinct; inferred output never replaces or edits the original transcript.
+
+### 4.8 Watchlist
+
+- Tabs/filters for videos, channels, and later topics; statuses, project/workspace, last observation, next/manual refresh, and change summary.
+- Add/remove, status, notes/tags, pause/resume, and refresh actions are owner-scoped and show progress, partial data, quota exhaustion, and safe retry.
+- Distinguish watched state from favorite state in copy and controls.
+
+### 4.9 Topic Workspaces
+
+- Workspace list and detail with market/language context, description, evidence-role filters, notes, and linked Search/Discover/Analyzer/Watchlist history.
+- Add existing evidence or create a new workspace from Analyzer without copying metric values.
+- Provide prefilled `Search this topic` and `Discover related candidates` actions with confirmation before collection.
+
+### 4.10 Projects and favorites
 
 - Project card grid plus list toggle.
 - Project detail contains saved queries, candidates, videos/channels, notes, and recent runs.
 - Favorites support target-type tabs, tags, search, sorting, and bulk export.
 
-### 4.7 History and comparison
+### 4.11 History and comparison
 
 - Timeline/table with timestamp, parameters, score, and status.
 - Comparison picker permits only useful pairs or displays compatibility warnings.
 - Comparison page shows metric deltas, component radar/bar chart, new/lost videos, channel mix changes, and formula warnings.
 
-### 4.8 Exports
+### 4.12 Exports
 
 - Export creation summarizes included records and selected columns.
 - Export jobs list format, state, size, created time, expiry, download, and safe delete.
 
-### 4.9 Settings
+### 4.13 Settings
 
 Sections:
 
@@ -133,6 +202,23 @@ Sections:
 - quota ledger and daily usage;
 - data retention preview and cleanup actions;
 - scoring model information (read-only for v1).
+- Analyzer recent-video depth/cache preference and read-only threshold/version information.
+
+### 4.14 Thumbnail patterns
+
+- The completed Analyzer page initially shows thumbnail analysis as off; viewing or polling the page never starts the analysis job.
+- The explicit action shows queued/processing progress, then complete, partial, insufficient, or failed/retry states.
+- Available items show the thumbnail and exact inferred measurements/classes. Missing, inaccessible, invalid, or disallowed images use a non-image placeholder and safe error code without guessing whether a remote image was private, removed, or restricted.
+- Cluster associations expose exact sample counts, nullable values below the frozen minimum, evidence video IDs, confidence, provider/version, cache provenance, and calculation time in an accessible table.
+- Copy always says inferred and observed association, not causation, and states that thumbnail output does not alter opportunity scoring.
+
+### 4.15 Cross-channel comparison
+
+- Analyzer exposes an alphabetically ordered, searchable picker over at most 24 recent owner-scoped channels, groups up to five newest immutable attempts per channel, and requires two or three different channels.
+- The result shows each channel's frozen observation time, market context or explicit unknown state, cache/source policy, requested/valid cohort sizes, and channel/topic/title/thumbnail model versions before metrics.
+- Separate exact tables cover channel behavior, detected topic cohorts, editorial title-pattern cohorts, and inferred thumbnail clusters. Every metric shows its own sample count; missing groups and below-minimum values are not zero.
+- Compatibility warnings identify market, observation-time, sample-size, source-policy, missing-data, and model-version differences. Incompatible values remain inspectable but are labeled as not like-for-like.
+- Copy explicitly says the page is not an opportunity score, causal finding, or channel recommendation. Loading, insufficient-selection, empty evidence, partial/incompatible, and success states remain keyboard accessible at desktop and tablet widths.
 
 ## 5. Score labels
 
@@ -155,6 +241,8 @@ Never display a score without confidence and the collection timestamp.
 - Partial-data warning.
 - Recoverable error with retry.
 - Quota-exhausted state with reset guidance.
+- Cached-result and refreshing states with the original observation timestamp.
+- Inaccessible/private/deleted provider entity without guessing which state applies when the provider does not distinguish it.
 - Unauthorized/not-found handling without data leakage.
 
 ## 7. Accessibility and formatting
@@ -166,6 +254,7 @@ Never display a score without confidence and the collection timestamp.
 - Use locale-aware number formatting and compact display only when the exact value remains accessible.
 - Display absolute timestamp plus relative age where useful.
 - Ensure long English, Romanian, and Russian video titles wrap or truncate with accessible full text.
+- Do not use provenance or breakout color alone; include text and accessible explanation.
 
 ## 8. Responsive scope
 

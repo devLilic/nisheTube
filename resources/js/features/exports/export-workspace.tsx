@@ -476,7 +476,7 @@ export function ExportWorkspace({
                                         <TableCell>
                                             <p className="font-medium">
                                                 {job.format.toUpperCase()} ·{' '}
-                                                {job.run_count} run(s)
+                                                {job.selection_label}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 {job.column_count} columns ·{' '}
@@ -581,7 +581,7 @@ export function ExportWorkspace({
                         <DialogTitle>Delete export file?</DialogTitle>
                         <DialogDescription>
                             Delete this {deleting?.format.toUpperCase()} export
-                            containing {deleting?.run_count} run(s)? The
+                            containing {deleting?.selection_label}? The
                             underlying research snapshots will not be changed.
                         </DialogDescription>
                     </DialogHeader>

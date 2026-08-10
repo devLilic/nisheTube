@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import ResearchRunController from '@/actions/App/Http/Controllers/Research/ResearchRunController';
+import { AnalyticsGlossary } from '@/components/analytics-glossary';
 import { MarketBadge } from '@/components/market-badge';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -27,8 +28,10 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import { FavoriteToggle } from '@/features/library/favorite-toggle';
 import { ResearchAnalysisSection } from '@/features/research/analysis/research-analysis';
+import { ProvenancePanel } from '@/features/research/provenance-panel';
 import { RunProgress } from '@/features/research/run-progress';
 import { OpportunityScoreSection } from '@/features/research/scoring/opportunity-score-section';
 import { create } from '@/routes/research';
@@ -41,6 +44,8 @@ type PageProps = {
     run: ResearchRun;
     youtubeQuota: QuotaSummary | null;
     library: LibraryContext;
+    workspaces: WorkspaceOption[];
+    returnTo: string | null;
 };
 
 function formatTimestamp(value: string | null, timezone: string) {
@@ -63,7 +68,12 @@ function formatFilter(value: string | null) {
     return value.replaceAll('_', ' ').replace('viewCount', 'View count');
 }
 
-export default function ResearchRunShow({ run, library }: PageProps) {
+export default function ResearchRunShow({
+    run,
+    library,
+    workspaces,
+    returnTo,
+}: PageProps) {
     const { auth, youtubeQuota } = usePage<PageProps>().props;
     const { start, stop } = usePoll(
         2000,
@@ -97,6 +107,14 @@ export default function ResearchRunShow({ run, library }: PageProps) {
                     description="Live collection status from the persisted run. Counts and warnings update as the local queue worker progresses."
                     actions={
                         <>
+                            {returnTo && (
+                                <Button variant="outline" asChild>
+                                    <Link href={returnTo}>
+                                        <ArrowLeft aria-hidden="true" /> Back to
+                                        source
+                                    </Link>
+                                </Button>
+                            )}
                             <FavoriteToggle
                                 library={library}
                                 targetType="research_run"
@@ -133,6 +151,7 @@ export default function ResearchRunShow({ run, library }: PageProps) {
                         </>
                     }
                 />
+                <AnalyticsGlossary page="research" />
 
                 <div className="flex flex-wrap items-center gap-2">
                     <MarketBadge market={run.market.key} />
@@ -259,6 +278,13 @@ export default function ResearchRunShow({ run, library }: PageProps) {
                     status={run.status}
                     timezone={auth.user.timezone}
                     library={library}
+                    researchRunPublicId={run.public_id}
+                    workspaces={workspaces}
+                />
+
+                <ProvenancePanel
+                    provenance={run.provenance}
+                    timezone={auth.user.timezone}
                 />
 
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

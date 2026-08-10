@@ -22,6 +22,7 @@ class DiscoveryRunController extends Controller
         return Inertia::render('discovery/show', [
             'run' => $viewModel->toArray($discoveryRun),
             'library' => $libraryViewModel->context($request->user()),
+            'workspaces' => $request->user()->topicWorkspaces()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name', 'market_key']),
         ]);
     }
 

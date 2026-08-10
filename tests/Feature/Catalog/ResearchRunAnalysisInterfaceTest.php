@@ -187,6 +187,7 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
 
         $run->channelSnapshots()->create([
             'channel_id' => $channel->id,
+            'collection_run_id' => $run->collection_run_id,
             'subscriber_count' => $subscribers,
             'view_count' => 100000,
             'video_count' => $videoCount,
@@ -228,8 +229,9 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
             'page_number' => 1,
             'provider_order' => $rank,
         ]);
-        $run->videoSnapshots()->create([
+        $videoSnapshot = $run->videoSnapshots()->create([
             'video_id' => $video->id,
+            'collection_run_id' => $run->collection_run_id,
             'view_count' => $views,
             'like_count' => $likes,
             'comment_count' => $comments,
@@ -238,5 +240,12 @@ class ResearchRunAnalysisInterfaceTest extends TestCase
             'views_to_subscribers_ratio' => $reachRatio,
             'collected_at' => '2026-08-08 12:00:00',
         ]);
+        $run->videoMemberships()
+            ->where('video_id', $video->id)
+            ->firstOrFail()
+            ->pinSources(
+                $videoSnapshot,
+                $run->channelSnapshots()->where('channel_id', $channel->id)->firstOrFail(),
+            );
     }
 }

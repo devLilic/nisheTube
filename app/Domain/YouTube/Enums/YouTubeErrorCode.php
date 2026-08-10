@@ -12,6 +12,10 @@ enum YouTubeErrorCode: string
     case RequestInvalid = 'youtube_request_invalid';
     case Unavailable = 'youtube_unavailable';
     case PartialData = 'youtube_partial_data';
+    case VideoNotFound = 'youtube_video_not_found';
+    case ChannelNotFound = 'youtube_channel_not_found';
+    case PlaylistUnavailable = 'youtube_playlist_unavailable';
+    case CommentsDisabled = 'youtube_comments_disabled';
 
     public function isRetryable(): bool
     {
@@ -32,6 +36,10 @@ enum YouTubeErrorCode: string
             self::RequestInvalid => 'YouTube rejected the request parameters.',
             self::Unavailable => 'YouTube is temporarily unavailable.',
             self::PartialData => 'YouTube returned an incomplete response.',
+            self::VideoNotFound => 'YouTube did not return this video. It may be unavailable, private, or removed.',
+            self::ChannelNotFound => 'YouTube did not return this channel. It may be unavailable or removed.',
+            self::PlaylistUnavailable => 'The channel uploads playlist is unavailable.',
+            self::CommentsDisabled => 'Comments are disabled for this video.',
         };
     }
 }

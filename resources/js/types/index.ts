@@ -1,11 +1,17 @@
 export type * from './auth';
+export type * from './analyzer';
+export type * from './analyzer-comparison';
 export type * from './dashboard';
 export type * from './discovery';
 export type * from './exports';
+export type * from './explore';
 export type * from './history';
+export type * from './ideas';
 export type * from './library';
 export type * from './navigation';
 export type * from './quota';
 export type * from './research';
 export type * from './retention';
 export type * from './ui';
+export type * from './watchlist';
+export type * from './topics';

@@ -29,6 +29,8 @@ test('retention preview identifies cutoff, exact counts, preserved favorites, an
     assert.match(workspace, /Channel snapshots/);
     assert.match(workspace, /Expired exports/);
     assert.match(workspace, /favorited run/);
+    assert.match(workspace, /shared source run/);
+    assert.match(workspace, /Shared source preserved/);
     assert.match(workspace, /Nothing is due for cleanup/);
 });
 

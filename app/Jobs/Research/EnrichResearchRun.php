@@ -3,6 +3,8 @@
 namespace App\Jobs\Research;
 
 use App\Domain\Catalog\Actions\PersistResearchRunEnrichmentBatch;
+use App\Domain\Collection\Actions\PinResearchRunObservationBatch;
+use App\Domain\Collection\Actions\ResolveReusableObservationSources;
 use App\Domain\Research\Actions\AppendResearchRunWarning;
 use App\Domain\Research\Actions\FailResearchRun;
 use App\Domain\Research\Actions\TransitionResearchRun;
@@ -16,7 +18,6 @@ use App\Domain\YouTube\Exceptions\YouTubeProviderException;
 use App\Domain\YouTube\Services\YouTubeIdBatcher;
 use App\Models\ResearchRun;
 use App\Models\ResearchRunSearchResult;
-use App\Models\VideoSnapshot;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -62,6 +63,8 @@ class EnrichResearchRun implements ShouldBeUniqueUntilProcessing, ShouldQueue
         VideoResearchProvider $provider,
         YouTubeIdBatcher $batcher,
         PersistResearchRunEnrichmentBatch $persistBatch,
+        ResolveReusableObservationSources $resolveReusableSources,
+        PinResearchRunObservationBatch $pinObservationBatch,
         TransitionResearchRun $transition,
         AppendResearchRunWarning $appendWarning,
         FailResearchRun $failRun,
@@ -79,6 +82,19 @@ class EnrichResearchRun implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         $remainingResults = $this->remainingSearchResults($run);
+        $cachedSources = $resolveReusableSources->handle(
+            $run->collectionRun()->firstOrFail(),
+            array_map(
+                static fn (ResearchRunSearchResult $result): string => $result->provider_video_id,
+                $remainingResults,
+            ),
+        );
+
+        if ($cachedSources->count() > 0) {
+            $run = $pinObservationBatch->handle($run, $remainingResults, $cachedSources);
+            $remainingResults = $this->remainingSearchResults($run);
+        }
+
         $resultsByVideoId = [];
 
         foreach ($remainingResults as $result) {
@@ -88,6 +104,7 @@ class EnrichResearchRun implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $context = new ProviderRequestContext(
             userId: $run->user_id,
             researchRunId: $run->id,
+            collectionRunId: $run->collection_run_id,
         );
 
         foreach ($batcher->batches(array_keys($resultsByVideoId)) as $videoIds) {
@@ -134,9 +151,9 @@ class EnrichResearchRun implements ShouldBeUniqueUntilProcessing, ShouldQueue
     /** @return list<ResearchRunSearchResult> */
     private function remainingSearchResults(ResearchRun $run): array
     {
-        $enrichedProviderIds = VideoSnapshot::query()
-            ->join('videos', 'videos.id', '=', 'video_snapshots.video_id')
-            ->where('video_snapshots.research_run_id', $run->id)
+        $enrichedProviderIds = $run->videoMemberships()
+            ->join('videos', 'videos.id', '=', 'research_run_videos.video_id')
+            ->whereNotNull('research_run_videos.video_snapshot_id')
             ->pluck('videos.provider_video_id')
             ->all();
 

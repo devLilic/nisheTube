@@ -10,12 +10,16 @@ import {
     Clock3,
     FolderKanban,
     Gauge,
+    Layers3,
+    ListVideo,
     Search,
     Sparkles,
+    Tags,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ConfidenceBadge } from '@/components/confidence-badge';
 import { MarketBadge } from '@/components/market-badge';
+import { MetricHint } from '@/components/metric-hint';
 import { QuotaMeter } from '@/components/quota-meter';
 import { RunStatus } from '@/components/run-status';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -100,21 +104,30 @@ function SummaryCard({
     detail,
     icon: Icon,
     footer,
+    explanation,
 }: {
     label: string;
     value: ReactNode;
     detail: string;
     icon: LucideIcon;
     footer?: ReactNode;
+    explanation?: string;
 }) {
     return (
         <Card className="min-w-0 gap-4 overflow-hidden border-border/70 py-5 shadow-sm shadow-primary/5">
             <CardContent className="px-5">
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                        <p className="text-sm font-medium text-muted-foreground">
-                            {label}
-                        </p>
+                        <div className="flex items-center gap-1">
+                            <p className="text-sm font-medium text-muted-foreground">
+                                {label}
+                            </p>
+                            {explanation && (
+                                <MetricHint label={label}>
+                                    {explanation}
+                                </MetricHint>
+                            )}
+                        </div>
                         <div className="mt-2 min-h-9 text-2xl font-semibold tracking-tight tabular-nums">
                             {value}
                         </div>
@@ -303,6 +316,7 @@ export function DashboardOverview({
                     value={dashboard.counts.research_runs_this_month.toLocaleString()}
                     detail={`${dashboard.counts.active_runs.toLocaleString()} active now · ${dashboard.counts.failed_runs_this_month.toLocaleString()} failed this month`}
                     icon={BarChart3}
+                    explanation="Counts research runs created during the current month in your configured timezone."
                 />
                 <SummaryCard
                     label="Best recent opportunity"
@@ -313,6 +327,7 @@ export function DashboardOverview({
                             : `No scored runs in the last ${dashboard.opportunity_window_days} days`
                     }
                     icon={Gauge}
+                    explanation="The highest current-version opportunity score from your completed runs in the displayed time window."
                     footer={
                         best ? (
                             <ConfidenceBadge
@@ -360,6 +375,7 @@ export function DashboardOverview({
                             : 'Estimate unavailable · review integration settings'
                     }
                     icon={Search}
+                    explanation="A local estimate of remaining YouTube search calls. Google Cloud Console is authoritative."
                     footer={
                         searchQuota?.exhausted ? (
                             <Badge variant="destructive">Reset required</Badge>
@@ -370,6 +386,51 @@ export function DashboardOverview({
                         ) : undefined
                     }
                 />
+            </section>
+
+            <section aria-labelledby="research-toolkit-heading">
+                <div className="mb-3 flex items-center gap-2">
+                    <h2
+                        id="research-toolkit-heading"
+                        className="text-base font-semibold"
+                    >
+                        Research toolkit
+                    </h2>
+                    <MetricHint label="Research toolkit">
+                        Owner-scoped totals from Analyzer, Watchlist, Topic
+                        Workspaces, and inferred topic profiling.
+                    </MetricHint>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <ToolkitMetric
+                        href="/analyzer"
+                        label="Analyzer profiles"
+                        value={dashboard.counts.analyzer_profiles}
+                        detail="Completed video and channel analyses"
+                        icon={ListVideo}
+                    />
+                    <ToolkitMetric
+                        href="/watchlist"
+                        label="Monitored targets"
+                        value={dashboard.counts.monitored_targets}
+                        detail="Active Watchlist items"
+                        icon={Search}
+                    />
+                    <ToolkitMetric
+                        href="/topics"
+                        label="Topic workspaces"
+                        value={dashboard.counts.topic_workspaces}
+                        detail="Active evidence workspaces"
+                        icon={Layers3}
+                    />
+                    <ToolkitMetric
+                        href="/explore"
+                        label="Inferred profiles"
+                        value={dashboard.counts.inferred_topic_profiles}
+                        detail="Complete or partial topic profiles"
+                        icon={Tags}
+                    />
+                </div>
             </section>
 
             <Alert
@@ -566,5 +627,44 @@ export function DashboardOverview({
                 </Card>
             </div>
         </>
+    );
+}
+
+function ToolkitMetric({
+    href,
+    label,
+    value,
+    detail,
+    icon: Icon,
+}: {
+    href: string;
+    label: string;
+    value: number;
+    detail: string;
+    icon: LucideIcon;
+}) {
+    return (
+        <Link
+            href={href}
+            className="group flex min-w-0 items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.045] p-4 transition-colors hover:border-primary/35 hover:bg-primary/[0.075] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+            <span className="rounded-lg bg-primary/10 p-2 text-primary">
+                <Icon className="size-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-3">
+                    <span className="truncate text-sm font-medium">
+                        {label}
+                    </span>
+                    <span className="text-xl font-semibold tabular-nums">
+                        {value.toLocaleString()}
+                    </span>
+                </span>
+                <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                    {detail}
+                </span>
+            </span>
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+        </Link>
     );
 }

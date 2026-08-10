@@ -1,6 +1,7 @@
 import { BarChart3, LoaderCircle } from 'lucide-react';
 import { StatePanel } from '@/components/data-state';
 import { PartialDataBanner } from '@/components/partial-data-banner';
+import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import type {
     LibraryContext,
     ResearchAnalysis,
@@ -15,11 +16,15 @@ export function ResearchAnalysisSection({
     status,
     timezone,
     library,
+    researchRunPublicId,
+    workspaces,
 }: {
     analysis: ResearchAnalysis | undefined;
     status: ResearchRunStatus;
     timezone: string;
     library: LibraryContext;
+    researchRunPublicId: string;
+    workspaces: WorkspaceOption[];
 }) {
     if (!analysis || analysis.videos.length === 0) {
         const active = !['completed', 'failed'].includes(status);
@@ -67,6 +72,8 @@ export function ResearchAnalysisSection({
                 channels={analysis.channels}
                 timezone={timezone}
                 library={library}
+                researchRunPublicId={researchRunPublicId}
+                workspaces={workspaces}
             />
         </div>
     );

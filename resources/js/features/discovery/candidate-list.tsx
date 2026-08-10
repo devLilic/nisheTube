@@ -6,6 +6,7 @@ import {
     EyeOff,
     Filter,
     SearchCheck,
+    ScanSearch,
     Sparkles,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -22,6 +23,8 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { WorkspaceHandoff } from '@/features/integration/workspace-handoff';
+import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import { FavoriteToggle } from '@/features/library/favorite-toggle';
 import type {
     LibraryContext,
@@ -53,10 +56,14 @@ export function CandidateList({
     candidates,
     validationBlocked,
     library,
+    workspaces,
+    discoveryRunPublicId,
 }: {
     candidates: NicheCandidate[];
     validationBlocked: boolean;
     library: LibraryContext;
+    workspaces: WorkspaceOption[];
+    discoveryRunPublicId: string;
 }) {
     const [status, setStatus] = useState<NicheCandidateStatus | 'all'>('all');
     const [minimumScore, setMinimumScore] = useState(0);
@@ -203,6 +210,9 @@ export function CandidateList({
                         const score = candidate.overall_score ?? 0;
                         const confidence = candidate.confidence_score ?? 0;
                         const videoIds = candidate.evidence.video_ids ?? [];
+                        const analyzerRunIds =
+                            candidate.evidence.analyzer_run_ids ?? [];
+                        const returnTo = `/discover/runs/${discoveryRunPublicId}`;
 
                         return (
                             <Card key={candidate.public_id} className="min-w-0">
@@ -224,13 +234,19 @@ export function CandidateList({
                                 <CardContent className="space-y-5">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <Badge className="px-2.5 py-1 tabular-nums">
-                                            Score {score.toFixed(1)}
+                                            Discovery evidence{' '}
+                                            {score.toFixed(1)}
                                         </Badge>
                                         <ConfidenceBadge
                                             score={confidence}
                                             label={confidenceLabel(confidence)}
                                         />
                                     </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        This evidence rank is not an opportunity
+                                        score. Run Validation Search before
+                                        treating the candidate as validated.
+                                    </p>
 
                                     <div>
                                         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -263,6 +279,38 @@ export function CandidateList({
                                         </div>
                                     </div>
 
+                                    {(candidate.evidence.inferred_topics ?? [])
+                                        .length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                                Inferred Analyzer topics
+                                            </p>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {(
+                                                    candidate.evidence
+                                                        .inferred_topics ?? []
+                                                ).map((topic) => (
+                                                    <Badge
+                                                        key={topic}
+                                                        variant="outline"
+                                                    >
+                                                        {topic}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                Supporting classification
+                                                evidence ·{' '}
+                                                {
+                                                    candidate.evidence
+                                                        .inferred_topic_provenance
+                                                }
+                                                . Validation Search is still
+                                                required.
+                                            </p>
+                                        </div>
+                                    )}
+
                                     {videoIds.length > 0 && (
                                         <div className="flex flex-wrap gap-x-3 gap-y-2 text-xs">
                                             {videoIds
@@ -283,6 +331,45 @@ export function CandidateList({
                                         </div>
                                     )}
 
+                                    {videoIds.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {analyzerRunIds.length > 0 ? (
+                                                analyzerRunIds
+                                                    .slice(0, 2)
+                                                    .map((runId, index) => (
+                                                        <Button
+                                                            key={runId}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/analyzer/runs/${runId}?return_to=${encodeURIComponent(returnTo)}`}
+                                                            >
+                                                                <ScanSearch />{' '}
+                                                                Analyzer
+                                                                evidence{' '}
+                                                                {index + 1}
+                                                            </Link>
+                                                        </Button>
+                                                    ))
+                                            ) : (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={`/analyzer?video=${encodeURIComponent(videoIds[0])}&origin=discover&origin_reference=${encodeURIComponent(candidate.public_id)}&return_to=${encodeURIComponent(returnTo)}`}
+                                                    >
+                                                        <ScanSearch /> Analyze
+                                                        evidence video
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <FavoriteToggle
                                         library={library}
                                         targetType="niche_candidate"
@@ -290,10 +377,16 @@ export function CandidateList({
                                         label={candidate.phrase}
                                     />
 
+                                    <WorkspaceHandoff
+                                        workspaces={workspaces}
+                                        targetType="niche_candidate"
+                                        targetReference={candidate.public_id}
+                                    />
+
                                     {candidate.validation_run ? (
                                         <Button variant="outline" asChild>
                                             <Link
-                                                href={`/research/runs/${candidate.validation_run.public_id}`}
+                                                href={`/research/runs/${candidate.validation_run.public_id}?return_to=${encodeURIComponent(returnTo)}`}
                                             >
                                                 <CheckCircle2 aria-hidden="true" />
                                                 Open validation ·{' '}

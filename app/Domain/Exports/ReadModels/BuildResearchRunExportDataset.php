@@ -5,13 +5,10 @@ namespace App\Domain\Exports\ReadModels;
 use App\Domain\Exports\Data\ExportDataset;
 use App\Domain\Exports\Services\ResearchExportColumns;
 use App\Domain\Research\Enums\ResearchRunStatus;
-use App\Models\ChannelSnapshot;
 use App\Models\OpportunityScore;
 use App\Models\ResearchRun;
 use App\Models\ResearchRunVideo;
 use App\Models\User;
-use App\Models\Video;
-use App\Models\VideoSnapshot;
 use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
 use JsonException;
@@ -36,11 +33,10 @@ final class BuildResearchRunExportDataset
                 'opportunityScores' => fn ($query) => $query
                     ->latest('calculated_at')
                     ->latest('id'),
-                'videos' => fn ($query) => $query
-                    ->with('channel')
-                    ->orderByPivot('result_rank'),
-                'videoSnapshots',
-                'channelSnapshots',
+                'videoMemberships' => fn ($query) => $query->orderBy('result_rank'),
+                'videoMemberships.video.channel',
+                'videoMemberships.videoSnapshot',
+                'videoMemberships.channelSnapshot',
             ])
             ->get();
 
@@ -62,22 +58,17 @@ final class BuildResearchRunExportDataset
 
         foreach ($runs as $run) {
             $score = $run->opportunityScores->first();
-            $videoSnapshots = $run->videoSnapshots->keyBy('video_id');
-            $channelSnapshots = $run->channelSnapshots->keyBy('channel_id');
-
-            if ($run->videos->isEmpty()) {
-                $rows[] = $this->project($this->row($run, $score, null, null, null), $selectedColumns);
+            if ($run->videoMemberships->isEmpty()) {
+                $rows[] = $this->project($this->row($run, $score, null), $selectedColumns);
 
                 continue;
             }
 
-            foreach ($run->videos as $video) {
+            foreach ($run->videoMemberships as $membership) {
                 $rows[] = $this->project($this->row(
                     $run,
                     $score,
-                    $video,
-                    $videoSnapshots->get($video->id),
-                    $channelSnapshots->get($video->channel_id),
+                    $membership,
                 ), $selectedColumns);
             }
         }
@@ -89,13 +80,13 @@ final class BuildResearchRunExportDataset
     private function row(
         ResearchRun $run,
         ?OpportunityScore $score,
-        ?Video $video,
-        ?VideoSnapshot $videoSnapshot,
-        ?ChannelSnapshot $channelSnapshot,
+        ?ResearchRunVideo $membership,
     ): array {
+        $video = $membership?->video;
+        $videoSnapshot = $membership?->videoSnapshot;
+        $channelSnapshot = $membership?->channelSnapshot;
         $channel = $video?->channel;
-        $pivot = $video?->getRelation('pivot');
-        $rank = $pivot instanceof ResearchRunVideo ? $pivot->result_rank : null;
+        $rank = $membership?->result_rank;
 
         return [
             'run_id' => $run->public_id, 'query' => $run->query_text, 'market' => $run->market_key,

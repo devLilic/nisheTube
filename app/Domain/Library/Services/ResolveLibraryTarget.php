@@ -30,11 +30,17 @@ class ResolveLibraryTarget
                 ->firstOrFail(),
             LibraryTargetType::Video => Video::query()
                 ->where('provider_video_id', $reference)
-                ->whereHas('researchRuns', fn ($query) => $query->where('research_runs.user_id', $user->id))
+                ->where(function ($query) use ($user): void {
+                    $query->whereHas('researchRuns', fn ($research) => $research->where('research_runs.user_id', $user->id))
+                        ->orWhereHas('analyzerRuns', fn ($analyzer) => $analyzer->where('analyzer_runs.user_id', $user->id));
+                })
                 ->firstOrFail(),
             LibraryTargetType::Channel => Channel::query()
                 ->where('provider_channel_id', $reference)
-                ->whereHas('videos.researchRuns', fn ($query) => $query->where('research_runs.user_id', $user->id))
+                ->where(function ($query) use ($user): void {
+                    $query->whereHas('videos.researchRuns', fn ($research) => $research->where('research_runs.user_id', $user->id))
+                        ->orWhereHas('analyzerRuns', fn ($analyzer) => $analyzer->where('analyzer_runs.user_id', $user->id));
+                })
                 ->firstOrFail(),
         };
     }

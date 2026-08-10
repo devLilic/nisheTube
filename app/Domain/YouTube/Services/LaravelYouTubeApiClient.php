@@ -38,6 +38,7 @@ class LaravelYouTubeApiClient implements YouTubeApiClient
                 estimatedCost: $definition->cost,
                 userId: $context->userId,
                 researchRunId: $context->researchRunId,
+                collectionRunId: $context->collectionRunId,
             ));
 
             try {

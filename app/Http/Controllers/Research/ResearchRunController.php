@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Research;
 
+use App\Domain\Analyzer\ValueObjects\AnalyzerNavigationContext;
 use App\Domain\Research\Actions\RetryResearchRun;
 use App\Http\Controllers\Controller;
 use App\Http\ViewModels\LibraryViewModel;
@@ -22,6 +23,8 @@ class ResearchRunController extends Controller
         return Inertia::render('research/show', [
             'run' => $viewModel->toArray($researchRun),
             'library' => $libraryViewModel->context($request->user()),
+            'workspaces' => $request->user()->topicWorkspaces()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name', 'market_key']),
+            'returnTo' => AnalyzerNavigationContext::fromInput($request->query('return_to'))->returnUrl,
         ]);
     }
 

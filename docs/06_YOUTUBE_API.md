@@ -8,14 +8,16 @@ Future authenticated YouTube account features must use a separate OAuth adapter 
 
 ## 2. Primary endpoints
 
-| Need                         | Endpoint                                           | Notes                                                                                 |
-| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Keyword and seed search      | `search.list`                                      | Request `type=video`; freeze query, market, filters, and page tokens in run metadata. |
-| Video details/statistics     | `videos.list` or supported batch statistics method | Batch IDs and request only required parts.                                            |
-| Channel statistics           | `channels.list`                                    | Batch channel IDs; subscriber counts may be hidden.                                   |
-| Channel uploads              | `channels.list` + `playlistItems.list`             | Use uploads playlist when creator viability requires recent publishing samples.       |
-| Regions/languages/categories | relevant `i18n*` and category list methods         | Cache slowly changing reference data.                                                 |
-| Popular chart seed           | `videos.list(chart=mostPopular)`                   | Treat as a limited seed source, not general YouTube Trending.                         |
+| Need                         | Endpoint                                                    | Notes                                                                                                               |
+| ---------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Keyword and seed search      | `search.list`                                               | Request `type=video`; freeze query, market, filters, and page tokens in run metadata.                               |
+| Video details/statistics     | `videos.list` or supported batch statistics method          | Batch IDs and request only required parts.                                                                          |
+| Channel statistics           | `channels.list`                                             | Batch channel IDs; subscriber counts may be hidden.                                                                 |
+| Channel uploads              | `channels.list(part=contentDetails)` + `playlistItems.list` | Resolve the uploads playlist, request up to 50 playlist items per page, then batch video IDs through `videos.list`. |
+| Official video category      | `videoCategories.list`                                      | Cache ID/name mappings by region/display language; category is not app niche/topic.                                 |
+| Public comment threads       | `commentThreads.list`                                       | Post-MVP, explicit queued collection; paginate and distinguish disabled/unavailable.                                |
+| Regions/languages/categories | relevant `i18n*` and category list methods                  | Cache slowly changing reference data.                                                                               |
+| Popular chart seed           | `videos.list(chart=mostPopular)`                            | Treat as a limited seed source, not general YouTube Trending.                                                       |
 
 ## 3. Current quota constraints
 
@@ -36,6 +38,11 @@ Official references:
 - https://developers.google.com/youtube/v3/docs/search/list
 - https://developers.google.com/youtube/v3/guides/implementation/pagination
 - https://developers.google.com/youtube/v3/docs/videos/list
+- https://developers.google.com/youtube/v3/docs/channels/list
+- https://developers.google.com/youtube/v3/docs/playlistItems/list
+- https://developers.google.com/youtube/v3/docs/videoCategories/list
+- https://developers.google.com/youtube/v3/docs/commentThreads/list
+- https://developers.google.com/youtube/v3/docs/captions/list
 - https://developers.google.com/youtube/v3/revision_history
 
 ## 4. Important discovery limitation
@@ -73,6 +80,13 @@ The API language parameter influences relevance but does not guarantee that ever
 - Add bounded retries with exponential backoff for transient failures; do not retry invalid keys or exhausted quotas endlessly.
 - Make run jobs idempotent using run/state and unique database constraints.
 - Save nullable metrics when YouTube hides or omits a statistic; never coerce missing values to zero.
+- Use `videos.list` parts required by Analyzer (`snippet`, `contentDetails`, `statistics`, `status`, and `topicDetails` only where needed) and map every optional field as nullable.
+- Use `channels.list` with required public parts, including `contentDetails` for the uploads playlist; do not request owner-only audit data.
+- Retrieve recent uploads through the channel's public uploads playlist and enrich their IDs in batches of at most 50. Playlist position is not a performance rank.
+- Cache category reference data and preserve both category ID and resolved name. Official category never substitutes for inferred niche/topic.
+- Record whether a workflow used fresh or cached observations and always return the original observation timestamp.
+- Freshness decisions use `fresh_only`, `allow_fresh_cache`, or `force_refresh`. The initial bounded window defaults to six hours and is clamped between five minutes and seven days; each collection run freezes the effective value and policy version.
+- Reusable observations must come from a completed collection for the same authenticated owner and provider. Search remains fresh-only by default, while later Analyzer/Watchlist callers may explicitly allow cache reuse or force a refresh through the same contracts.
 
 ## 7. Configuration
 
@@ -92,16 +106,19 @@ Only the key is secret. Add the variable names with blank/sample-safe values to 
 
 Normalize provider responses into safe internal errors:
 
-| Internal code             | UI action                                           |
-| ------------------------- | --------------------------------------------------- |
-| `youtube_key_missing`     | Open Settings instructions.                         |
-| `youtube_key_invalid`     | Replace or restrict the key correctly.              |
-| `youtube_api_disabled`    | Enable YouTube Data API v3 in Google Cloud.         |
-| `youtube_quota_exhausted` | Show bucket and expected reset guidance.            |
-| `youtube_rate_limited`    | Retry later.                                        |
-| `youtube_request_invalid` | Review filters; do not auto-retry.                  |
-| `youtube_unavailable`     | Retry with bounded backoff.                         |
-| `youtube_partial_data`    | Complete run with warning when useful data remains. |
+| Internal code                  | UI action                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `youtube_key_missing`          | Open Settings instructions.                                                                           |
+| `youtube_key_invalid`          | Replace or restrict the key correctly.                                                                |
+| `youtube_api_disabled`         | Enable YouTube Data API v3 in Google Cloud.                                                           |
+| `youtube_quota_exhausted`      | Show bucket and expected reset guidance.                                                              |
+| `youtube_rate_limited`         | Retry later.                                                                                          |
+| `youtube_request_invalid`      | Review filters; do not auto-retry.                                                                    |
+| `youtube_unavailable`          | Retry with bounded backoff.                                                                           |
+| `youtube_partial_data`         | Complete run with warning when useful data remains.                                                   |
+| `youtube_video_not_found`      | Show inaccessible/not-found guidance without claiming a private/deleted reason the API did not prove. |
+| `youtube_playlist_unavailable` | Complete useful anchor/channel data as partial and explain that the recent baseline is unavailable.   |
+| `youtube_comments_disabled`    | Show a disabled state; do not retry automatically.                                                    |
 
 Do not store full provider messages if they may contain sensitive request details.
 
@@ -138,3 +155,31 @@ Operational troubleshooting is collected in [Backup, restore, and troubleshootin
 - Cover pagination, batching, missing statistics, quota ledger writes, transient retries, invalid key, quota exhaustion, malformed payloads, and partial enrichment.
 - Keep sanitized JSON fixtures small and document their source shape.
 - A manual connectivity test is the only routine path allowed to make a real API call during setup.
+
+## 11. Analyzer request plan
+
+For a fresh video analysis:
+
+1. one `videos.list` request validates/enriches the anchor;
+2. one `channels.list` request enriches the author and resolves its uploads playlist;
+3. one or more `playlistItems.list` calls retrieve the configured cohort, using `maxResults` up to 50;
+4. one or more `videos.list` calls enrich the deduplicated cohort in batches up to 50;
+5. a cached category lookup is used, with `videoCategories.list` only when the reference cache requires refresh.
+
+The UI shows a preflight estimate from current configuration and the quota ledger records every actual attempt. Cached analysis may omit provider calls but must expose the age of reused observations. Force Refresh bypasses the normal freshness decision but still respects quota guardrails.
+
+## 12. Comments and transcript boundary
+
+`commentThreads.list` is opt-in, queued, and paginated with at most 100 top-level threads per page. NisheTube requests plain text, stores no author identity or reply text, and records every page in the general quota bucket. The specific `commentsDisabled` error maps to a non-retryable disabled state. `totalReplyCount` is stored only as context; reply completeness is never implied. A frozen bounded collection limit produces an explicit partial sample, while retry resumes from the persisted page token without duplicating provider comment IDs.
+
+Audience Signal calculation performs no provider request and consumes no YouTube quota. The deterministic baseline runs after a completed or useful partial comment collection and reads only that immutable stored sample. Future implementations must use the Audience Signal provider contract, persist a new provider/version result, and preserve the same evidence, safety, ownership, and retention boundaries.
+
+Saving or removing a collected comment as an owner-private idea performs no provider request and consumes no quota. The saved copy preserves its canonical video link independently of raw comment retention.
+
+YouTube Data API `captions.list` requires OAuth authorization, costs a different quota amount, and lists tracks rather than returning arbitrary public transcript text. NisheTube therefore does not implement third-party public transcript retrieval from the API-key adapter. The approved `user_provided_transcript-v1` adapter only parses text pasted by the authenticated Analyzer owner after rights confirmation; it makes no YouTube request and consumes no quota. Plain text, bracket-timestamped text, SRT, and VTT are accepted. URL/media retrieval, scraping, and claims that the API supplied the transcript remain prohibited.
+
+`transcript-structure-v1` reads only one stored user-provided transcript revision. It is a deterministic local inferred-analysis provider, performs no YouTube or network request, consumes no quota, and cannot be presented as YouTube-supplied metadata or as an opportunity-score input.
+
+Thumbnail analysis makes no YouTube Data API request and consumes no API quota. Only an explicit queued action may fetch a stored thumbnail URL, and `ThumbnailImageFetcher` accepts configured HTTPS YouTube image hosts with redirects disabled and bounded image MIME/size. The transient bytes are decoded by the local versioned `gd_visual_features` provider and are never stored. Inaccessible or invalid responses become safe per-image states; the system does not infer why the remote resource is unavailable.
+
+Provider facts and endpoint assumptions in this document were rechecked against the official YouTube Data API reference on 2026-08-08.

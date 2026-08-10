@@ -9,6 +9,7 @@ use App\Domain\YouTube\Data\QuotaSummary;
 use App\Domain\YouTube\Enums\QuotaUsageOutcome;
 use App\Domain\YouTube\Enums\YouTubeErrorCode;
 use App\Models\ApiUsageEvent;
+use App\Models\ResearchRun;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 
@@ -18,9 +19,18 @@ class DatabaseQuotaLedger implements QuotaLedger
 
     public function begin(QuotaAttempt $attempt): int
     {
+        $collectionRunId = $attempt->collectionRunId;
+
+        if ($collectionRunId === null && $attempt->researchRunId !== null) {
+            $collectionRunId = ResearchRun::query()
+                ->whereKey($attempt->researchRunId)
+                ->value('collection_run_id');
+        }
+
         $event = ApiUsageEvent::query()->create([
             'user_id' => $attempt->userId,
             'research_run_id' => $attempt->researchRunId,
+            'collection_run_id' => $collectionRunId,
             'provider' => $attempt->provider,
             'quota_bucket' => $attempt->bucket,
             'endpoint' => $attempt->endpoint,

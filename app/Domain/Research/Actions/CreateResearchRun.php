@@ -2,6 +2,8 @@
 
 namespace App\Domain\Research\Actions;
 
+use App\Domain\Collection\Actions\CreateResearchCollectionRun;
+use App\Domain\Collection\Enums\CollectionCachePolicy;
 use App\Domain\Research\Enums\ResearchRunKind;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Settings\Actions\FreezeMarketForRequest;
@@ -16,6 +18,7 @@ class CreateResearchRun
 {
     public function __construct(
         private readonly FreezeMarketForRequest $freezeMarket,
+        private readonly CreateResearchCollectionRun $createCollectionRun,
     ) {}
 
     /**
@@ -26,12 +29,21 @@ class CreateResearchRun
         ResearchQuery $query,
         int $requestedResultCount,
         ResearchRunKind $kind = ResearchRunKind::Search,
+        CollectionCachePolicy $cachePolicy = CollectionCachePolicy::FreshOnly,
+        ?int $freshnessWindowSeconds = null,
     ): ResearchRun {
         if ($requestedResultCount < 1 || $requestedResultCount > 500) {
             throw new DomainException('The requested result count must be between 1 and 500.');
         }
 
-        return DB::transaction(function () use ($user, $query, $requestedResultCount, $kind): ResearchRun {
+        return DB::transaction(function () use (
+            $user,
+            $query,
+            $requestedResultCount,
+            $kind,
+            $cachePolicy,
+            $freshnessWindowSeconds,
+        ): ResearchRun {
             $lockedQuery = ResearchQuery::query()
                 ->with('market')
                 ->lockForUpdate()
@@ -44,9 +56,25 @@ class CreateResearchRun
             $market = $lockedQuery->market;
             $frozenMarket = ($this->freezeMarket)->handle($market);
             $attemptNumber = ((int) $lockedQuery->runs()->max('attempt_number')) + 1;
+            $parameters = $this->frozenParameters($lockedQuery);
+            $collectionRun = $this->createCollectionRun->handle(
+                user: $user,
+                attemptNumber: $attemptNumber,
+                requestedCount: $requestedResultCount,
+                frozenRequest: [
+                    'query_text' => $lockedQuery->query_text,
+                    'market_key' => $frozenMarket->marketKey,
+                    'region_code' => $frozenMarket->regionCode,
+                    'relevance_language' => $frozenMarket->relevanceLanguage,
+                    'parameters' => $parameters,
+                ],
+                cachePolicy: $cachePolicy,
+                freshnessWindowSeconds: $freshnessWindowSeconds,
+            );
 
             return $lockedQuery->runs()->create([
                 'user_id' => $user->id,
+                'collection_run_id' => $collectionRun->id,
                 'kind' => $kind,
                 'status' => ResearchRunStatus::Draft,
                 'attempt_number' => $attemptNumber,
@@ -54,7 +82,7 @@ class CreateResearchRun
                 'market_key' => $frozenMarket->marketKey,
                 'region_code' => $frozenMarket->regionCode,
                 'relevance_language' => $frozenMarket->relevanceLanguage,
-                'parameters' => $this->frozenParameters($lockedQuery),
+                'parameters' => $parameters,
                 'requested_result_count' => $requestedResultCount,
                 'collected_result_count' => 0,
                 'enriched_result_count' => 0,

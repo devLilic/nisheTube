@@ -4,6 +4,7 @@ namespace App\Jobs\Exports;
 
 use App\Domain\Exports\Enums\ExportStatus;
 use App\Domain\Exports\ReadModels\BuildResearchRunExportDataset;
+use App\Domain\Exports\ReadModels\BuildSemanticPerformanceExportDataset;
 use App\Domain\Exports\Services\ExportWriterManager;
 use App\Models\ResearchExport;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -53,6 +54,7 @@ final class GenerateResearchExport implements ShouldBeUniqueUntilProcessing, Sho
     public function handle(
         BuildResearchRunExportDataset $datasetBuilder,
         ExportWriterManager $writers,
+        ?BuildSemanticPerformanceExportDataset $semanticPerformanceDatasetBuilder = null,
     ): void {
         $export = ResearchExport::query()->with('user')->find($this->researchExportId);
 
@@ -93,7 +95,10 @@ final class GenerateResearchExport implements ShouldBeUniqueUntilProcessing, Sho
         }
 
         try {
-            $dataset = $datasetBuilder->handle($export->user, $this->researchRunIds($export), $this->columnKeys($export));
+            $dataset = $this->selectionType($export) === 'semantic_performance'
+                ? ($semanticPerformanceDatasetBuilder ?? app(BuildSemanticPerformanceExportDataset::class))
+                    ->handle($export->user, $this->semanticPerformanceProfileId($export), $this->columnKeys($export))
+                : $datasetBuilder->handle($export->user, $this->researchRunIds($export), $this->columnKeys($export));
             $writers->for($export->format)->write($dataset, $temporaryPath);
             $size = filesize($temporaryPath);
             $checksum = hash_file('sha256', $temporaryPath);
@@ -183,6 +188,28 @@ final class GenerateResearchExport implements ShouldBeUniqueUntilProcessing, Sho
         }
 
         return $validated;
+    }
+
+    private function selectionType(ResearchExport $export): string
+    {
+        $type = $export->selection['type'] ?? 'research_runs';
+
+        if (! is_string($type) || ! in_array($type, ['research_runs', 'semantic_performance'], true)) {
+            throw new RuntimeException('The stored export selection type is invalid.');
+        }
+
+        return $type;
+    }
+
+    private function semanticPerformanceProfileId(ResearchExport $export): string
+    {
+        $profileId = $export->selection['semantic_performance_profile_id'] ?? null;
+
+        if (! is_string($profileId)) {
+            throw new RuntimeException('The stored semantic performance export selection is invalid.');
+        }
+
+        return $profileId;
     }
 
     /** @return list<string>|null */

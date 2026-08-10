@@ -14,6 +14,7 @@ const comparison = read(
 
 test('history index provides deferred loading, timeline, pair selection, and insufficient-history guidance', () => {
     assert.match(indexPage, /<Deferred/);
+    assert.match(indexPage, /title="History"[\s\S]*compact/);
     assert.match(overview, /Run timeline/);
     assert.match(overview, /Baseline snapshot/);
     assert.match(overview, /Comparison snapshot/);

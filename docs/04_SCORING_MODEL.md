@@ -13,15 +13,17 @@ Each completed run produces:
 - warnings for missing or biased data;
 - formula version and input summary.
 
+This score remains attached to a validated Research run. Analyzer relative-performance metrics are evidence, not a second niche-opportunity score, and do not silently modify historical opportunity scores.
+
 ## 2. Default components and weights
 
-| Component | Weight | High score means |
-|---|---:|---|
-| Demand momentum | 25% | Returned content shows strong and recent observed viewing activity. |
-| Competition opportunity | 20% | Demand is not concentrated only among many dominant established channels. |
-| Audience reachability | 20% | Smaller/newer channels can also achieve disproportionate reach. |
-| Content freshness gap | 15% | Demand exists while top coverage leaves a useful recency or format gap. |
-| Creator viability | 20% | Performance appears repeatable enough to support a content series. |
+| Component               | Weight | High score means                                                          |
+| ----------------------- | -----: | ------------------------------------------------------------------------- |
+| Demand momentum         |    25% | Returned content shows strong and recent observed viewing activity.       |
+| Competition opportunity |    20% | Demand is not concentrated only among many dominant established channels. |
+| Audience reachability   |    20% | Smaller/newer channels can also achieve disproportionate reach.           |
+| Content freshness gap   |    15% | Demand exists while top coverage leaves a useful recency or format gap.   |
+| Creator viability       |    20% | Performance appears repeatable enough to support a content series.        |
 
 ```text
 overall = 0.25*demand
@@ -144,3 +146,48 @@ Create deterministic fixtures for:
 - identical inputs producing identical scores;
 - each component monotonicity where expected.
 
+## 8. Analyzer metric versions
+
+Analyzer calculations use separate version identifiers, initially planned as `video-relative-performance-v1` and `channel-behavior-v1`. They include the frozen recent-video limit, cohort membership, cache/source timestamps, channel-size bands, breakout thresholds, and exact missing-data warnings.
+
+Required invariants:
+
+- the anchor is excluded from its median/average baseline when it appears in the recent cohort, but included in rank and percentile;
+- raw-view breakout class is shown with age and `Lifetime Average Views/Day` context;
+- missing/zero subscribers, views, likes, comments, durations, or baseline denominators produce null plus warnings, not zero-valued claims or errors;
+- observed growth requires at least two comparable immutable snapshots and never backfills the pre-first-seen period;
+- `Observed Recent Views/Day` and `Lifetime Average Views/Day` remain separate fields and labels;
+- consistency returns insufficient data until its named robust formula has the configured minimum sample.
+
+For `video-relative-performance-v1`, the anchor baseline requires at least three other cohort videos with public views. Rank is competition rank (`1 + videos with strictly greater views`), equal values share rank, and percentile uses empirical midrank (`below + 0.5 × equal`) divided by the comparison count. Channel Strong share counts ratios `>=3x`; Breakout share counts ratios `>5x`. Missing views, an insufficient baseline, or a zero median returns null with a warning rather than a zero-valued classification.
+
+For `channel-behavior-v1`:
+
+- the effective version, block sizes, minimum samples, and thresholds are frozen in the collection configuration context when the Analyzer attempt is created, so a queued retry remains reproducible if local configuration later changes;
+- momentum compares the median Lifetime Average Views/Day of the five newest fixed playlist positions with the next five; both blocks require five public values. A ratio `<0.8x` is `declining`, `0.8x–1.2x` is `stable`, and `>1.2x` is `growing`;
+- consistency requires at least five public Lifetime Average Views/Day values. Its score is `clamp(100 × (1 - MAD / median), 0, 100)`, where MAD is median absolute deviation. A zero median is insufficient. Scores `>=75` are `consistent`, `50–<75` are `mixed`, and `<50` are `volatile`;
+- duration/performance uses Spearman rank correlation over at least five videos with public Lifetime Average Views/Day and duration. Absolute coefficients `<0.3` are weak, `<0.7` are moderate, and otherwise strong, with positive/negative direction. Duration bucket medians remain visible and the UI labels this as observed correlation, not causation;
+- observed growth compares the current pinned snapshot with the latest strictly earlier owner-scoped snapshot for the same entity. Deltas may be negative when YouTube corrects a count. Growth percentage requires a positive earlier count. `Observed Recent Views/Day` is the observed view delta divided by elapsed days and is never substituted for `Lifetime Average Views/Day`;
+- cached attempts that reuse a snapshot do not create a new history point. History begins at the user's stored first-seen time, exposes at most 24 retained unique observations, and never infers the publication-to-first-seen period.
+
+Discovery may rank an Analyzer breakout as candidate evidence, but validation still creates a normal market/query Research run before an opportunity score is presented.
+
+## 9. Semantic performance versions
+
+`semantic-performance-v1` groups only the pinned `channel_recent_upload` cohort. Topic membership reuses the exact evidence IDs from `semantic-title-terms-v1`; `editorial-title-patterns-v1` deterministically detects multilingual how-to, question, numbered-list, comparison, guide/tutorial, review, and challenge structures. Videos without a detected group remain in explicit Unclassified rows.
+
+The frozen minimum sample is two videos. A group always retains its count and evidence IDs, but median/average views, median/average Lifetime Average Views/Day, and Breakout rate remain null until that specific metric has at least two public/classified inputs. Breakout rate is `Breakout inputs / inputs with a channel-relative class`, using the Analyzer's pinned threshold version. Groups may overlap because one title can contain multiple detected topics or editorial patterns. These values describe association inside one stored channel cohort; they do not claim that wording or topic caused performance and do not alter opportunity scoring.
+
+## 9. Semantic performance versions
+
+`semantic-performance-v1` groups only the pinned `channel_recent_upload` cohort. Topic membership reuses the exact evidence IDs from `semantic-title-terms-v1`; `editorial-title-patterns-v1` deterministically detects multilingual how-to, question, numbered-list, comparison, guide/tutorial, review, and challenge structures. Videos without a detected group remain in explicit Unclassified rows.
+
+The frozen minimum sample is two videos. A group always retains its count and evidence IDs, but median/average views, median/average Lifetime Average Views/Day, and Breakout rate remain null until that specific metric has at least two public/classified inputs. Breakout rate is `Breakout inputs / inputs with a channel-relative class`, using the Analyzer's pinned threshold version. Groups may overlap because one title can contain multiple detected topics or editorial patterns. These values describe association inside one stored channel cohort; they do not claim that wording or topic caused performance and do not alter opportunity scoring.
+
+See `12_UNIFIED_ANALYZER_MODEL.md` for the formulas, provenance, and cross-workflow boundaries.
+
+## 10. Audience Signal versions
+
+`audience-comment-terms-v1` deterministically derives repeated questions, topics, entities, suggestions, complaints, and confusion points only from a pinned stored top-level-comment collection. A signal requires recurrence in at least two comments and records exact comment evidence, comment/occurrence counts, language, and confidence. Overall confidence combines usable sample size, signal coverage, and dominant-language agreement.
+
+Fewer than three stored or safe meaningful comments returns `insufficient`; mixed-language or partially excluded input returns `partial`; a sample with no safe meaningful input returns `unsafe`. URLs, email addresses, phone-like identifiers, and explicitly unsafe phrases are excluded from labels. These values are inferred sample patterns, not authoritative sentiment, full-audience measurement, causal evidence, or opportunity-score inputs.

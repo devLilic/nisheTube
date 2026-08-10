@@ -8,8 +8,12 @@ import {
     Heart,
     History,
     LayoutDashboard,
+    Lightbulb,
     Search,
+    ScanSearch,
     Settings,
+    Telescope,
+    PanelsTopLeft,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -35,6 +39,10 @@ const mainNavItems: NavItem[] = [
         icon: LayoutDashboard,
     },
     { title: 'Search', href: createResearch(), icon: Search },
+    { title: 'Explore', href: '/explore', icon: Compass },
+    { title: 'Analyzer', href: '/analyzer', icon: ScanSearch },
+    { title: 'Watchlist', href: '/watchlist', icon: Telescope },
+    { title: 'Topic Workspaces', href: '/topics', icon: PanelsTopLeft },
     { title: 'Discover', href: '/discover', icon: Compass },
     {
         title: 'Projects',
@@ -42,6 +50,7 @@ const mainNavItems: NavItem[] = [
         icon: FolderKanban,
     },
     { title: 'Favorites', href: '/favorites', icon: Heart },
+    { title: 'Ideas', href: '/ideas', icon: Lightbulb },
     { title: 'History', href: '/history', icon: History },
     { title: 'Exports', href: '/exports', icon: FileDown },
     { title: 'Settings', href: '/settings/profile', icon: Settings },

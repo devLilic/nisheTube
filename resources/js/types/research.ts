@@ -64,6 +64,14 @@ export type ResearchVideoAnalysis = {
     is_short: boolean | null;
     published_at: string;
     collected_at: string;
+    detected_topic_profile: DetectedTopicSummary | null;
+};
+
+export type DetectedTopicSummary = {
+    niche: string | null;
+    topics: string[];
+    language: string;
+    version: string;
 };
 
 export type ResearchChannelAnalysis = {
@@ -82,12 +90,49 @@ export type ResearchChannelAnalysis = {
     median_views_per_day: number | null;
     median_reach_ratio: number | null;
     collected_at: string | null;
+    detected_topic_profile: DetectedTopicSummary | null;
 };
 
 export type ResearchAnalysis = {
     summary: ResearchAnalysisSummary;
     videos: ResearchVideoAnalysis[];
     channels: ResearchChannelAnalysis[];
+};
+
+export type ResearchProvenanceGroup = {
+    key: 'api' | 'calculated';
+    label: 'YouTube Data' | 'Calculated Metrics';
+    description: string;
+};
+
+export type ResearchProvenanceSource = {
+    public_id: string;
+    provider: string;
+    kind: 'search_enrichment';
+    status: 'queued' | 'collecting' | 'completed' | 'failed';
+    cache_policy: 'fresh_only' | 'allow_fresh_cache' | 'force_refresh';
+    freshness_state: 'empty' | 'fresh' | 'cached' | 'mixed';
+    freshness_window_seconds: number;
+    historical_backfill: boolean;
+    observed_from: string | null;
+    observed_to: string | null;
+    video_observation_count: number;
+    channel_observation_count: number;
+    fresh_observation_count: number;
+    cached_observation_count: number;
+    result_count: number;
+    pinned_video_count: number;
+    pinned_channel_count: number;
+    quota_attempt_count: number;
+    quota_estimated_cost: number;
+    warnings: string[];
+    groups: ResearchProvenanceGroup[];
+};
+
+export type ResearchProvenance = {
+    state: 'loading' | 'empty' | 'ready' | 'partial' | 'error';
+    message: string;
+    source: ResearchProvenanceSource | null;
 };
 
 export type OpportunityScoreWarning = {
@@ -152,6 +197,7 @@ export type ResearchRun = {
     };
     score?: OpportunityScore | null;
     analysis?: ResearchAnalysis;
+    provenance?: ResearchProvenance;
 };
 
 export type ResearchMarketOption = {

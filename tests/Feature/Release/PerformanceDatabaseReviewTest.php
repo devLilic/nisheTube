@@ -37,6 +37,21 @@ final class PerformanceDatabaseReviewTest extends TestCase
         $this->assertContains('exports_owner_created_index', $this->indexNames('exports'));
     }
 
+    public function test_integrated_research_surfaces_keep_owner_scoped_lookup_indexes(): void
+    {
+        $this->assertContains('collection_runs_owner_created_index', $this->indexNames('collection_runs'));
+        $this->assertContains('analyzer_runs_owner_created_index', $this->indexNames('analyzer_runs'));
+        $this->assertContains('analyzer_runs_owner_video_completed_index', $this->indexNames('analyzer_runs'));
+        $this->assertContains('analyzer_runs_owner_channel_completed_index', $this->indexNames('analyzer_runs'));
+        $this->assertContains('watchlist_owner_state_index', $this->indexNames('watchlist_items'));
+        $this->assertContains('watchlist_refresh_owner_state_index', $this->indexNames('watchlist_refresh_runs'));
+        $this->assertContains('topic_workspace_owner_state_index', $this->indexNames('topic_workspaces'));
+        $this->assertContains('semantic_profiles_owner_calculated_index', $this->indexNames('semantic_topic_profiles'));
+        $this->assertContains('comment_runs_owner_completed_index', $this->indexNames('comment_collection_runs'));
+        $this->assertContains('transcripts_owner_provided_index', $this->indexNames('transcript_documents'));
+        $this->assertContains('thumb_profiles_owner_run_created_index', $this->indexNames('thumbnail_analysis_profiles'));
+    }
+
     public function test_large_library_results_are_server_paginated_without_n_plus_one_growth(): void
     {
         $owner = User::factory()->create();

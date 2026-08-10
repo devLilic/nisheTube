@@ -39,4 +39,16 @@ class Channel extends Model
     {
         return $this->hasMany(ChannelSnapshot::class);
     }
+
+    /** @return HasMany<AnalyzerRun, $this> */
+    public function analyzerRuns(): HasMany
+    {
+        return $this->hasMany(AnalyzerRun::class);
+    }
+
+    /** @return HasMany<WatchlistItem, $this> */
+    public function watchlistItems(): HasMany
+    {
+        return $this->hasMany(WatchlistItem::class, 'target_id')->where('target_type', 'channel');
+    }
 }

@@ -12,6 +12,7 @@ use App\Http\Requests\Library\UpdateFavoriteRequest;
 use App\Http\ViewModels\LibraryViewModel;
 use App\Models\Favorite;
 use App\Models\ResearchProject;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -38,13 +39,17 @@ class FavoriteController extends Controller
             $request->targetType(),
             (string) $request->validated('target_reference'),
         );
-        $createFavorite->handle(
-            $request->user(),
-            $target,
-            $this->project($request),
-            $this->optionalString($request->validated('note')),
-        );
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved to favorites.')]);
+        try {
+            $createFavorite->handle(
+                $request->user(),
+                $target,
+                $this->project($request),
+                $this->optionalString($request->validated('note')),
+            );
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Saved to favorites.')]);
+        } catch (DomainException $exception) {
+            Inertia::flash('toast', ['type' => 'info', 'message' => __($exception->getMessage())]);
+        }
 
         return back();
     }

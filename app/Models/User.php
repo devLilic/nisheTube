@@ -50,6 +50,54 @@ class User extends Authenticatable
         return $this->hasMany(ResearchRun::class);
     }
 
+    /** @return HasMany<CollectionRun, $this> */
+    public function collectionRuns(): HasMany
+    {
+        return $this->hasMany(CollectionRun::class);
+    }
+
+    /** @return HasMany<AnalyzerRun, $this> */
+    public function analyzerRuns(): HasMany
+    {
+        return $this->hasMany(AnalyzerRun::class);
+    }
+
+    /** @return HasMany<SemanticTopicProfile, $this> */
+    public function semanticTopicProfiles(): HasMany
+    {
+        return $this->hasMany(SemanticTopicProfile::class);
+    }
+
+    /** @return HasMany<SemanticPerformanceProfile, $this> */
+    public function semanticPerformanceProfiles(): HasMany
+    {
+        return $this->hasMany(SemanticPerformanceProfile::class);
+    }
+
+    /** @return HasMany<AnalyzerCuration, $this> */
+    public function analyzerCurations(): HasMany
+    {
+        return $this->hasMany(AnalyzerCuration::class);
+    }
+
+    /** @return HasMany<WatchlistItem, $this> */
+    public function watchlistItems(): HasMany
+    {
+        return $this->hasMany(WatchlistItem::class);
+    }
+
+    /** @return HasMany<WatchlistRefreshRun, $this> */
+    public function watchlistRefreshRuns(): HasMany
+    {
+        return $this->hasMany(WatchlistRefreshRun::class);
+    }
+
+    /** @return HasMany<TopicWorkspace, $this> */
+    public function topicWorkspaces(): HasMany
+    {
+        return $this->hasMany(TopicWorkspace::class);
+    }
+
     /** @return HasMany<DiscoveryRun, $this> */
     public function discoveryRuns(): HasMany
     {
@@ -60,6 +108,12 @@ class User extends Authenticatable
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    /** @return HasMany<SavedCommentIdea, $this> */
+    public function savedCommentIdeas(): HasMany
+    {
+        return $this->hasMany(SavedCommentIdea::class);
     }
 
     /** @return HasMany<Tag, $this> */

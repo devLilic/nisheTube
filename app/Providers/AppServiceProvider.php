@@ -2,11 +2,27 @@
 
 namespace App\Providers;
 
+use App\Domain\Audience\Contracts\AudienceSignalProvider;
+use App\Domain\Audience\Services\DeterministicAudienceSignalProvider;
 use App\Domain\Discovery\Contracts\ClusteringProvider;
 use App\Domain\Discovery\Contracts\TopicExpansionProvider;
 use App\Domain\Discovery\Services\DeterministicClusteringProvider;
 use App\Domain\Discovery\Services\DeterministicTopicExpansionProvider;
-use App\Domain\Library\Enums\LibraryTargetType;
+use App\Domain\Semantic\Contracts\EditorialTitlePatternProvider;
+use App\Domain\Semantic\Contracts\SemanticClassificationProvider;
+use App\Domain\Semantic\Services\DeterministicEditorialTitlePatternProvider;
+use App\Domain\Semantic\Services\DeterministicSemanticClassificationProvider;
+use App\Domain\Thumbnails\Contracts\ThumbnailAnalysisProvider;
+use App\Domain\Thumbnails\Contracts\ThumbnailImageFetcher;
+use App\Domain\Thumbnails\Services\GdThumbnailAnalysisProvider;
+use App\Domain\Thumbnails\Services\LaravelThumbnailImageFetcher;
+use App\Domain\Topics\Enums\TopicEvidenceType;
+use App\Domain\Transcripts\Contracts\TranscriptProvider;
+use App\Domain\Transcripts\Contracts\TranscriptStructureProvider;
+use App\Domain\Transcripts\Services\DeterministicTranscriptStructureProvider;
+use App\Domain\Transcripts\Services\UserProvidedTranscriptProvider;
+use App\Domain\YouTube\Contracts\ChannelUploadsProvider;
+use App\Domain\YouTube\Contracts\CommentProvider;
 use App\Domain\YouTube\Contracts\QuotaLedger;
 use App\Domain\YouTube\Contracts\VideoResearchProvider;
 use App\Domain\YouTube\Contracts\YouTubeApiClient;
@@ -41,8 +57,17 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(QuotaLedger::class, DatabaseQuotaLedger::class);
         $this->app->singleton(YouTubeApiClient::class, LaravelYouTubeApiClient::class);
         $this->app->bind(VideoResearchProvider::class, YouTubeDataApiProvider::class);
+        $this->app->bind(ChannelUploadsProvider::class, YouTubeDataApiProvider::class);
+        $this->app->bind(CommentProvider::class, YouTubeDataApiProvider::class);
         $this->app->bind(TopicExpansionProvider::class, DeterministicTopicExpansionProvider::class);
         $this->app->bind(ClusteringProvider::class, DeterministicClusteringProvider::class);
+        $this->app->bind(SemanticClassificationProvider::class, DeterministicSemanticClassificationProvider::class);
+        $this->app->bind(EditorialTitlePatternProvider::class, DeterministicEditorialTitlePatternProvider::class);
+        $this->app->bind(AudienceSignalProvider::class, DeterministicAudienceSignalProvider::class);
+        $this->app->bind(TranscriptProvider::class, UserProvidedTranscriptProvider::class);
+        $this->app->bind(TranscriptStructureProvider::class, DeterministicTranscriptStructureProvider::class);
+        $this->app->bind(ThumbnailImageFetcher::class, LaravelThumbnailImageFetcher::class);
+        $this->app->bind(ThumbnailAnalysisProvider::class, GdThumbnailAnalysisProvider::class);
     }
 
     /**
@@ -50,9 +75,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Relation::enforceMorphMap(collect(LibraryTargetType::cases())
-            ->mapWithKeys(fn (LibraryTargetType $type): array => [$type->value => $type->modelClass()])
-            ->all());
+        Relation::enforceMorphMap(TopicEvidenceType::morphMap());
 
         $this->configureDefaults();
     }

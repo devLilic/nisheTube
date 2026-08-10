@@ -75,12 +75,17 @@ final readonly class ExportViewModel
         $expired = $export->expires_at !== null && $export->expires_at->lte(Date::now());
         $runIds = $export->selection['research_run_ids'] ?? [];
         $columns = $export->selection['columns'] ?? $this->columns->all();
+        $selectionType = $export->selection['type'] ?? 'research_runs';
 
         return [
             'public_id' => $export->public_id,
             'format' => $export->format->value,
             'status' => $export->status->value,
             'run_count' => is_array($runIds) ? count($runIds) : 0,
+            'selection_type' => is_string($selectionType) ? $selectionType : 'research_runs',
+            'selection_label' => $selectionType === 'semantic_performance'
+                ? '1 Analyzer performance profile'
+                : (is_array($runIds) ? count($runIds) : 0).' research run(s)',
             'column_count' => is_array($columns) ? count($columns) : 0,
             'size_bytes' => $export->size_bytes,
             'created_at' => $export->created_at?->toIso8601String(),

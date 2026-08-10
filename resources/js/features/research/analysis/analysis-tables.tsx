@@ -1,4 +1,5 @@
-import { ExternalLink, ImageOff, Search } from 'lucide-react';
+import { Form, Link } from '@inertiajs/react';
+import { ExternalLink, ImageOff, ScanSearch, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { WorkspaceHandoff } from '@/features/integration/workspace-handoff';
+import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import { FavoriteToggle } from '@/features/library/favorite-toggle';
 import type {
     LibraryContext,
@@ -349,11 +352,15 @@ export function AnalysisTables({
     channels,
     timezone,
     library,
+    researchRunPublicId,
+    workspaces,
 }: {
     videos: ResearchVideoAnalysis[];
     channels: ResearchChannelAnalysis[];
     timezone: string;
     library: LibraryContext;
+    researchRunPublicId: string;
+    workspaces: WorkspaceOption[];
 }) {
     const [mode, setMode] = useState<'videos' | 'channels'>('videos');
     const [query, setQuery] = useState('');
@@ -513,6 +520,32 @@ export function AnalysisTables({
                                                             video.duration_seconds,
                                                         )}
                                                     </p>
+                                                    {video.detected_topic_profile && (
+                                                        <div
+                                                            className="mt-2 flex flex-wrap gap-1"
+                                                            aria-label="Inferred topics"
+                                                        >
+                                                            <Badge variant="outline">
+                                                                Inferred
+                                                            </Badge>
+                                                            {video.detected_topic_profile.topics
+                                                                .slice(0, 2)
+                                                                .map(
+                                                                    (topic) => (
+                                                                        <Badge
+                                                                            key={
+                                                                                topic
+                                                                            }
+                                                                            variant="secondary"
+                                                                        >
+                                                                            {
+                                                                                topic
+                                                                            }
+                                                                        </Badge>
+                                                                    ),
+                                                                )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -553,7 +586,20 @@ export function AnalysisTables({
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
+                                            <div className="flex flex-wrap justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={`/analyzer?video=${encodeURIComponent(video.provider_video_id)}&origin=search&origin_reference=${encodeURIComponent(researchRunPublicId)}&return_to=${encodeURIComponent(`/research/runs/${researchRunPublicId}`)}`}
+                                                        aria-label={`Open ${video.title} in Analyzer`}
+                                                    >
+                                                        <ScanSearch />
+                                                        Analyze
+                                                    </Link>
+                                                </Button>
                                                 <FavoriteToggle
                                                     library={library}
                                                     targetType="video"
@@ -562,6 +608,45 @@ export function AnalysisTables({
                                                     }
                                                     label={video.title}
                                                     compact
+                                                />
+                                                <Form
+                                                    action="/watchlist"
+                                                    method="post"
+                                                    disableWhileProcessing
+                                                >
+                                                    {({ processing }) => (
+                                                        <>
+                                                            <input
+                                                                type="hidden"
+                                                                name="target_type"
+                                                                value="video"
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name="target_reference"
+                                                                value={
+                                                                    video.provider_video_id
+                                                                }
+                                                            />
+                                                            <Button
+                                                                type="submit"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                disabled={
+                                                                    processing
+                                                                }
+                                                            >
+                                                                Watch
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </Form>
+                                                <WorkspaceHandoff
+                                                    workspaces={workspaces}
+                                                    targetType="video"
+                                                    targetReference={
+                                                        video.provider_video_id
+                                                    }
                                                 />
                                                 <Button
                                                     variant="outline"
@@ -634,6 +719,26 @@ export function AnalysisTables({
                                                 {channel.custom_url ??
                                                     channel.provider_channel_id}
                                             </p>
+                                            {channel.detected_topic_profile && (
+                                                <div
+                                                    className="mt-2 flex flex-wrap gap-1"
+                                                    aria-label="Inferred topics"
+                                                >
+                                                    <Badge variant="outline">
+                                                        Inferred
+                                                    </Badge>
+                                                    {channel.detected_topic_profile.topics
+                                                        .slice(0, 2)
+                                                        .map((topic) => (
+                                                            <Badge
+                                                                key={topic}
+                                                                variant="secondary"
+                                                            >
+                                                                {topic}
+                                                            </Badge>
+                                                        ))}
+                                                </div>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right tabular-nums">
                                             {channel.subscriber_count_hidden
@@ -660,7 +765,19 @@ export function AnalysisTables({
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
+                                            <div className="flex flex-wrap justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={`/analyzer?channel=${encodeURIComponent(channel.provider_channel_id)}&origin=search&origin_reference=${encodeURIComponent(researchRunPublicId)}&return_to=${encodeURIComponent(`/research/runs/${researchRunPublicId}`)}`}
+                                                        aria-label={`Open ${channel.title} in Analyzer`}
+                                                    >
+                                                        <ScanSearch /> Analyze
+                                                    </Link>
+                                                </Button>
                                                 <FavoriteToggle
                                                     library={library}
                                                     targetType="channel"
@@ -669,6 +786,45 @@ export function AnalysisTables({
                                                     }
                                                     label={channel.title}
                                                     compact
+                                                />
+                                                <Form
+                                                    action="/watchlist"
+                                                    method="post"
+                                                    disableWhileProcessing
+                                                >
+                                                    {({ processing }) => (
+                                                        <>
+                                                            <input
+                                                                type="hidden"
+                                                                name="target_type"
+                                                                value="channel"
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name="target_reference"
+                                                                value={
+                                                                    channel.provider_channel_id
+                                                                }
+                                                            />
+                                                            <Button
+                                                                type="submit"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                disabled={
+                                                                    processing
+                                                                }
+                                                            >
+                                                                Watch
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </Form>
+                                                <WorkspaceHandoff
+                                                    workspaces={workspaces}
+                                                    targetType="channel"
+                                                    targetReference={
+                                                        channel.provider_channel_id
+                                                    }
                                                 />
                                                 <Button
                                                     variant="outline"

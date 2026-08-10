@@ -39,6 +39,11 @@ return [
             'bucket' => 'general',
             'cost' => 1,
         ],
+        'commentThreads.list' => [
+            'path' => 'commentThreads',
+            'bucket' => 'general',
+            'cost' => 1,
+        ],
         'i18nRegions.list' => [
             'path' => 'i18nRegions',
             'bucket' => 'general',
