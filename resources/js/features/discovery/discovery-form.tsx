@@ -24,7 +24,13 @@ import type {
 type SeedInput = { query: string; research_run_id: string };
 
 type DiscoveryFormData = {
+    submission_token: string;
     market_key: MarketKey;
+    language: 'en' | 'ro' | 'ru';
+    content_format: 'any' | 'mixed' | 'long_form' | 'shorts';
+    period:
+        'past_week' | 'past_month' | 'past_three_months' | 'past_year' | 'any';
+    target_channel_size: 'any' | 'small' | 'mid_size' | 'large';
     sample_per_seed: 10 | 25 | 50;
     candidate_limit: 10 | 20;
     seeds: SeedInput[];
@@ -34,10 +40,12 @@ export function DiscoveryForm({
     markets,
     defaultMarketKey,
     sampleRuns,
+    submissionToken,
 }: {
     markets: ResearchMarketOption[];
     defaultMarketKey: MarketKey;
     sampleRuns: DiscoverySampleRun[];
+    submissionToken: string;
 }) {
     const { youtubeQuota } = usePage<{ youtubeQuota: QuotaSummary | null }>()
         .props;
@@ -45,7 +53,13 @@ export function DiscoveryForm({
         (sample) => sample.market_key === defaultMarketKey,
     );
     const form = useForm<DiscoveryFormData>({
+        submission_token: submissionToken,
         market_key: defaultMarketKey,
+        language: (markets.find((market) => market.key === defaultMarketKey)
+            ?.relevance_language ?? 'en') as DiscoveryFormData['language'],
+        content_format: 'any',
+        period: 'past_three_months',
+        target_channel_size: 'any',
         sample_per_seed: 25,
         candidate_limit: 20,
         seeds: initialSample
@@ -76,6 +90,8 @@ export function DiscoveryForm({
         form.setData({
             ...form.data,
             market_key: marketKey,
+            language: (markets.find((market) => market.key === marketKey)
+                ?.relevance_language ?? 'en') as DiscoveryFormData['language'],
             seeds: firstSample
                 ? [
                       {
@@ -115,7 +131,7 @@ export function DiscoveryForm({
         <form onSubmit={submit} className="space-y-6">
             <Card className="overflow-hidden border-primary/15">
                 <CardHeader className="border-b bg-gradient-to-r from-primary/8 via-transparent to-info/8">
-                    <CardTitle>Explore stored research samples</CardTitle>
+                    <CardTitle>Discover a market</CardTitle>
                     <CardDescription>
                         Select completed samples, refine their seed phrases, and
                         detect recurring breakout themes without another API
@@ -156,7 +172,80 @@ export function DiscoveryForm({
                             ))}
                         </div>
                         <InputError message={form.errors.market_key} />
+                        <InputError message={form.errors.language} />
                     </fieldset>
+
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                        <DiscoverySelect
+                            label="Language"
+                            value={form.data.language}
+                            onChange={(value) =>
+                                form.setData(
+                                    'language',
+                                    value as DiscoveryFormData['language'],
+                                )
+                            }
+                            options={[
+                                [
+                                    form.data.language,
+                                    form.data.language === 'en'
+                                        ? 'English'
+                                        : form.data.language === 'ro'
+                                          ? 'Romanian'
+                                          : 'Russian',
+                                ],
+                            ]}
+                        />
+                        <DiscoverySelect
+                            label="Content format"
+                            value={form.data.content_format}
+                            onChange={(value) =>
+                                form.setData(
+                                    'content_format',
+                                    value as DiscoveryFormData['content_format'],
+                                )
+                            }
+                            options={[
+                                ['any', 'Any format'],
+                                ['mixed', 'Mixed formats'],
+                                ['long_form', 'Long-form'],
+                                ['shorts', 'Shorts'],
+                            ]}
+                        />
+                        <DiscoverySelect
+                            label="Period"
+                            value={form.data.period}
+                            onChange={(value) =>
+                                form.setData(
+                                    'period',
+                                    value as DiscoveryFormData['period'],
+                                )
+                            }
+                            options={[
+                                ['past_week', 'Past 7 days'],
+                                ['past_month', 'Past 30 days'],
+                                ['past_three_months', 'Past 90 days'],
+                                ['past_year', 'Past year'],
+                                ['any', 'Any time'],
+                            ]}
+                        />
+                        <DiscoverySelect
+                            label="Target channel size"
+                            value={form.data.target_channel_size}
+                            onChange={(value) =>
+                                form.setData(
+                                    'target_channel_size',
+                                    value as DiscoveryFormData['target_channel_size'],
+                                )
+                            }
+                            options={[
+                                ['any', 'Any size'],
+                                ['small', 'Small · under 100K'],
+                                ['mid_size', 'Mid-size · 100K–999K'],
+                                ['large', 'Large · 1M+'],
+                            ]}
+                        />
+                    </div>
 
                     {availableSamples.length === 0 ? (
                         <Alert className="border-warning/40 bg-warning/10">
@@ -378,10 +467,42 @@ export function DiscoveryForm({
                         <Compass aria-hidden="true" />
                     )}
                     {form.processing
-                        ? 'Queuing discovery...'
-                        : 'Start discovery'}
+                        ? 'Creating run'
+                        : 'Generate initial themes'}
                 </Button>
             </div>
         </form>
+    );
+}
+
+function DiscoverySelect({
+    label,
+    value,
+    onChange,
+    options,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: [string, string][];
+}) {
+    const id = `discovery-${label.toLowerCase().replaceAll(' ', '-')}`;
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <select
+                id={id}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+        </div>
     );
 }

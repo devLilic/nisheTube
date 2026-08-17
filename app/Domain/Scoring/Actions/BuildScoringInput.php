@@ -14,7 +14,7 @@ use stdClass;
 
 class BuildScoringInput
 {
-    public function handle(ResearchRun $run): ScoringInput
+    public function handle(ResearchRun $run, string $formulaVersion = NicheOpportunityV1::VERSION): ScoringInput
     {
         /** @var Collection<int, stdClass> $records */
         $records = DB::table('video_snapshots as video_snapshot')
@@ -66,15 +66,15 @@ class BuildScoringInput
             enrichedResultCount: $run->enriched_result_count,
             collectionWarnings: $run->collection_warnings ?? [],
             videos: $videos,
-            previousMedianViewsPerDay: $this->previousMedianViewsPerDay($run),
+            previousMedianViewsPerDay: $this->previousMedianViewsPerDay($run, $formulaVersion),
         );
     }
 
-    private function previousMedianViewsPerDay(ResearchRun $run): ?float
+    private function previousMedianViewsPerDay(ResearchRun $run, string $formulaVersion): ?float
     {
         $scores = OpportunityScore::query()
             ->with('researchRun')
-            ->where('formula_version', NicheOpportunityV1::VERSION)
+            ->where('formula_version', $formulaVersion)
             ->whereHas('researchRun', fn ($query) => $query
                 ->where('research_query_id', $run->research_query_id)
                 ->where('id', '<', $run->id))

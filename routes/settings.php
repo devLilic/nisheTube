@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\ResearchContextController;
 use App\Http\Controllers\Settings\RetentionController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\YouTubeIntegrationController;
@@ -9,6 +10,9 @@ use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
+    Route::put('research-context', [ResearchContextController::class, 'update'])
+        ->middleware('throttle:30,1')
+        ->name('research-context.update');
     Route::redirect('settings', '/settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');

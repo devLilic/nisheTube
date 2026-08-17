@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AnalyzerCurationPanel } from '@/features/analyzer/analyzer-curation';
 import { AnalyzerProfileTabs } from '@/features/analyzer/analyzer-profile-tabs';
 import { AnalyzerStatus } from '@/features/analyzer/analyzer-status';
 import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
@@ -59,6 +60,7 @@ export default function AnalyzerShow({
 
     const refresh = (mode: 'allow_cache' | 'force_refresh') =>
         router.post(`/analyzer/runs/${run.public_id}/refresh`, { mode });
+    const returnsToExplore = run.origin.return_url?.startsWith('/explore');
 
     return (
         <>
@@ -83,9 +85,11 @@ export default function AnalyzerShow({
                                     href={run.origin.return_url ?? '/analyzer'}
                                 >
                                     <ArrowLeft />{' '}
-                                    {run.origin.return_url
-                                        ? 'Back to source'
-                                        : 'New analysis'}
+                                    {returnsToExplore
+                                        ? 'Return to Explore'
+                                        : run.origin.return_url
+                                          ? 'Back to source'
+                                          : 'New analysis'}
                                 </Link>
                             </Button>
                             {run.can_refresh && (
@@ -195,6 +199,20 @@ export default function AnalyzerShow({
                     library={library}
                     workspaces={workspaces}
                 />
+
+                {run.channel && (
+                    <section
+                        aria-label="Analyzer actions"
+                        className="sticky bottom-3 z-10 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur"
+                    >
+                        <AnalyzerCurationPanel
+                            run={run}
+                            library={library}
+                            workspaces={workspaces}
+                            compact
+                        />
+                    </section>
+                )}
 
                 {!run.channel && !run.is_active && !run.error && (
                     <Alert>

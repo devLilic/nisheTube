@@ -141,7 +141,7 @@ Collected top-level comments may be saved separately as private comment ideas. E
 
 ## 5. Non-functional requirements
 
-- Desktop-first responsive interface; usable at tablet width.
+- Desktop-only application interface; tablet and mobile layout optimization are out of scope.
 - Visual cards, indicators, charts, and data tables without hiding exact values.
 - Accessible keyboard navigation, focus indicators, labels, and non-color-only statuses.
 - Retry-safe external operations and actionable error messages.
@@ -186,3 +186,9 @@ These extensions are not part of the initial implementation unless explicitly mo
 The expanded application succeeds when an authenticated user can move one canonical video/channel between Search, Explore, Discover, Analyzer, Watchlist, and Topic Workspace without duplicated metric logic; understand public, calculated, and inferred evidence; compare only observed history; and preserve the existing score, export, authorization, quota, and retention guarantees.
 
 The complete cross-module target model is defined in `12_UNIFIED_ANALYZER_MODEL.md`.
+
+## 9. Planned decision-workflow redesign
+
+Phases 19–22 plan a post-M10 redesign around `Discover -> select -> validate -> compare -> decide -> monitor`. The implementation-ready tasks, dependencies, acceptance criteria, and source-request traceability are defined in `13_DECISION_WORKFLOW_REDESIGN.md` and registered in `08_BACKLOG.md`/`TASK_STATUS.md`.
+
+This planned work keeps the interface English-only, continues to analyze English/Romanian/Russian content, and requires desktop behavior at approximately 1440px. Tablet and mobile-specific implementation are not in scope. Until an individual task is completed, the currently implemented requirements above remain authoritative for application behavior.

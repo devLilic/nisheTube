@@ -18,6 +18,7 @@ class StartDiscoveryRun
 
     /**
      * @param  list<array{query: string, research_run: ResearchRun}>  $seeds
+     * @param  array<string, string>  $intakeContext
      */
     public function handle(
         User $user,
@@ -25,14 +26,18 @@ class StartDiscoveryRun
         array $seeds,
         int $samplePerSeed,
         int $candidateLimit,
+        ?string $submissionToken = null,
+        array $intakeContext = [],
     ): DiscoveryRun {
-        return DB::transaction(function () use ($user, $market, $seeds, $samplePerSeed, $candidateLimit): DiscoveryRun {
+        return DB::transaction(function () use ($user, $market, $seeds, $samplePerSeed, $candidateLimit, $submissionToken, $intakeContext): DiscoveryRun {
             $run = $this->createRun->handle(
                 user: $user,
                 market: $market,
                 seedQueries: array_map(fn (array $seed): string => $seed['query'], $seeds),
                 samplePerSeed: $samplePerSeed,
                 candidateLimit: $candidateLimit,
+                submissionToken: $submissionToken,
+                intakeContext: $intakeContext,
             );
 
             foreach ($run->seeds as $index => $seed) {

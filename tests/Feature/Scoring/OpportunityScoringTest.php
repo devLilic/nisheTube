@@ -8,7 +8,7 @@ use App\Domain\Research\Actions\TransitionResearchRun;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Research\Enums\SearchOrder;
 use App\Domain\Scoring\Actions\CalculateOpportunityScore;
-use App\Domain\Scoring\Services\NicheOpportunityV1;
+use App\Domain\Scoring\Services\NicheOpportunityV2;
 use App\Jobs\Research\ScoreResearchRun;
 use App\Models\Channel;
 use App\Models\ChannelSnapshot;
@@ -87,7 +87,7 @@ class OpportunityScoringTest extends TestCase
         $this->assertDatabaseCount('opportunity_scores', 0);
     }
 
-    public function test_v1_calculates_bounded_explainable_components_from_stored_snapshots(): void
+    public function test_v2_calculates_bounded_explainable_components_from_stored_snapshots(): void
     {
         $run = $this->scoringRun('component calculation', 12, false);
 
@@ -95,8 +95,21 @@ class OpportunityScoringTest extends TestCase
         $run->refresh();
 
         $this->assertSame(ResearchRunStatus::Completed, $run->status);
+        $fit = $run->fresh()->profitabilityFitScores()->sole();
+        $this->assertSame('profitability-fit-v1', $fit->formula_version);
+        $this->assertSame($score->id, $fit->opportunity_score_id);
+        $this->assertGreaterThanOrEqual(0, (float) $fit->fit_score);
+        $this->assertLessThanOrEqual(100, (float) $fit->fit_score);
+        $this->assertSame(NicheOpportunityV2::VERSION, $fit->input_summary['source']['formula_version']);
+
+        try {
+            $fit->update(['fit_score' => '99.0000']);
+            $this->fail('A persisted profitability-fit result must be immutable.');
+        } catch (DomainException) {
+            $this->assertNotSame('99.0000', $fit->fresh()->fit_score);
+        }
         $this->assertSame(100, $run->progress_percent);
-        $this->assertSame(NicheOpportunityV1::VERSION, $score->formula_version);
+        $this->assertSame(NicheOpportunityV2::VERSION, $score->formula_version);
         $this->assertSame(12, $score->sample_size);
         $this->assertSame('2026-08-08 12:00:00', $score->calculated_at->format('Y-m-d H:i:s'));
 
@@ -116,15 +129,17 @@ class OpportunityScoringTest extends TestCase
         $this->assertSame(
             [
                 'demand_momentum' => 0.25,
-                'competition_opportunity' => 0.20,
-                'audience_reachability' => 0.20,
-                'content_freshness_gap' => 0.15,
-                'creator_viability' => 0.20,
+                'competition_opportunity' => 0.22,
+                'audience_reachability' => 0.22,
+                'content_freshness_gap' => 0.13,
+                'creator_viability' => 0.18,
             ],
             $score->input_summary['configuration']['weights'],
         );
-        $this->assertSame(12, $score->input_summary['sample']['scored_video_count']);
-        $this->assertArrayHasKey('median_views_per_day', $score->input_summary['statistics']);
+        $this->assertSame(12, $score->input_summary['statistics']['sample_size']);
+        $this->assertArrayHasKey('channel_hhi', $score->input_summary['statistics']);
+        $this->assertSame(12, $score->input_summary['sample_views']['full_sample_count']);
+        $this->assertArrayHasKey('source_snapshot_pins', $score->input_summary['calculation']);
         $this->assertSame([
             'demand_momentum',
             'competition_opportunity',
@@ -132,8 +147,8 @@ class OpportunityScoringTest extends TestCase
             'content_freshness_gap',
             'creator_viability',
         ], array_keys($score->explanations));
-        $this->assertContains('no_comparable_history', array_column($score->warnings, 'code'));
-        $this->assertContains('mixed_content_formats', array_column($score->warnings, 'code'));
+        $this->assertContains('observed_activity_only', array_column($score->warnings, 'code'));
+        $this->assertContains('limited_strict_relevance', array_column($score->warnings, 'code'));
     }
 
     public function test_identical_job_delivery_reuses_the_same_persisted_result(): void
@@ -150,6 +165,7 @@ class OpportunityScoringTest extends TestCase
         $this->assertSame($first->overall_score, $second->overall_score);
         $this->assertSame($first->input_summary, $second->input_summary);
         $this->assertDatabaseCount('opportunity_scores', 1);
+        $this->assertDatabaseCount('profitability_fit_scores', 1);
         $this->assertSame(ResearchRunStatus::Completed, $run->fresh()->status);
     }
 
@@ -162,11 +178,10 @@ class OpportunityScoringTest extends TestCase
         $warningCodes = array_column($sparseScore->warnings, 'code');
 
         $this->assertLessThan((float) $completeScore->confidence_score, (float) $sparseScore->confidence_score);
-        $this->assertContains('missing_view_velocity', $warningCodes);
-        $this->assertContains('missing_subscriber_counts', $warningCodes);
-        $this->assertContains('missing_engagement_metrics', $warningCodes);
-        $this->assertContains('unknown_content_formats', $warningCodes);
-        $this->assertSame(0, $sparseScore->input_summary['availability']['subscriber_percent']);
+        $this->assertContains('limited_subscriber_visibility', $warningCodes);
+        $this->assertContains('limited_format_classification', $warningCodes);
+        $this->assertContains('outlier_evidence_unavailable', $warningCodes);
+        $this->assertEquals(0.0, $sparseScore->input_summary['statistics']['subscriber_visibility']);
     }
 
     public function test_a_terminal_scoring_failure_uses_safe_retryable_guidance(): void

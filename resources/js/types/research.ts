@@ -125,8 +125,151 @@ export type ResearchProvenanceSource = {
     pinned_channel_count: number;
     quota_attempt_count: number;
     quota_estimated_cost: number;
+    endpoints: Array<{
+        endpoint: string;
+        quota_bucket: string;
+        request_count: number;
+        estimated_cost: number;
+    }>;
     warnings: string[];
     groups: ResearchProvenanceGroup[];
+};
+
+export type ResearchEvidenceItem = {
+    provider_video_id: string;
+    title: string;
+    thumbnail_url: string | null;
+    channel_id: string;
+    channel_title: string;
+    result_rank: number;
+    relevance: {
+        class: 'strictly_relevant' | 'related' | 'weakly_related' | 'off_topic';
+        score: number;
+        signals: {
+            title_coverage?: number;
+            exact_title_phrase?: boolean;
+            semantic_matches?: number;
+            category_matches?: number;
+            topic_matches?: number;
+            negative_matches?: string[];
+            detected_languages?: string[];
+            language_match?: boolean;
+            requested_format?: string;
+            format_match?: boolean | null;
+        };
+    } | null;
+    view_count: number | null;
+    views_per_day: number | null;
+    engagement_rate: number | null;
+    subscriber_count: number | null;
+    subscriber_count_hidden: boolean;
+    reach_ratio: number | null;
+    published_at: string;
+    collected_at: string | null;
+    duration_seconds: number | null;
+    format: 'shorts' | 'long_form' | 'unknown';
+    breakout_class: string | null;
+    metrics_complete: boolean;
+};
+
+export type ResearchEvidenceInspection = {
+    items: ResearchEvidenceItem[];
+    pagination: {
+        page: number;
+        page_size: number;
+        total: number;
+        last_page: number;
+        from: number;
+        to: number;
+    };
+    query: {
+        sort:
+            | 'relevance'
+            | 'views_per_day'
+            | 'engagement'
+            | 'channel_size'
+            | 'reach_ratio'
+            | 'published_at'
+            | 'breakout_class';
+        direction: 'asc' | 'desc';
+        filter: string;
+    };
+    limits: {
+        page_size: number;
+        channel_size_bands: Record<string, string>;
+    };
+    relevance: {
+        state: 'provider_order_only' | 'versioned';
+        label: string;
+        version: string | null;
+        description: string;
+    };
+    filters: Array<{
+        key: string;
+        label: string;
+        enabled: boolean;
+        reason: string | null;
+    }>;
+};
+
+export type ResearchRobustSample = {
+    count: number;
+    metric_count: number;
+    state: 'available' | 'insufficient';
+    median_views_per_day: number | null;
+    p25_views_per_day: number | null;
+    p75_views_per_day: number | null;
+    p90_views_per_day: number | null;
+    trimmed_mean_views_per_day: number | null;
+};
+
+export type ResearchOutlierEvidence = {
+    state: 'available' | 'insufficient';
+    metric_count: number;
+    top_video_share?: number | null;
+    dependency: 'low' | 'medium' | 'high' | null;
+    removals: Array<{
+        removed_top_count: number;
+        remaining_count: number;
+        median_views_per_day: number | null;
+        mean_views_per_day: number | null;
+    }>;
+};
+
+export type ResearchEvidenceProfile = {
+    state: 'pending' | 'not_calculated' | 'available';
+    version: string | null;
+    normalization_version?: string;
+    description: string;
+    full_sample_count: number;
+    strict_sample_count: number;
+    sample_evidence: {
+        full: ResearchRobustSample;
+        strict: ResearchRobustSample;
+        class_counts: Record<string, number>;
+    } | null;
+    format_evidence: Record<
+        'shorts' | 'long_form' | 'unknown',
+        ResearchRobustSample
+    > | null;
+    outlier_evidence: {
+        full: ResearchOutlierEvidence;
+        strict: ResearchOutlierEvidence;
+    } | null;
+    stability: {
+        state: 'available' | 'unavailable' | 'insufficient_metrics';
+        label: 'high' | 'medium' | 'low' | null;
+        reason: string | null;
+        previous_overlap_count?: number;
+        metric_pair_count?: number;
+        result_overlap?: number | null;
+        channel_overlap?: number | null;
+        order_stability?: number | null;
+        metric_variance?: number | null;
+        median_variation?: number | null;
+    };
+    warnings: string[];
+    calculated_at: string | null;
 };
 
 export type ResearchProvenance = {
@@ -160,9 +303,81 @@ export type OpportunityScore = {
     confidence_label: string;
     formula_version: string;
     sample_size: number;
+    sample_views: {
+        full_sample_count: number;
+        strict_sample_count: number | null;
+    };
     calculated_at: string;
     components: OpportunityScoreComponent[];
     warnings: OpportunityScoreWarning[];
+};
+
+export type ProfitabilityFit = {
+    fit_score: number;
+    confidence_score: number;
+    formula_version: string;
+    calculated_at: string;
+    source_formula_version: string;
+    explanations: Record<string, string>;
+    warnings: OpportunityScoreWarning[];
+};
+
+export type ResearchDecisionCoverage = {
+    key: string;
+    label: string;
+    available: number;
+    total: number;
+    percent: number | null;
+    state: 'complete' | 'partial' | 'unavailable';
+};
+
+export type ResearchDecisionSummary = {
+    lifecycle: {
+        key:
+            | 'active'
+            | 'complete_data'
+            | 'partial_data'
+            | 'reduced_confidence'
+            | 'failed_with_partial'
+            | 'failed';
+        label: string;
+        description: string;
+    };
+    verdict: string;
+    interpretation: string;
+    active_progress: {
+        stage: string;
+        percent: number;
+        collected_count: number;
+        requested_count: number;
+        warning_count: number;
+        eta_label: string;
+        eta_explanation: string;
+    } | null;
+    completeness: ResearchDecisionCoverage[];
+    stability: {
+        key: 'not_measured' | 'high' | 'medium' | 'low';
+        label: string;
+        description: string;
+    };
+    observation: {
+        collected_at: string | null;
+        freshness_key: 'fresh' | 'aging' | 'stale' | 'unavailable';
+        freshness_label: string;
+        age_hours: number | null;
+    };
+    sample_size: number;
+    principal_evidence: Array<{
+        label: string;
+        value: string;
+        explanation: string;
+    }>;
+    risks: string[];
+    next_action: {
+        kind: 'wait' | 'retry' | 'new_search' | 'review_evidence';
+        label: string;
+        description: string;
+    };
 };
 
 export type ResearchRun = {
@@ -182,6 +397,11 @@ export type ResearchRun = {
         published_before: string | null;
         video_duration: string | null;
         video_category_id: string | null;
+        workflow_mode: string;
+        preset_key: string;
+        language: string;
+        content_format: string;
+        target_channel_size: string;
     };
     created_at: string | null;
     started_at: string | null;
@@ -196,8 +416,12 @@ export type ResearchRun = {
         sample_results: ResearchResultPreview[];
     };
     score?: OpportunityScore | null;
+    profitability_fit?: ProfitabilityFit | null;
     analysis?: ResearchAnalysis;
     provenance?: ResearchProvenance;
+    decision_summary?: ResearchDecisionSummary;
+    evidence_inspection?: ResearchEvidenceInspection;
+    evidence_profile?: ResearchEvidenceProfile;
 };
 
 export type ResearchMarketOption = {

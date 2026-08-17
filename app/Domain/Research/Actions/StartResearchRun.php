@@ -19,6 +19,7 @@ class StartResearchRun
         private readonly QueueResearchRun $queueResearchRun,
     ) {}
 
+    /** @param array<string, string> $intakeContext */
     public function handle(
         User $user,
         Market $market,
@@ -30,6 +31,8 @@ class StartResearchRun
         ?string $publishedBefore,
         VideoDurationFilter $videoDuration,
         ?string $videoCategoryId,
+        ?string $submissionToken = null,
+        array $intakeContext = [],
     ): ResearchRun {
         return DB::transaction(function () use (
             $user,
@@ -42,6 +45,8 @@ class StartResearchRun
             $publishedBefore,
             $videoDuration,
             $videoCategoryId,
+            $submissionToken,
+            $intakeContext,
         ): ResearchRun {
             [$resolvedAfter, $resolvedBefore] = $this->resolvePublishedWindow->handle(
                 $publishedWindow,
@@ -61,7 +66,13 @@ class StartResearchRun
                 videoCategoryId: $videoCategoryId,
             );
 
-            $run = $this->createResearchRun->handle($user, $query, $requestedResultCount);
+            $run = $this->createResearchRun->handle(
+                $user,
+                $query,
+                $requestedResultCount,
+                submissionToken: $submissionToken,
+                intakeContext: $intakeContext,
+            );
 
             return $this->queueResearchRun->handle($user, $run);
         });

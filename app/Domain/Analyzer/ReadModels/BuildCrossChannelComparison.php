@@ -9,6 +9,7 @@ use App\Models\ChannelSnapshot;
 use App\Models\ResearchRun;
 use App\Models\SemanticPerformanceAggregate;
 use App\Models\SemanticPerformanceProfile;
+use App\Models\SemanticTopicProfile;
 use App\Models\ThumbnailAnalysisProfile;
 use App\Models\ThumbnailPerformanceAggregate;
 use App\Models\TopicWorkspace;
@@ -23,8 +24,8 @@ final class BuildCrossChannelComparison
     /** @return array<string, mixed> */
     public function handle(User $user, AnalyzerRun ...$selectedRuns): array
     {
-        if (count($selectedRuns) < 2 || count($selectedRuns) > 3) {
-            throw new DomainException('Choose two or three channel analyses.');
+        if (count($selectedRuns) < 2 || count($selectedRuns) > 4) {
+            throw new DomainException('Choose two to four channel analyses.');
         }
 
         $runs = collect(array_values($selectedRuns));
@@ -36,7 +37,7 @@ final class BuildCrossChannelComparison
 
         $runs->each(fn (AnalyzerRun $run) => $run->loadMissing([
             'channel', 'channelSnapshot', 'channelMetrics',
-            'semanticPerformanceProfile.aggregates',
+            'semanticPerformanceProfile.aggregates', 'semanticTopicProfile', 'videoMemberships.video',
         ]));
 
         $thumbnails = ThumbnailAnalysisProfile::query()
@@ -55,7 +56,7 @@ final class BuildCrossChannelComparison
         $compatibility = $this->compatibility($runs, $thumbnails, $markets);
 
         return [
-            'runs' => $runs->map(fn (AnalyzerRun $run): array => $this->run($run, $markets[$run->id], $thumbnails->get($run->id)))->values()->all(),
+            'runs' => $runs->map(fn (AnalyzerRun $run): array => $this->run($run, $markets[$run->id], $thumbnails->get($run->id), $runs))->values()->all(),
             'compatibility' => $compatibility,
             'channel_metrics' => $this->channelMetricRows($runs),
             'topic_rows' => $this->semanticRows($runs, 'topic'),
@@ -159,12 +160,13 @@ final class BuildCrossChannelComparison
     /** @param array{key: string|null, source: string} $market
      * @return array<string, mixed>
      */
-    private function run(AnalyzerRun $run, array $market, ?ThumbnailAnalysisProfile $thumbnail): array
+    private function run(AnalyzerRun $run, array $market, ?ThumbnailAnalysisProfile $thumbnail, Collection $runs): array
     {
         $metric = $this->metric($run);
         $semantic = $this->semantic($run);
         $channel = $this->channel($run);
         $snapshot = $this->snapshot($run);
+        $topic = $run->getRelationValue('semanticTopicProfile');
 
         return [
             'public_id' => $run->public_id,
@@ -176,6 +178,25 @@ final class BuildCrossChannelComparison
             'market' => $market,
             'cohort_video_count' => $metric->recent_valid_count,
             'requested_video_count' => $metric->recent_requested_count,
+            'subscriber_count' => $snapshot->subscriber_count_hidden ? null : $snapshot->subscriber_count,
+            'subscriber_count_hidden' => $snapshot->subscriber_count_hidden,
+            'channel_size_band' => $this->channelSizeBand($snapshot),
+            'peer_labels' => $this->peerLabels($run, $runs),
+            'freshness' => [
+                'observed_age_hours' => max(0, now()->diffInHours($snapshot->collected_at, true)),
+                'state' => now()->diffInDays($snapshot->collected_at, true) > 30 ? 'stale' : 'recent',
+            ],
+            'shorts_share' => $this->shortsShare($run),
+            'public_engagement' => [
+                'rate_percent' => null,
+                'state' => 'not_available',
+                'reason' => 'No frozen cohort-level public engagement rate was stored for this channel analysis.',
+            ],
+            'niche' => $topic instanceof SemanticTopicProfile ? [
+                'label' => $topic->niche_label,
+                'concentration_score' => $this->float($topic->concentration_score),
+                'confidence_score' => $this->float($topic->confidence_score),
+            ] : null,
             'channel_model' => [
                 'calculation_version' => $metric->calculation_version,
                 'behavior_version' => $metric->behavior_version,
@@ -202,6 +223,62 @@ final class BuildCrossChannelComparison
         ];
     }
 
+    /** @return array{percent: float|null, sample_count: int, state: string} */
+    private function shortsShare(AnalyzerRun $run): array
+    {
+        $memberships = $run->videoMemberships->filter(
+            fn ($membership): bool => $membership->role->value === 'channel_recent_upload',
+        );
+        $known = $memberships->filter(fn ($membership): bool => $membership->video->is_short !== null);
+
+        if ($known->isEmpty()) {
+            return ['percent' => null, 'sample_count' => 0, 'state' => 'not_available'];
+        }
+
+        return [
+            'percent' => ($known->filter(fn ($membership): bool => $membership->video->is_short)->count() / $known->count()) * 100,
+            'sample_count' => $known->count(),
+            'state' => $known->count() === $memberships->count() ? 'complete' : 'partial',
+        ];
+    }
+
+    private function channelSizeBand(ChannelSnapshot $snapshot): string
+    {
+        if ($snapshot->subscriber_count_hidden || $snapshot->subscriber_count === null) {
+            return 'Not public';
+        }
+
+        return match (true) {
+            $snapshot->subscriber_count < 100_000 => 'Small (under 100K)',
+            $snapshot->subscriber_count < 1_000_000 => 'Mid-size (100K–999K)',
+            default => 'Large (1M+)',
+        };
+    }
+
+    /** @return list<array{key: string, label: string, reason: string}> */
+    private function peerLabels(AnalyzerRun $run, Collection $runs): array
+    {
+        $metric = $this->metric($run);
+        $subscribers = $this->snapshot($run)->subscriber_count;
+        $knownSubscribers = $runs->map(fn (AnalyzerRun $candidate): ?int => $this->snapshot($candidate)->subscriber_count)
+            ->filter(fn (?int $value): bool => $value !== null)->values();
+        $labels = [];
+
+        if ($subscribers !== null && $knownSubscribers->isNotEmpty() && $subscribers >= ((int) $knownSubscribers->min() * 3)) {
+            $labels[] = ['key' => 'dominant_incumbent', 'label' => 'Dominant incumbent', 'reason' => 'Public subscribers are at least three times the smallest selected public count.'];
+        } elseif ($subscribers !== null && $knownSubscribers->isNotEmpty() && $subscribers <= ((int) $knownSubscribers->min() * 2)) {
+            $labels[] = ['key' => 'reachable_competitor', 'label' => 'Reachable competitor', 'reason' => 'Public subscriber size is within twice the smallest selected public count.'];
+        }
+        if ($metric->consistency_class === 'volatile') {
+            $labels[] = ['key' => 'unstable_performer', 'label' => 'Unstable performer', 'reason' => 'Stored cohort consistency is classified as volatile.'];
+        }
+        if ($run->getRelationValue('semanticTopicProfile') instanceof SemanticTopicProfile) {
+            $labels[] = ['key' => 'useful_inspiration', 'label' => 'Useful inspiration', 'reason' => 'A stored niche profile is available to inspect; this is not a recommendation.'];
+        }
+
+        return $labels;
+    }
+
     /** @param Collection<int, AnalyzerRun> $runs
      * @return list<array<string, mixed>>
      */
@@ -209,10 +286,17 @@ final class BuildCrossChannelComparison
     {
         $fields = [
             'median_views' => ['Median views', 'count'],
+            'momentum_recent_median_views_per_day' => ['Recent-block median views/day', 'count'],
+            'median_likes' => ['Median public likes', 'count'],
+            'median_comments' => ['Median public comments', 'count'],
             'median_age_days' => ['Median video age', 'days'],
             'videos_per_month' => ['Uploads per month', 'rate'],
             'strong_share_percent' => ['Strong share', 'percent'],
             'breakout_share_percent' => ['Breakout share', 'percent'],
+            'breakout_count' => ['Repeat breakouts', 'count'],
+            'observed_view_delta' => ['Observed snapshot view growth', 'count'],
+            'observed_subscriber_delta' => ['Observed snapshot subscriber growth', 'count'],
+            'observed_view_growth_percent' => ['Observed snapshot view growth', 'percent'],
             'momentum_ratio' => ['Momentum ratio', 'ratio'],
             'consistency_score' => ['Consistency score', 'score'],
             'duration_performance_correlation' => ['Duration/performance correlation', 'coefficient'],

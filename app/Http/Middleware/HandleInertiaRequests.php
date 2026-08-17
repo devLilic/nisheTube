@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Navigation\Services\CompletedRunNotifications;
+use App\Domain\Settings\Services\ResearchContextResolver;
 use App\Domain\YouTube\Contracts\QuotaLedger;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -36,12 +38,26 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $researchContext = null;
+        if ($request->user() !== null) {
+            $resolved = app(ResearchContextResolver::class)->resolve(
+                $request->user(),
+                $request->session()->get(ResearchContextResolver::SESSION_KEY),
+            );
+            $request->session()->put(ResearchContextResolver::SESSION_KEY, $resolved['stored']);
+            $researchContext = $resolved['shared'];
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
             ],
+            'researchContext' => $researchContext,
+            'completedRunNotifications' => fn (): ?array => $request->user() === null
+                ? null
+                : app(CompletedRunNotifications::class)->for($request->user()),
             'youtubeQuota' => fn (): ?array => $request->user() === null
                 ? null
                 : app(QuotaLedger::class)->summary()->toSafeArray(),

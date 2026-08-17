@@ -31,8 +31,9 @@ final class CrossChannelComparisonTest extends TestCase
         $after = $this->completedChannelRun($owner, 'Channel Beta', 10, 1500);
 
         $third = $this->completedChannelRun($owner, 'Channel Gamma', 10, 1800);
+        $fourth = $this->completedChannelRun($owner, 'Channel Delta', 10, 2200);
 
-        $comparison = app(BuildCrossChannelComparison::class)->handle($owner, $before, $after, $third);
+        $comparison = app(BuildCrossChannelComparison::class)->handle($owner, $before, $after, $third, $fourth);
 
         $this->assertTrue($comparison['compatibility']['channel_metrics']);
         $this->assertTrue($comparison['compatibility']['topics']);
@@ -41,6 +42,9 @@ final class CrossChannelComparisonTest extends TestCase
         $this->assertSame(1000.0, $comparison['channel_metrics'][0]['values'][0]['value']);
         $this->assertSame(1500.0, $comparison['channel_metrics'][0]['values'][1]['value']);
         $this->assertSame(1800.0, $comparison['channel_metrics'][0]['values'][2]['value']);
+        $this->assertSame(2200.0, $comparison['channel_metrics'][0]['values'][3]['value']);
+        $this->assertSame('Small (under 100K)', $comparison['runs'][0]['channel_size_band']);
+        $this->assertSame('recent', $comparison['runs'][0]['freshness']['state']);
         $this->assertSame('Small-space storage', $comparison['topic_rows'][0]['label']);
         $this->assertSame(10, $comparison['topic_rows'][0]['values'][0]['sample_count']);
         $this->assertSame('How-to', $comparison['title_pattern_rows'][0]['label']);
@@ -51,12 +55,14 @@ final class CrossChannelComparisonTest extends TestCase
             'before' => $before->public_id,
             'after' => $after->public_id,
             'third' => $third->public_id,
+            'fourth' => $fourth->public_id,
         ]))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
             ->component('analyzer/compare')
-            ->has('options', 3)
+            ->has('options', 4)
             ->where('selected.runs.0.channel_title', 'Channel Alpha')
             ->where('selected.runs.1.channel_title', 'Channel Beta')
             ->where('selected.runs.2.channel_title', 'Channel Gamma')
+            ->where('selected.runs.3.channel_title', 'Channel Delta')
             ->where('selected.compatibility.topics', true)
             ->where('selected.topic_rows.0.values.2.median_views', 1800));
     }
@@ -139,8 +145,15 @@ final class CrossChannelComparisonTest extends TestCase
         $this->assertCount(5, $grouped['attempts']);
 
         $fourth = $this->completedChannelRun($owner, 'Fourth channel', 2, 300);
+        $fifth = $this->completedChannelRun($owner, 'Fifth channel', 2, 400);
+        $this->actingAs($owner)->get(route('analyzer.compare', [
+            'before' => $owned[0]->public_id,
+            'after' => $owned[1]->public_id,
+            'third' => $owned[2]->public_id,
+            'fourth' => $fourth->public_id,
+        ]))->assertOk();
         $this->expectException(\DomainException::class);
-        app(BuildCrossChannelComparison::class)->handle($owner, $owned[0], $owned[1], $owned[2], $fourth);
+        app(BuildCrossChannelComparison::class)->handle($owner, $owned[0], $owned[1], $owned[2], $fourth, $fifth);
     }
 
     private function completedChannelRun(

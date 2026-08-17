@@ -35,6 +35,12 @@ export type DashboardOpportunity = {
     sample_size: number;
     completed_at: string | null;
     calculated_at: string | null;
+    profitability_fit: {
+        fit_score: number;
+        confidence_score: number;
+        formula_version: string;
+        calculated_at: string | null;
+    } | null;
 };
 
 export type DashboardTrendPoint = {

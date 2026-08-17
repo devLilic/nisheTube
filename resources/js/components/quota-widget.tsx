@@ -105,7 +105,8 @@ export function QuotaWidget() {
                             className="hidden min-w-0 truncate border-l pl-2 text-xs text-muted-foreground tabular-nums xl:inline"
                         >
                             {quotaBucketLabel(bucket.bucket)}:{' '}
-                            {bucket.remaining.toLocaleString()}
+                            {bucket.remaining.toLocaleString()}{' '}
+                            {bucket.measure === 'requests' ? 'req.' : 'units'}
                         </span>
                     ))}
                     <span className="shrink-0 text-xs xl:hidden">
@@ -150,14 +151,35 @@ export function QuotaWidget() {
                         </div>
                     )}
                     {summary?.buckets.map((bucket) => (
-                        <QuotaMeter
-                            key={bucket.bucket}
-                            summary={bucket}
-                            compact
-                        />
+                        <div key={bucket.bucket} className="space-y-1.5">
+                            <QuotaMeter summary={bucket} compact />
+                            <p className="text-xs leading-5 text-muted-foreground">
+                                {bucket.last_endpoint &&
+                                bucket.last_occurred_at ? (
+                                    <>
+                                        Last NisheTube-recorded call:{' '}
+                                        {bucket.last_endpoint} ·{' '}
+                                        {bucket.last_cost?.toLocaleString() ??
+                                            0}{' '}
+                                        estimated {bucket.measure} ·{' '}
+                                        {formatTimestamp(
+                                            bucket.last_occurred_at,
+                                            timezone,
+                                        )}
+                                    </>
+                                ) : (
+                                    <>No NisheTube-recorded calls today.</>
+                                )}
+                            </p>
+                        </div>
                     ))}
                     {summary && (
                         <div className="space-y-1 border-t pt-3 text-xs leading-5 text-muted-foreground">
+                            <p>
+                                Search tracks NisheTube-recorded requests;
+                                General API tracks Google-estimated units.
+                                Endpoint costs come from provider configuration.
+                            </p>
                             <p>
                                 Resets at{' '}
                                 {formatTimestamp(summary.reset_at, timezone)}.

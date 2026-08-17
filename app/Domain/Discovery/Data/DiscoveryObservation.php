@@ -16,6 +16,7 @@ final readonly class DiscoveryObservation
         public ?int $viewCount,
         public ?float $viewsPerDay,
         public ?float $reachRatio,
+        public ?int $subscriberCount = null,
         public ?string $analyzerRunPublicId = null,
         /** @var list<string> */
         public array $inferredTopics = [],

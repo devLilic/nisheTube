@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Research;
 use App\Domain\Analyzer\ValueObjects\AnalyzerNavigationContext;
 use App\Domain\Research\Actions\RetryResearchRun;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Research\ResearchEvidenceRequest;
 use App\Http\ViewModels\LibraryViewModel;
 use App\Http\ViewModels\ResearchRunViewModel;
 use App\Models\ResearchRun;
@@ -16,12 +17,12 @@ use Inertia\Response;
 
 class ResearchRunController extends Controller
 {
-    public function show(Request $request, ResearchRun $researchRun, ResearchRunViewModel $viewModel, LibraryViewModel $libraryViewModel): Response
+    public function show(ResearchEvidenceRequest $request, ResearchRun $researchRun, ResearchRunViewModel $viewModel, LibraryViewModel $libraryViewModel): Response
     {
         Gate::authorize('view', $researchRun);
 
         return Inertia::render('research/show', [
-            'run' => $viewModel->toArray($researchRun),
+            'run' => $viewModel->toArray($researchRun, evidenceQuery: $request->evidenceQuery()),
             'library' => $libraryViewModel->context($request->user()),
             'workspaces' => $request->user()->topicWorkspaces()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name', 'market_key']),
             'returnTo' => AnalyzerNavigationContext::fromInput($request->query('return_to'))->returnUrl,

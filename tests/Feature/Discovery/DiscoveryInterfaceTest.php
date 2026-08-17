@@ -177,10 +177,10 @@ class DiscoveryInterfaceTest extends TestCase
                 ->component('discovery/show')
                 ->where('run.status', 'completed')
                 ->where('run.progress_percent', 100)
-                ->has('run.candidates', 1)
-                ->where('run.candidates.0.public_id', $candidate->public_id)
-                ->where('run.candidates.0.evidence.observed_signal', 'returned_video_breakout')
-                ->where('run.candidates.0.evidence.video_ids.0', 'video-one')
+                ->has('candidate_table.candidate_niches.data', 1)
+                ->where('candidate_table.candidate_niches.data.0.public_id', $candidate->public_id)
+                ->where('candidate_table.candidate_niches.data.0.evidence.observed_signal', 'returned_video_breakout')
+                ->where('candidate_table.candidate_niches.data.0.evidence.video_ids.0', 'video-one')
             );
 
         $empty = app(CreateDiscoveryRun::class)->handle($owner, $market, ['steady topic']);
@@ -191,7 +191,7 @@ class DiscoveryInterfaceTest extends TestCase
         ]);
         $this->actingAs($owner)
             ->get(route('discovery.runs.show', $empty))
-            ->assertInertia(fn (Assert $page): Assert => $page->has('run.candidates', 0));
+            ->assertInertia(fn (Assert $page): Assert => $page->has('candidate_table.candidate_niches.data', 0));
     }
 
     public function test_owner_can_save_dismiss_and_launch_one_validation_search(): void

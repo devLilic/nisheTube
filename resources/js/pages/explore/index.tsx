@@ -4,10 +4,12 @@ import {
     ArrowUpRight,
     Binoculars,
     Bookmark,
+    BookmarkPlus,
     Boxes,
     Filter,
     FlaskConical,
     Search,
+    Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -29,6 +31,7 @@ import type {
     Auth,
     ExploreEntityType,
     ExploreFilters,
+    ExplorePreset,
     ExploreResult,
     MarketKey,
     LibraryContext,
@@ -49,6 +52,7 @@ type PageProps = {
     };
     workspaces: WorkspaceOption[];
     library: LibraryContext;
+    presets: ExplorePreset[];
 };
 
 const entityLabels: Record<ExploreEntityType, string> = {
@@ -60,6 +64,7 @@ const entityLabels: Record<ExploreEntityType, string> = {
 export default function ExploreIndex(props: PageProps) {
     const [draft, setDraft] = useState<ExploreFilters>(props.filters);
     const [loading, setLoading] = useState(false);
+    const [presetName, setPresetName] = useState('');
     const partialCount = useMemo(
         () => props.results.data.filter((item) => item.partial).length,
         [props.results.data],
@@ -94,6 +99,19 @@ export default function ExploreIndex(props: PageProps) {
 
         setDraft(next);
         visit(next);
+    };
+
+    const applyPreset = (preset: ExplorePreset) => {
+        setDraft(preset.filters);
+        visit(preset.filters);
+    };
+
+    const savePreset = () => {
+        router.post(
+            '/explore/presets',
+            { name: presetName, filters: draft },
+            { preserveScroll: true, onSuccess: () => setPresetName('') },
+        );
     };
 
     return (
@@ -396,6 +414,78 @@ export default function ExploreIndex(props: PageProps) {
                     </CardContent>
                 </Card>
 
+                <Card>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            <BookmarkPlus className="size-4" />
+                            Saved filter presets
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                            <Input
+                                aria-label="Preset name"
+                                className="max-w-xs"
+                                value={presetName}
+                                placeholder="e.g. Romanian breakouts"
+                                maxLength={80}
+                                onChange={(event) =>
+                                    setPresetName(event.target.value)
+                                }
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={loading || presetName.trim() === ''}
+                                onClick={savePreset}
+                            >
+                                Save current filters
+                            </Button>
+                        </div>
+                        {props.presets.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No saved presets yet. Save this filter set to
+                                reuse it later.
+                            </p>
+                        ) : (
+                            <div
+                                className="flex flex-wrap gap-2"
+                                aria-label="Saved filter presets"
+                            >
+                                {props.presets.map((preset) => (
+                                    <div
+                                        key={preset.public_id}
+                                        className="flex items-center rounded-md border"
+                                    >
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => applyPreset(preset)}
+                                        >
+                                            {preset.name}
+                                        </Button>
+                                        <Form
+                                            action={`/explore/presets/${preset.public_id}`}
+                                            method="delete"
+                                            disableWhileProcessing
+                                        >
+                                            <Button
+                                                type="submit"
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={`Delete preset ${preset.name}`}
+                                            >
+                                                <Trash2 className="size-4" />
+                                            </Button>
+                                        </Form>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 {props.errors && Object.keys(props.errors).length > 0 && (
                     <StatePanel
                         title="Explore filters could not be applied"
@@ -570,7 +660,10 @@ function EvidenceCard({
                 </div>
 
                 <dl className="grid grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 text-sm sm:grid-cols-4">
-                    <Metric label="Score" value={number(item.score, 1)} />
+                    <Metric
+                        label={scoreLabel(item)}
+                        value={number(item.score, 1)}
+                    />
                     <Metric
                         label="Confidence"
                         value={number(item.confidence, 1)}
@@ -741,6 +834,12 @@ function number(value: number | null, digits: number): string {
         : new Intl.NumberFormat(undefined, {
               maximumFractionDigits: digits,
           }).format(value);
+}
+
+function scoreLabel(item: ExploreResult): string {
+    return item.entity_type === 'candidate'
+        ? 'Discovery score'
+        : 'Research opportunity score';
 }
 
 function numeric(value: string): number | null {

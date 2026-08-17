@@ -13,6 +13,7 @@ use App\Models\ResearchRun;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +23,7 @@ class DiscoveryController extends Controller
     {
         Gate::authorize('viewAny', DiscoveryRun::class);
         $user = $request->user();
+        $sourceRunId = $request->string('source_run')->toString();
 
         return Inertia::render('discovery/index', [
             'markets' => Market::query()
@@ -30,10 +32,12 @@ class DiscoveryController extends Controller
                 ->get(['key', 'name', 'region_code', 'relevance_language']),
             'default_market_key' => $user->default_market_key
                 ?? Market::query()->where('is_enabled', true)->orderBy('sort_order')->value('key'),
+            'submission_token' => (string) Str::uuid(),
             'sample_runs' => $user->researchRuns()
                 ->where('status', ResearchRunStatus::Completed)
                 ->whereHas('videoSnapshots')
                 ->withCount('videoSnapshots')
+                ->orderByRaw('CASE WHEN public_id = ? THEN 0 ELSE 1 END', [$sourceRunId])
                 ->latest('completed_at')
                 ->limit(50)
                 ->get()
@@ -56,6 +60,17 @@ class DiscoveryController extends Controller
     public function store(StoreDiscoveryRunRequest $request, StartDiscoveryRun $startRun): RedirectResponse
     {
         Gate::authorize('create', DiscoveryRun::class);
+
+        if ($request->submissionToken() !== null) {
+            $existing = DiscoveryRun::query()
+                ->where('user_id', $request->user()->id)
+                ->where('submission_token', $request->submissionToken())
+                ->first();
+
+            if ($existing !== null) {
+                return to_route('discovery.runs.show', $existing);
+            }
+        }
         $market = Market::query()->where('key', $request->marketKey())->firstOrFail();
         $seeds = [];
 
@@ -76,6 +91,8 @@ class DiscoveryController extends Controller
             seeds: $seeds,
             samplePerSeed: $request->samplePerSeed(),
             candidateLimit: $request->candidateLimit(),
+            submissionToken: $request->submissionToken(),
+            intakeContext: $request->intakeContext(),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Discovery run queued.')]);

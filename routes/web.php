@@ -16,12 +16,16 @@ use App\Http\Controllers\Discovery\DiscoveryController;
 use App\Http\Controllers\Discovery\DiscoveryRunController;
 use App\Http\Controllers\Discovery\NicheCandidateController;
 use App\Http\Controllers\Explore\ExploreController;
+use App\Http\Controllers\Explore\ExplorePresetController;
 use App\Http\Controllers\Exports\ExportController;
 use App\Http\Controllers\History\HistoryController;
 use App\Http\Controllers\Ideas\SavedCommentIdeaController;
 use App\Http\Controllers\Library\FavoriteController;
 use App\Http\Controllers\Library\ProjectController;
+use App\Http\Controllers\Library\ShortlistController;
 use App\Http\Controllers\Library\TagController;
+use App\Http\Controllers\Navigation\CompletedRunNotificationController;
+use App\Http\Controllers\Navigation\GlobalResearchSearchController;
 use App\Http\Controllers\Research\ResearchController;
 use App\Http\Controllers\Research\ResearchRunController;
 use App\Http\Controllers\Topics\TopicWorkspaceController;
@@ -32,7 +36,11 @@ Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
-    Route::inertia('design-system', 'design-system')->name('design-system');
+    Route::get('global-research-search', GlobalResearchSearchController::class)->name('global-research-search');
+    Route::patch('completed-run-notifications/read', [CompletedRunNotificationController::class, 'update'])->name('completed-run-notifications.read');
+    if (app()->environment('local')) {
+        Route::inertia('design-system', 'design-system')->name('design-system');
+    }
 
     Route::get('search', [ResearchController::class, 'create'])->name('research.create');
     Route::post('search', [ResearchController::class, 'store'])->name('research.store');
@@ -56,6 +64,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('analyzer/runs/{analyzerRun}/curation', [AnalyzerCurationController::class, 'update'])->name('analyzer.runs.curation.update');
 
     Route::get('explore', ExploreController::class)->name('explore.index');
+    Route::post('explore/presets', [ExplorePresetController::class, 'store'])->name('explore.presets.store');
+    Route::delete('explore/presets/{explorePreset}', [ExplorePresetController::class, 'destroy'])->name('explore.presets.destroy');
 
     Route::get('ideas', [SavedCommentIdeaController::class, 'index'])->name('ideas.index');
     Route::post('ideas/comments/{publicComment}', [SavedCommentIdeaController::class, 'store'])->name('ideas.comments.store');
@@ -89,6 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('projects', [ProjectController::class, 'index'])->name('library.projects.index');
     Route::get('projects/{researchProject}', [ProjectController::class, 'show'])->name('library.projects.show');
     Route::get('favorites', [FavoriteController::class, 'index'])->name('library.favorites.index');
+    Route::get('shortlist', ShortlistController::class)->name('shortlist.index');
     Route::get('history', [HistoryController::class, 'index'])->name('history.index');
     Route::get('history/compare/{beforeRun}/{afterRun}', [HistoryController::class, 'compare'])->name('history.compare');
     Route::get('exports', [ExportController::class, 'index'])->name('exports.index');

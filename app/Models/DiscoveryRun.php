@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $public_id
+ * @property string|null $submission_token
  * @property int $user_id
  * @property int|null $research_project_id
  * @property int $market_id
@@ -35,6 +36,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'user_id',
+    'submission_token',
     'research_project_id',
     'market_id',
     'status',
@@ -57,6 +59,7 @@ class DiscoveryRun extends Model
 
     private const FROZEN_ATTRIBUTES = [
         'public_id',
+        'submission_token',
         'user_id',
         'research_project_id',
         'market_id',

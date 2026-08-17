@@ -14,6 +14,7 @@ use App\Models\ApiUsageEvent;
 use App\Models\Channel;
 use App\Models\ChannelSnapshot;
 use App\Models\DiscoveryRun;
+use App\Models\ExplorePreset;
 use App\Models\Favorite;
 use App\Models\Market;
 use App\Models\NicheCandidate;
@@ -184,6 +185,61 @@ final class ExploreIndexTest extends TestCase
             'min_score' => 101,
             'page' => 10001,
         ]))->assertSessionHasErrors(['entity_type', 'min_score', 'page']);
+    }
+
+    public function test_saved_presets_are_validated_durable_and_owner_scoped(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        $this->actingAs($owner)->post(route('explore.presets.store'), [
+            'name' => 'Romanian candidates',
+            'filters' => [
+                'entity_type' => 'candidate',
+                'source' => 'discovery',
+                'market' => 'ro_ro',
+                'min_score' => 70,
+                'sort' => 'score_desc',
+            ],
+        ])->assertRedirect();
+
+        $preset = ExplorePreset::query()->where('user_id', $owner->id)->firstOrFail();
+        $this->assertSame('Romanian candidates', $preset->name);
+        $this->assertSame('candidate', $preset->filters['entity_type']);
+        $this->assertEquals(70.0, $preset->filters['min_score']);
+
+        $this->actingAs($owner)->get(route('explore.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->has('presets', 1)
+                ->where('presets.0.public_id', $preset->public_id)
+                ->where('presets.0.filters.sort', 'score_desc'));
+        $this->actingAs($other)->get(route('explore.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page->has('presets', 0));
+        $this->actingAs($other)->delete(route('explore.presets.destroy', $preset))->assertForbidden();
+
+        $this->actingAs($owner)->post(route('explore.presets.store'), [
+            'name' => 'Invalid',
+            'filters' => ['min_score' => 101],
+        ])->assertSessionHasErrors('filters.min_score');
+    }
+
+    public function test_analyzer_links_preserve_the_active_explore_page_and_filters(): void
+    {
+        $owner = User::factory()->create();
+        $video = $this->analyzerEvidence($owner, 'return-state-video', 150000, 4200, 'breakout');
+
+        $this->actingAs($owner)->get(route('explore.index', [
+            'source' => 'analyzer',
+            'breakout' => 'breakout',
+            'page' => 1,
+        ]))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
+            ->where('results.data.0.id', $video->provider_video_id)
+            ->where('results.data.0.analyzer_url', fn (string $url): bool => str_contains(
+                rawurldecode($url),
+                '/explore?entity_type=video&source=analyzer&breakout=breakout&organization=all&sort=latest&page=1',
+            )));
     }
 
     private function market(): Market

@@ -12,6 +12,7 @@ final readonly class YouTubeConfiguration
 {
     /**
      * @param  array<string, int>  $bucketAllowances
+     * @param  array<string, string>  $bucketMeasures
      * @param  array<string, QuotaEndpointDefinition>  $endpoints
      */
     public function __construct(
@@ -23,6 +24,7 @@ final readonly class YouTubeConfiguration
         public int $retryDelayMilliseconds,
         public string $quotaResetTimezone,
         public array $bucketAllowances,
+        public array $bucketMeasures,
         private array $endpoints,
     ) {}
 
@@ -40,6 +42,7 @@ final readonly class YouTubeConfiguration
 
         $buckets = self::requiredArray($config, 'quota_buckets');
         $bucketAllowances = [];
+        $bucketMeasures = [];
 
         foreach ($buckets as $bucket => $definition) {
             if (! is_string($bucket) || ! is_array($definition)) {
@@ -47,12 +50,18 @@ final readonly class YouTubeConfiguration
             }
 
             $allowance = $definition['allowance'] ?? null;
+            $measure = $definition['measure'] ?? null;
 
             if (! is_int($allowance) || $allowance < 1) {
                 throw new InvalidArgumentException("The [{$bucket}] quota allowance must be a positive integer.");
             }
 
+            if (! in_array($measure, ['requests', 'units'], true)) {
+                throw new InvalidArgumentException("The [{$bucket}] quota measure must be requests or units.");
+            }
+
             $bucketAllowances[$bucket] = $allowance;
+            $bucketMeasures[$bucket] = $measure;
         }
 
         $configuredEndpoints = self::requiredArray($config, 'endpoints');
@@ -90,6 +99,7 @@ final readonly class YouTubeConfiguration
             retryDelayMilliseconds: self::nonNegativeInt($config, 'retry_delay_milliseconds'),
             quotaResetTimezone: $resetTimezone,
             bucketAllowances: $bucketAllowances,
+            bucketMeasures: $bucketMeasures,
             endpoints: $endpoints,
         );
     }

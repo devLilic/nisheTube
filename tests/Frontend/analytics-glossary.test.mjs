@@ -72,6 +72,7 @@ test('each contextual glossary has meaning, utility, calculation, and provenance
     assert.match(glossary, /usefulFor: string/);
     assert.match(glossary, /calculation: string/);
     assert.match(glossary, /provenance: Provenance/);
+
     for (const { page } of analyticalPages) {
         assert.match(glossary, new RegExp(`\\n    ${page}: \\{`), page);
     }

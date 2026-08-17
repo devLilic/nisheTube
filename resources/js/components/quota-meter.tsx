@@ -60,10 +60,11 @@ export function QuotaMeter({
             </div>
             {!compact && (
                 <p className="text-xs text-muted-foreground">
-                    {summary.used.toLocaleString()} estimated used today
+                    {summary.used.toLocaleString()} estimated {summary.measure}{' '}
+                    used today
                     {summary.last_endpoint
-                        ? ` · Last: ${summary.last_endpoint} (${summary.last_cost ?? 0})`
-                        : ' · No calls recorded today'}
+                        ? ` · Last recorded call: ${summary.last_endpoint} (${summary.last_cost ?? 0} estimated ${summary.measure === 'requests' ? 'request' : 'units'})`
+                        : ' · No calls recorded by NisheTube today'}
                 </p>
             )}
         </div>

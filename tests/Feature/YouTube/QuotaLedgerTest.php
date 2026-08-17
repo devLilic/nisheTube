@@ -122,6 +122,24 @@ class QuotaLedgerTest extends TestCase
         $this->assertTrue($summary->buckets[0]->exhausted);
     }
 
+    public function test_summary_uses_configuration_backed_request_and_unit_measures(): void
+    {
+        config()->set('youtube.quota_buckets.search.allowance', 10);
+        config()->set('youtube.quota_buckets.search.measure', 'requests');
+        $user = User::factory()->create();
+        ApiUsageEvent::query()->create(array_merge($this->eventAttributes(
+            userId: $user->id,
+            occurredAt: '2026-08-07T08:00:00Z',
+        ), ['request_count' => 1, 'estimated_cost' => 7]));
+
+        $summary = app(QuotaLedger::class)->summary(new CarbonImmutable('2026-08-07T12:00:00Z'));
+
+        $this->assertSame('requests', $summary->buckets[0]->measure);
+        $this->assertSame(1, $summary->buckets[0]->used);
+        $this->assertSame('units', $summary->buckets[1]->measure);
+        $this->assertSame('requests', $summary->toSafeArray()['buckets'][0]['measure']);
+    }
+
     /** @return array<string, mixed> */
     private function eventAttributes(int $userId, string $occurredAt): array
     {

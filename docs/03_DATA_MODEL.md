@@ -261,6 +261,14 @@ Unique `(user_id, subject_type, subject_id)`. This table is user-private mutable
 
 Unique `(research_run_id, formula_version)`. Component names and formula are defined in `04_SCORING_MODEL.md`.
 
+### `research_evidence_profiles` and `research_result_evidence`
+
+- `research-evidence-v1` creates one immutable profile per Research run and version during the scoring stage without changing `niche-opportunity-v1`.
+- Every result row pins the exact video, channel, video snapshot, and nullable channel snapshot used for its relevance class; it stores the frozen title/semantic/category/topic/negative-term/language/format signals and exact metric inputs.
+- The profile keeps complete-versus-strict sample statistics, separate Shorts/long-form/unknown coverage, robust percentiles and trimmed means, values before/after removing the top one through three observations, outlier dependency, frozen thresholds, warnings, and calculation time.
+- Stability compares only an earlier owner-scoped profile with the same normalized query, kind, market mapping, requested depth, frozen parameters, and evidence version. It stores result/channel overlap, order stability, metric variance, median variation, and High/Medium/Low only when minimum overlap and metric rules pass.
+- Legacy completed runs remain unchanged and expose an explicit not-calculated state. Unique `(research_run_id, evidence_version)` and `(research_evidence_profile_id, video_id)` constraints make retry delivery idempotent.
+
 ## 7. Discovery
 
 ### `discovery_runs`
@@ -282,11 +290,15 @@ Unique `(research_run_id, formula_version)`. Component names and formula are def
 - `phrase`, normalized phrase, cluster key;
 - summary and evidence JSON;
 - component/overall scores and formula version where calculated;
+- immutable candidate-evidence output state (`candidate`, `weak_phrase_signal`, or legacy), with an owner/run/state/score index;
+- frozen v2 inputs, thresholds, component values, original multilingual phrases, normalized phrase/language provenance, exact insufficiency reasons, and a suggested validation query in evidence JSON;
 - `status`: new, saved, dismissed, validated;
 - optional linked validation run;
 - timestamps.
 
 Index `(discovery_run_id, status, overall_score)`.
+
+Candidate evidence fields, formula version, and score are immutable after insertion; only organization status and the validation-run link may change. A new evidence calculation requires a new Discovery run and does not rewrite legacy `discovery-breakout-v1` rows.
 
 ## 8. Library
 

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Discovery\Data;
 
+use App\Domain\Discovery\Enums\CandidateEvidenceState;
+
 final readonly class DiscoveryCandidateDraft
 {
     /** @param array<string, mixed> $evidence */
@@ -13,5 +15,6 @@ final readonly class DiscoveryCandidateDraft
         public float $overallScore,
         public float $confidenceScore,
         public string $formulaVersion,
+        public CandidateEvidenceState $evidenceState = CandidateEvidenceState::Legacy,
     ) {}
 }

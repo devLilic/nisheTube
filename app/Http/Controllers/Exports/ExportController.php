@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Exports\StoreResearchExportRequest;
 use App\Http\ViewModels\ExportViewModel;
 use App\Models\ResearchExport;
+use App\Models\ResearchRun;
 use App\Models\User;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -28,9 +29,14 @@ final class ExportController extends Controller
         Gate::authorize('viewAny', ResearchExport::class);
         /** @var User $user */
         $user = $request->user();
+        $selectedRunId = ResearchRun::query()
+            ->where('user_id', $user->id)
+            ->where('public_id', $request->string('run')->toString())
+            ->value('public_id');
 
         return Inertia::render('exports/index', [
             'builder' => $viewModel->builder($user),
+            'selected_run_id' => $selectedRunId,
             'jobs' => Inertia::defer(fn (): array => $viewModel->jobs($user), rescue: true),
         ]);
     }

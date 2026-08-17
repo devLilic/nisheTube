@@ -5,6 +5,9 @@ namespace App\Http\ViewModels;
 use App\Domain\Catalog\ReadModels\BuildResearchRunAnalysis;
 use App\Domain\Collection\ReadModels\BuildResearchRunProvenance;
 use App\Domain\Research\Enums\ResearchRunStatus;
+use App\Domain\Research\ReadModels\BuildResearchDecisionSummary;
+use App\Domain\Research\ReadModels\BuildResearchEvidenceInspection;
+use App\Domain\Research\ReadModels\BuildResearchEvidenceProfile;
 use App\Domain\Settings\Enums\MarketKey;
 use App\Models\OpportunityScore;
 use App\Models\ResearchRun;
@@ -14,10 +17,16 @@ class ResearchRunViewModel
     public function __construct(
         private readonly BuildResearchRunAnalysis $buildAnalysis,
         private readonly BuildResearchRunProvenance $buildProvenance,
+        private readonly BuildResearchDecisionSummary $buildDecisionSummary,
+        private readonly BuildResearchEvidenceInspection $buildEvidenceInspection,
+        private readonly BuildResearchEvidenceProfile $buildEvidenceProfile,
     ) {}
 
-    /** @return array<string, mixed> */
-    public function toArray(ResearchRun $run, bool $withResults = true): array
+    /**
+     * @param  array{sort: string, direction: string, filter: string, page: int}|null  $evidenceQuery
+     * @return array<string, mixed>
+     */
+    public function toArray(ResearchRun $run, bool $withResults = true, ?array $evidenceQuery = null): array
     {
         $data = [
             'public_id' => $run->public_id,
@@ -39,6 +48,11 @@ class ResearchRunViewModel
                 'published_before' => $run->parameters['published_before'] ?? null,
                 'video_duration' => $run->parameters['video_duration'] ?? null,
                 'video_category_id' => $run->parameters['video_category_id'] ?? null,
+                'workflow_mode' => $run->parameters['workflow_mode'] ?? 'validate_idea',
+                'preset_key' => $run->parameters['preset_key'] ?? 'custom',
+                'language' => $run->parameters['language'] ?? $run->relevance_language,
+                'content_format' => $run->parameters['content_format'] ?? 'any',
+                'target_channel_size' => $run->parameters['target_channel_size'] ?? 'any',
             ],
             'created_at' => $run->created_at?->toIso8601String(),
             'started_at' => $run->started_at?->toIso8601String(),
@@ -51,7 +65,10 @@ class ResearchRunViewModel
         ];
 
         if ($withResults) {
-            $data['score'] = $this->score($run);
+            $score = $this->score($run);
+            $analysis = $this->buildAnalysis->handle($run);
+            $data['score'] = $score;
+            $data['profitability_fit'] = $this->profitabilityFit($run);
             $data['collection'] = [
                 'pages_collected' => $run->searchPages()->count(),
                 'sample_results' => $run->searchResults()
@@ -66,7 +83,15 @@ class ResearchRunViewModel
                         'result_rank' => $result->result_rank,
                     ])->all(),
             ];
-            $data['analysis'] = $this->buildAnalysis->handle($run);
+            $data['analysis'] = $analysis;
+            $data['evidence_profile'] = $this->buildEvidenceProfile->handle($run);
+            $data['evidence_inspection'] = $this->buildEvidenceInspection->handle($run, $evidenceQuery ?? [
+                'sort' => 'relevance',
+                'direction' => 'desc',
+                'filter' => 'all',
+                'page' => 1,
+            ]);
+            $data['decision_summary'] = $this->buildDecisionSummary->handle($run, $score, $analysis, $data['evidence_profile']);
             $data['provenance'] = $this->buildProvenance->handle($run);
         }
 
@@ -87,6 +112,8 @@ class ResearchRunViewModel
 
         $weights = $score->input_summary['configuration']['weights'] ?? [];
 
+        $labels = $score->input_summary['component_labels'] ?? [];
+
         return [
             'overall_score' => (float) $score->overall_score,
             'overall_label' => $this->opportunityLabel((float) $score->overall_score),
@@ -94,15 +121,39 @@ class ResearchRunViewModel
             'confidence_label' => $this->confidenceLabel((float) $score->confidence_score),
             'formula_version' => $score->formula_version,
             'sample_size' => $score->sample_size,
+            'sample_views' => [
+                'full_sample_count' => $score->input_summary['sample_views']['full_sample_count'] ?? $score->sample_size,
+                'strict_sample_count' => $score->input_summary['sample_views']['strict_sample_count'] ?? null,
+            ],
             'calculated_at' => $score->calculated_at->toIso8601String(),
             'components' => [
-                $this->component($score, $weights, 'demand_momentum', 'Demand momentum', 'demand_momentum_score'),
-                $this->component($score, $weights, 'competition_opportunity', 'Competition opportunity', 'competition_opportunity_score'),
-                $this->component($score, $weights, 'audience_reachability', 'Audience reachability', 'audience_reachability_score'),
-                $this->component($score, $weights, 'content_freshness_gap', 'Content freshness gap', 'content_freshness_gap_score'),
-                $this->component($score, $weights, 'creator_viability', 'Creator viability', 'creator_viability_score'),
+                $this->component($score, $weights, 'demand_momentum', $labels['demand_momentum'] ?? 'Demand momentum', 'demand_momentum_score'),
+                $this->component($score, $weights, 'competition_opportunity', $labels['competition_opportunity'] ?? 'Competition opportunity', 'competition_opportunity_score'),
+                $this->component($score, $weights, 'audience_reachability', $labels['audience_reachability'] ?? 'Audience reachability', 'audience_reachability_score'),
+                $this->component($score, $weights, 'content_freshness_gap', $labels['content_freshness_gap'] ?? 'Content freshness gap', 'content_freshness_gap_score'),
+                $this->component($score, $weights, 'creator_viability', $labels['creator_viability'] ?? 'Creator viability', 'creator_viability_score'),
             ],
             'warnings' => $score->warnings,
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function profitabilityFit(ResearchRun $run): ?array
+    {
+        $fit = $run->profitabilityFitScores()->latest('calculated_at')->latest('id')->first();
+
+        if ($fit === null) {
+            return null;
+        }
+
+        return [
+            'fit_score' => (float) $fit->fit_score,
+            'confidence_score' => (float) $fit->confidence_score,
+            'formula_version' => $fit->formula_version,
+            'calculated_at' => $fit->calculated_at->toIso8601String(),
+            'source_formula_version' => $fit->input_summary['source']['formula_version'] ?? 'Unavailable',
+            'explanations' => $fit->explanations,
+            'warnings' => $fit->warnings,
         ];
     }
 

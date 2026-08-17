@@ -74,7 +74,8 @@ class DatabaseQuotaLedger implements QuotaLedger
 
         foreach ($this->configuration->bucketAllowances as $bucket => $allowance) {
             $bucketEvents = $events->where('quota_bucket', $bucket);
-            $used = (int) $bucketEvents->sum('estimated_cost');
+            $measure = $this->configuration->bucketMeasures[$bucket];
+            $used = (int) $bucketEvents->sum($measure === 'requests' ? 'request_count' : 'estimated_cost');
             /** @var ApiUsageEvent|null $last */
             $last = $bucketEvents->first();
             $providerExhausted = $bucketEvents->contains(
@@ -83,6 +84,7 @@ class DatabaseQuotaLedger implements QuotaLedger
 
             $buckets[] = new QuotaBucketSummary(
                 bucket: $bucket,
+                measure: $measure,
                 allowance: $allowance,
                 used: $used,
                 remaining: max(0, $allowance - $used),

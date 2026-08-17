@@ -8,6 +8,7 @@ final readonly class QuotaBucketSummary
 {
     public function __construct(
         public string $bucket,
+        public string $measure,
         public int $allowance,
         public int $used,
         public int $remaining,
@@ -23,6 +24,7 @@ final readonly class QuotaBucketSummary
     {
         return [
             'bucket' => $this->bucket,
+            'measure' => $this->measure,
             'allowance' => $this->allowance,
             'used' => $this->used,
             'remaining' => $this->remaining,

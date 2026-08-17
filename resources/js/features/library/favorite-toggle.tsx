@@ -20,12 +20,16 @@ export function FavoriteToggle({
     targetReference,
     label,
     compact = false,
+    context = 'favorite',
+    primary = false,
 }: {
     library: LibraryContext;
     targetType: LibraryTargetType;
     targetReference: string;
     label: string;
     compact?: boolean;
+    context?: 'favorite' | 'shortlist';
+    primary?: boolean;
 }) {
     const [confirming, setConfirming] = useState(false);
     const favorite = library.favorites.find(
@@ -56,17 +60,24 @@ export function FavoriteToggle({
                         <Button
                             type="submit"
                             size={compact ? 'icon' : 'default'}
-                            variant="outline"
+                            variant={primary ? 'default' : 'outline'}
                             disabled={processing}
-                            aria-label={`Add ${label} to favorites`}
-                            title={compact ? 'Add to favorites' : undefined}
+                            aria-label={`Add ${label} to ${context === 'shortlist' ? 'shortlist' : 'favorites'}`}
+                            title={
+                                compact
+                                    ? `Add to ${context === 'shortlist' ? 'shortlist' : 'favorites'}`
+                                    : undefined
+                            }
                         >
                             {processing ? (
                                 <Spinner />
                             ) : (
                                 <Heart aria-hidden="true" />
                             )}
-                            {!compact && 'Favorite'}
+                            {!compact &&
+                                (context === 'shortlist'
+                                    ? 'Add to shortlist'
+                                    : 'Favorite')}
                         </Button>
                     </>
                 )}
@@ -81,19 +92,33 @@ export function FavoriteToggle({
                 size={compact ? 'icon' : 'default'}
                 variant="secondary"
                 onClick={() => setConfirming(true)}
-                aria-label={`Remove ${label} from favorites`}
-                title={compact ? 'Remove from favorites' : undefined}
+                aria-label={`Remove ${label} from ${context === 'shortlist' ? 'shortlist' : 'favorites'}`}
+                title={
+                    compact
+                        ? `Remove from ${context === 'shortlist' ? 'shortlist' : 'favorites'}`
+                        : undefined
+                }
             >
                 <Heart className="fill-current" aria-hidden="true" />
-                {!compact && 'Favorited'}
+                {!compact &&
+                    (context === 'shortlist' ? 'Shortlisted' : 'Favorited')}
             </Button>
             <Dialog open={confirming} onOpenChange={setConfirming}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Remove favorite?</DialogTitle>
+                        <DialogTitle>
+                            Remove{' '}
+                            {context === 'shortlist'
+                                ? 'shortlist item'
+                                : 'favorite'}
+                            ?
+                        </DialogTitle>
                         <DialogDescription>
-                            Remove “{label}” from Favorites? Its underlying
-                            research data will not be deleted.
+                            Remove “{label}” from{' '}
+                            {context === 'shortlist'
+                                ? 'the Shortlist'
+                                : 'Favorites'}
+                            ? Its underlying research data will not be deleted.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -112,7 +137,10 @@ export function FavoriteToggle({
                                     disabled={processing}
                                 >
                                     {processing ? <Spinner /> : <HeartOff />}
-                                    Remove favorite
+                                    Remove{' '}
+                                    {context === 'shortlist'
+                                        ? 'from shortlist'
+                                        : 'favorite'}
                                 </Button>
                             )}
                         </Form>

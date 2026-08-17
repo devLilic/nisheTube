@@ -16,13 +16,7 @@ import { StatePanel } from '@/components/data-state';
 import { ScoreGauge } from '@/components/score-gauge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import type {
     OpportunityScore,
     OpportunityScoreComponent,
@@ -58,8 +52,8 @@ function ComponentCard({
     const scoreLabel = `${component.score.toFixed(1)} out of 100`;
 
     return (
-        <Card className="gap-4 border-border/70 py-5 shadow-sm shadow-primary/5">
-            <CardHeader className="gap-3 px-5">
+        <details className="group rounded-xl border border-border/70 bg-card shadow-sm shadow-primary/5">
+            <summary className="cursor-pointer list-none p-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                         <span className="rounded-lg bg-primary/10 p-2 text-primary">
@@ -79,10 +73,8 @@ function ComponentCard({
                         {component.score.toFixed(1)}
                     </span>
                 </div>
-            </CardHeader>
-            <CardContent className="space-y-3 px-5">
                 <div
-                    className="h-2 overflow-hidden rounded-full bg-muted"
+                    className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
                     role="progressbar"
                     aria-label={`${component.label}: ${scoreLabel}`}
                     aria-valuemin={0}
@@ -95,11 +87,19 @@ function ComponentCard({
                         style={{ width: `${component.score}%` }}
                     />
                 </div>
+                <p className="mt-2 text-xs text-primary group-open:hidden">
+                    Expand evidence
+                </p>
+            </summary>
+            <div className="space-y-3 border-t px-4 py-3">
+                <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Stored explanation
+                </div>
                 <p className="text-sm leading-6 text-muted-foreground">
                     {component.explanation}
                 </p>
-            </CardContent>
-        </Card>
+            </div>
+        </details>
     );
 }
 
@@ -222,11 +222,22 @@ export function OpportunityScoreSection({
                             </div>
                             <div>
                                 <dt className="text-muted-foreground">
-                                    Scored sample
+                                    Full stored sample
                                 </dt>
                                 <dd className="mt-1 font-semibold tabular-nums">
                                     {score.sample_size.toLocaleString('en-US')}{' '}
                                     videos
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-muted-foreground">
+                                    Strictly relevant sample
+                                </dt>
+                                <dd className="mt-1 font-semibold tabular-nums">
+                                    {score.sample_views.strict_sample_count ===
+                                    null
+                                        ? 'Unavailable for this formula version'
+                                        : `${score.sample_views.strict_sample_count.toLocaleString('en-US')} videos`}
                                 </dd>
                             </div>
                             <div>
@@ -271,11 +282,11 @@ export function OpportunityScoreSection({
                 <div className="mb-4">
                     <h3 className="text-lg font-semibold">Why this score</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Each stored component is shown with its fixed v1 weight
-                        and the evidence used by the backend engine.
+                        Each stored component is shown with its frozen formula
+                        weight and the evidence used by the backend engine.
                     </p>
                 </div>
-                <div className="grid gap-4 xl:grid-cols-3">
+                <div className="grid gap-3 lg:grid-cols-2">
                     {score.components.map((component) => (
                         <ComponentCard
                             key={component.key}

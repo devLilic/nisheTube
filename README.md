@@ -12,7 +12,7 @@ NisheTube is a local YouTube niche-research application. It searches and samples
 
 ## Current state
 
-The integrated local research expansion is implemented through its final release-hardening gate. The live status and focused verification evidence are maintained in `docs/TASK_STATUS.md`.
+The integrated local research expansion is implemented through its final release-hardening gate. Start task work from the compact [working rules](docs/00_WORKING_RULES.md), [task index](docs/TASK_INDEX.md), and active task brief; detailed verification history remains in `docs/TASK_STATUS.md`.
 
 ## Documentation
 
@@ -28,6 +28,10 @@ The integrated local research expansion is implemented through its final release
 - [Live task status](docs/TASK_STATUS.md)
 - [Acceptance and testing](docs/09_ACCEPTANCE_AND_TESTING.md)
 - [Decision log](docs/10_DECISIONS.md)
+- [Compact working rules](docs/00_WORKING_RULES.md)
+- [Compact task index](docs/TASK_INDEX.md)
+- [Decision index](docs/DECISION_INDEX.md)
+- [Reference and archive catalog](docs/reference/README.md)
 
 Codex must read `AGENTS.md` before implementation and follow the vertical-slice rule: every functional module includes backend, data, UI states, authorization, and tests.
 

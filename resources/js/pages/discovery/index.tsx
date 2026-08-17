@@ -19,6 +19,7 @@ type PageProps = {
     default_market_key: MarketKey;
     sample_runs: DiscoverySampleRun[];
     recent_runs: DiscoveryRun[];
+    submission_token: string;
 };
 
 export default function DiscoveryIndex({
@@ -26,6 +27,7 @@ export default function DiscoveryIndex({
     default_market_key: defaultMarketKey,
     sample_runs: sampleRuns,
     recent_runs: recentRuns,
+    submission_token: submissionToken,
 }: PageProps) {
     const [runMarket, setRunMarket] = useState<MarketKey | 'all'>('all');
     const filteredRuns = useMemo(
@@ -41,15 +43,16 @@ export default function DiscoveryIndex({
             <Head title="Discover" />
             <PageContainer>
                 <PageHeader
-                    eyebrow="Observed breakout signals"
-                    title="Discover promising niche themes"
-                    description="Analyze completed market samples for recurring breakout topics, then validate the strongest candidates with a full research run."
+                    eyebrow="Discover a market"
+                    title="Generate initial themes from stored evidence"
+                    description="Choose the market lens first, then analyze owner-private completed samples for recurring observed breakout topics."
                 />
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
                     <DiscoveryForm
                         markets={markets}
                         defaultMarketKey={defaultMarketKey}
                         sampleRuns={sampleRuns}
+                        submissionToken={submissionToken}
                     />
                     <Card className="xl:sticky xl:top-6">
                         <CardHeader>

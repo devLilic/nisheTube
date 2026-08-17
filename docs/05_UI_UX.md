@@ -12,6 +12,8 @@ Authenticated layout:
 
 - collapsible left sidebar;
 - top bar with current page, global market selector where appropriate, persistent `YouTube API Today` quota widget, and user menu;
+- debounced global search over at most 20 owner-visible stored themes, videos, channels, and runs; opening, typing, and navigating never calls YouTube;
+- active market/project/workspace selectors, a Shortlist shortcut, and a bounded completed-run notification center with persistent owner read state;
 - main content width optimized for data tables and charts;
 - persistent toast/notification region;
 - breadcrumb only on nested detail pages.
@@ -53,6 +55,7 @@ Primary navigation:
 Keep this compact enough for the authenticated header and expandable for detail:
 
 - show one chip per configured bucket, initially `Search: 72 / 100 left` and `General: 9,846 / 10,000 units left`;
+- label Search as NisheTube-recorded requests and General API as Google-estimated units; bucket measures, limits, and endpoint costs come from provider configuration rather than UI constants;
 - tooltip/expanded panel shows `NisheTube estimate`, last endpoint, request cost, timestamp, reset at midnight Pacific Time, and a Google Cloud Console authoritative-value note;
 - refresh the server-supplied summary after every provider request; while a queued run is active, update through the existing status polling cycle;
 - include loading, stale, unavailable, and quota-exhausted states without exposing the API key;
@@ -85,15 +88,23 @@ Main content:
 
 ### 4.3 Search creation
 
-- Query input is primary.
-- Market uses three visual options with code/label.
-- Advanced filters are collapsed by default.
-- Show estimated number of search calls before submission based on requested depth.
-- Submission creates a run and navigates to its live detail page.
+- The decision intake is split across `Discover a market` and `Validate my idea`.
+- Discover freezes the selected market/language, content format, publication period, and target channel-size lens before generating themes from owner-scoped stored samples; constrained format/channel-size rows with missing required evidence are excluded honestly.
+- Validate keeps the query primary and offers nine server-defined starting presets: Fast scan, Balanced, Deep validation, Trend check, Emerging trend, Evergreen check, Small-channel opportunity, Long-form documentary, and Shorts opportunity.
+- Market and period remain visible; order, duration, category, custom dates, format, and channel-size lens are collapsed under Advanced filters.
+- An exact preflight lists the values that will be frozen, including configuration-backed Search request cost. Channel size is explicitly an analysis lens rather than a YouTube API filter.
+- The CTA is disabled while creating, reads `Creating run`, and an owner-scoped UUID submission token makes a repeated valid submission resolve to the same queued run.
+- Copy states that NisheTube measures observed returned-video demand rather than YouTube search volume.
 
 ### 4.4 Research run detail
 
 Header: query, market, collected time, status, retry/export/save actions.
+
+The first result card is a deterministic stored-data decision summary. It presents one non-contradictory lifecycle outcome (`Complete data`, `Partial data`, `Reduced confidence`, or failure with an explicit saved-partial distinction), verdict, opportunity score, adjacent confidence, field-level available/total denominators, sample size, observation freshness, an honest not-yet-measured stability state, up to five principal evidence items, bounded risks, and one recommended next action. It does not call YouTube or use an AI interpretation provider.
+
+The five stored opportunity components are compact keyboard-expandable disclosures. Video evidence inspection is server-filtered and capped at 10 rows per page, with exact versioned relevance classes/scores/signals, existing owner-scoped Analyzer Breakout context when available, channel-size/format/completeness quick filters, and safe Analyzer return URLs. A separate Evidence quality section shows complete-versus-strict robust statistics, independent Shorts and long-form evidence, full and strict top-one-through-three outlier removals, and compatible-snapshot stability; it never declares a cross-format winner. Legacy runs retain provider-order relevance and an explicit not-calculated state. The page keeps one primary Shortlist action, places Discover/Compare/Repeat/Workspace/Export handoffs in a keyboard menu, and progressively discloses provider, frozen request, endpoint, window, cache, formula, and snapshot provenance in a right-side drawer.
+
+While a run is active, the same summary presents the persisted stage, percentage, collected/requested count, warning count, and an explicitly unavailable ETA when stored timing evidence cannot support a defensible estimate. Terminal pages collapse persisted progress into Collection details so a generic completion label cannot compete with partial-data or reduced-confidence outcomes. Failed runs keep saved candidates and metrics visible and state whether partial results were preserved.
 
 Sections:
 
@@ -106,13 +117,15 @@ Sections:
 7. detailed channels table;
 8. collection metadata and API usage.
 
-During processing, show real progress and partial-data banners rather than fake final metrics.
+During processing, show real progress and partial-data context rather than fake final metrics.
 
 ### 4.5 Discover
 
 - Seed entry, market, depth/budget, and optional category.
 - Progress timeline for seeds and validations.
-- Candidate cards show phrase, score, confidence, evidence chips, and save/dismiss/validate actions.
+- Candidate niches and Weak phrase signals render in separate compact decision-table sections with independently bounded 10-row server pagination and deterministic sorting. Columns show theme, evidence score, confidence, supporting videos, unique channels, small-channel proof, typical performance, stability, status, and one primary Validate action.
+- Candidate evidence explicitly distinguishes `Candidate niche` from `Weak phrase signal`; weak signals show every unmet frozen threshold instead of disappearing or being presented as validated candidates.
+- A keyboard-expandable row shows the stored description, included phrases, channel/video IDs, exact medians and outlier-free performance, channel-size evidence, sources, risks, suggested validation query, and version context. Save, Dismiss, Favorite, Workspace, and Analyzer controls remain together under Secondary actions. Legacy candidates remain inspectable without being relabeled as V2 evidence. The evidence score is labeled as distinct from Opportunity score.
 - Filters for status, score, confidence, and market.
 - Evidence links for videos/channels open the canonical Analyzer rather than a duplicate statistics panel.
 
@@ -218,7 +231,7 @@ Sections:
 - The result shows each channel's frozen observation time, market context or explicit unknown state, cache/source policy, requested/valid cohort sizes, and channel/topic/title/thumbnail model versions before metrics.
 - Separate exact tables cover channel behavior, detected topic cohorts, editorial title-pattern cohorts, and inferred thumbnail clusters. Every metric shows its own sample count; missing groups and below-minimum values are not zero.
 - Compatibility warnings identify market, observation-time, sample-size, source-policy, missing-data, and model-version differences. Incompatible values remain inspectable but are labeled as not like-for-like.
-- Copy explicitly says the page is not an opportunity score, causal finding, or channel recommendation. Loading, insufficient-selection, empty evidence, partial/incompatible, and success states remain keyboard accessible at desktop and tablet widths.
+- Copy explicitly says the page is not an opportunity score, causal finding, or channel recommendation. Loading, insufficient-selection, empty evidence, partial/incompatible, and success states remain keyboard accessible at desktop width.
 
 ## 5. Score labels
 
@@ -258,7 +271,12 @@ Never display a score without confidence and the collection timestamp.
 
 ## 8. Responsive scope
 
-- Primary target: 1280px and wider.
-- Usable tablet target: 768px and wider.
-- On smaller screens, cards stack and tables may scroll horizontally.
-- Full mobile optimization is desirable but not a release blocker for this local desktop tool.
+- Supported target: desktop at 1280px and wider, with acceptance QA at approximately 1440px.
+- Tablet and mobile-specific layout optimization and breakpoint QA are out of scope.
+- Smaller widths may retain best-effort wrapping or scrolling, but they are not implementation or acceptance targets.
+
+## 9. Planned decision-workflow redesign
+
+The task-oriented information hierarchy and progressive-disclosure target for Phases 19–22 are specified in `13_DECISION_WORKFLOW_REDESIGN.md`. Its backlog tasks supersede the relevant current layouts only as each task is completed; they are not descriptions of current behavior.
+
+The planned redesign remains English-only and targets desktop at approximately 1440px. Tablet and mobile-specific implementation are explicitly excluded.

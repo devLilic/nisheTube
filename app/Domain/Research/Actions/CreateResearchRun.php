@@ -22,6 +22,8 @@ class CreateResearchRun
     ) {}
 
     /**
+     * @param  array<string, string>  $intakeContext
+     *
      * @throws AuthorizationException
      */
     public function handle(
@@ -31,6 +33,8 @@ class CreateResearchRun
         ResearchRunKind $kind = ResearchRunKind::Search,
         CollectionCachePolicy $cachePolicy = CollectionCachePolicy::FreshOnly,
         ?int $freshnessWindowSeconds = null,
+        ?string $submissionToken = null,
+        array $intakeContext = [],
     ): ResearchRun {
         if ($requestedResultCount < 1 || $requestedResultCount > 500) {
             throw new DomainException('The requested result count must be between 1 and 500.');
@@ -43,6 +47,8 @@ class CreateResearchRun
             $kind,
             $cachePolicy,
             $freshnessWindowSeconds,
+            $submissionToken,
+            $intakeContext,
         ): ResearchRun {
             $lockedQuery = ResearchQuery::query()
                 ->with('market')
@@ -56,7 +62,7 @@ class CreateResearchRun
             $market = $lockedQuery->market;
             $frozenMarket = ($this->freezeMarket)->handle($market);
             $attemptNumber = ((int) $lockedQuery->runs()->max('attempt_number')) + 1;
-            $parameters = $this->frozenParameters($lockedQuery);
+            $parameters = array_merge($this->frozenParameters($lockedQuery), $intakeContext);
             $collectionRun = $this->createCollectionRun->handle(
                 user: $user,
                 attemptNumber: $attemptNumber,
@@ -74,6 +80,7 @@ class CreateResearchRun
 
             return $lockedQuery->runs()->create([
                 'user_id' => $user->id,
+                'submission_token' => $submissionToken,
                 'collection_run_id' => $collectionRun->id,
                 'kind' => $kind,
                 'status' => ResearchRunStatus::Draft,

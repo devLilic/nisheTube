@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -21,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string $timezone
  * @property string|null $default_market_key
  * @property int $default_result_depth
+ * @property CarbonImmutable|null $completed_run_notifications_read_at
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -116,6 +118,12 @@ class User extends Authenticatable
         return $this->hasMany(SavedCommentIdea::class);
     }
 
+    /** @return HasMany<ExplorePreset, $this> */
+    public function explorePresets(): HasMany
+    {
+        return $this->hasMany(ExplorePreset::class);
+    }
+
     /** @return HasMany<Tag, $this> */
     public function tags(): HasMany
     {
@@ -144,6 +152,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'default_result_depth' => 'integer',
+            'completed_run_notifications_read_at' => 'immutable_datetime',
             'password' => 'hashed',
         ];
     }

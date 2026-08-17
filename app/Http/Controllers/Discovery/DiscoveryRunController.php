@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Discovery;
 
 use App\Domain\Discovery\Actions\QueueDiscoveryRun;
+use App\Domain\Discovery\ReadModels\BuildCandidateDecisionTable;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Discovery\DiscoveryCandidateTableRequest;
 use App\Http\ViewModels\DiscoveryRunViewModel;
 use App\Http\ViewModels\LibraryViewModel;
 use App\Models\DiscoveryRun;
@@ -15,12 +17,13 @@ use Inertia\Response;
 
 class DiscoveryRunController extends Controller
 {
-    public function show(Request $request, DiscoveryRun $discoveryRun, DiscoveryRunViewModel $viewModel, LibraryViewModel $libraryViewModel): Response
+    public function show(DiscoveryCandidateTableRequest $request, DiscoveryRun $discoveryRun, DiscoveryRunViewModel $viewModel, LibraryViewModel $libraryViewModel, BuildCandidateDecisionTable $candidateTable): Response
     {
         Gate::authorize('view', $discoveryRun);
 
         return Inertia::render('discovery/show', [
-            'run' => $viewModel->toArray($discoveryRun),
+            'run' => $viewModel->toArray($discoveryRun, false),
+            'candidate_table' => $candidateTable->build($discoveryRun, $request->tableQuery()),
             'library' => $libraryViewModel->context($request->user()),
             'workspaces' => $request->user()->topicWorkspaces()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name', 'market_key']),
         ]);

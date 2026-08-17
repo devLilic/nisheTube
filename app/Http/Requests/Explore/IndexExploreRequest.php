@@ -15,29 +15,44 @@ class IndexExploreRequest extends FormRequest
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {
+        return self::filterRules();
+    }
+
+    /** @return array<string, list<mixed>> */
+    public static function filterRules(string $prefix = ''): array
+    {
+        $key = fn (string $name): string => $prefix === '' ? $name : $prefix.'.'.$name;
+
         return [
-            'entity_type' => ['sometimes', Rule::in(['video', 'channel', 'candidate'])],
-            'source' => ['sometimes', Rule::in(['all', 'research', 'analyzer', 'discovery', 'library'])],
-            'market' => ['nullable', 'string', 'max:32'],
-            'category' => ['nullable', 'string', 'max:32'],
-            'topic' => ['nullable', 'string', 'max:120'],
-            'breakout' => ['nullable', Rule::in(['normal', 'strong', 'breakout'])],
-            'channel_size' => ['nullable', Rule::in(['small', 'mid', 'large', 'hidden'])],
-            'min_performance' => ['nullable', 'numeric', 'min:0', 'max:1000000000000'],
-            'min_score' => ['nullable', 'numeric', 'between:0,100'],
-            'min_confidence' => ['nullable', 'numeric', 'between:0,100'],
-            'observed_from' => ['nullable', 'date_format:Y-m-d'],
-            'observed_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:observed_from'],
-            'organization' => ['sometimes', Rule::in(['all', 'favorite', 'not_favorite', 'curated', 'unreviewed'])],
-            'sort' => ['sometimes', Rule::in(['latest', 'score_desc', 'performance_desc', 'title'])],
-            'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            $key('entity_type') => ['sometimes', Rule::in(['video', 'channel', 'candidate'])],
+            $key('source') => ['sometimes', Rule::in(['all', 'research', 'analyzer', 'discovery', 'library'])],
+            $key('market') => ['nullable', 'string', 'max:32'],
+            $key('category') => ['nullable', 'string', 'max:32'],
+            $key('topic') => ['nullable', 'string', 'max:120'],
+            $key('breakout') => ['nullable', Rule::in(['normal', 'strong', 'breakout'])],
+            $key('channel_size') => ['nullable', Rule::in(['small', 'mid', 'large', 'hidden'])],
+            $key('min_performance') => ['nullable', 'numeric', 'min:0', 'max:1000000000000'],
+            $key('min_score') => ['nullable', 'numeric', 'between:0,100'],
+            $key('min_confidence') => ['nullable', 'numeric', 'between:0,100'],
+            $key('observed_from') => ['nullable', 'date_format:Y-m-d'],
+            $key('observed_to') => ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$key('observed_from')],
+            $key('organization') => ['sometimes', Rule::in(['all', 'favorite', 'not_favorite', 'curated', 'unreviewed'])],
+            $key('sort') => ['sometimes', Rule::in(['latest', 'score_desc', 'performance_desc', 'title'])],
+            $key('page') => ['sometimes', 'integer', 'min:1', 'max:10000'],
         ];
     }
 
     /** @return array<string, mixed> */
     public function filters(): array
     {
-        $validated = $this->validated();
+        return self::normalize($this->validated());
+    }
+
+    /** @param array<string, mixed> $validated
+     * @return array<string, mixed>
+     */
+    public static function normalize(array $validated): array
+    {
 
         return [
             'entity_type' => $validated['entity_type'] ?? 'video',

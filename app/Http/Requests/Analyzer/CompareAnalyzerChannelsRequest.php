@@ -15,9 +15,10 @@ class CompareAnalyzerChannelsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'before' => ['nullable', 'uuid', 'different:after', 'different:third'],
-            'after' => ['nullable', 'uuid', 'different:before', 'different:third'],
-            'third' => ['nullable', 'uuid', 'different:before', 'different:after'],
+            'before' => ['nullable', 'uuid', 'different:after', 'different:third', 'different:fourth'],
+            'after' => ['nullable', 'uuid', 'different:before', 'different:third', 'different:fourth'],
+            'third' => ['nullable', 'uuid', 'different:before', 'different:after', 'different:fourth'],
+            'fourth' => ['nullable', 'uuid', 'different:before', 'different:after', 'different:third'],
         ];
     }
 
@@ -36,6 +37,11 @@ class CompareAnalyzerChannelsRequest extends FormRequest
         return $this->validated('third');
     }
 
+    public function fourthId(): ?string
+    {
+        return $this->validated('fourth');
+    }
+
     /** @return list<string> */
     public function selectedIds(): array
     {
@@ -43,6 +49,7 @@ class CompareAnalyzerChannelsRequest extends FormRequest
             $this->beforeId(),
             $this->afterId(),
             $this->thirdId(),
+            $this->fourthId(),
         ]));
     }
 }

@@ -16,6 +16,10 @@ class CollectDiscoveryObservations
     public function handle(DiscoveryRun $run): array
     {
         $samplePerSeed = max(1, min((int) ($run->parameters['sample_per_seed'] ?? 25), 50));
+        $format = (string) ($run->parameters['content_format'] ?? 'any');
+        $channelSize = (string) ($run->parameters['target_channel_size'] ?? 'any');
+        $periodAfter = $run->parameters['period_after'] ?? null;
+        $periodBefore = $run->parameters['period_before'] ?? null;
 
         /** @var Collection<int, stdClass> $records */
         $records = DB::table('discovery_seeds as seed')
@@ -24,9 +28,17 @@ class CollectDiscoveryObservations
             ->join('video_snapshots as snapshot', 'snapshot.id', '=', 'membership.video_snapshot_id')
             ->join('videos as video', 'video.id', '=', 'membership.video_id')
             ->join('channels as channel', 'channel.id', '=', 'video.channel_id')
+            ->leftJoin('channel_snapshots as channel_snapshot', 'channel_snapshot.id', '=', 'membership.channel_snapshot_id')
             ->where('seed.discovery_run_id', $run->id)
             ->where('research_run.user_id', $run->user_id)
             ->where('research_run.status', ResearchRunStatus::Completed->value)
+            ->when(is_string($periodAfter), fn ($query) => $query->where('video.published_at', '>=', $periodAfter))
+            ->when(is_string($periodBefore), fn ($query) => $query->where('video.published_at', '<=', $periodBefore))
+            ->when($format === 'shorts', fn ($query) => $query->whereNotNull('video.duration_seconds')->where('video.duration_seconds', '<=', 240))
+            ->when($format === 'long_form', fn ($query) => $query->whereNotNull('video.duration_seconds')->where('video.duration_seconds', '>', 1200))
+            ->when($channelSize === 'small', fn ($query) => $query->whereNotNull('channel_snapshot.subscriber_count')->where('channel_snapshot.subscriber_count', '<', 100000))
+            ->when($channelSize === 'mid_size', fn ($query) => $query->whereBetween('channel_snapshot.subscriber_count', [100000, 999999]))
+            ->when($channelSize === 'large', fn ($query) => $query->where('channel_snapshot.subscriber_count', '>=', 1000000))
             ->orderBy('seed.id')
             ->orderBy('membership.result_rank')
             ->get([
@@ -40,6 +52,7 @@ class CollectDiscoveryObservations
                 'snapshot.view_count',
                 'snapshot.views_per_day',
                 'snapshot.views_to_subscribers_ratio',
+                'channel_snapshot.subscriber_count',
             ]);
 
         $analyzerRuns = DB::table('analyzer_runs')
@@ -81,6 +94,7 @@ class CollectDiscoveryObservations
                     viewCount: $record->view_count !== null ? (int) $record->view_count : null,
                     viewsPerDay: $record->views_per_day !== null ? (float) $record->views_per_day : null,
                     reachRatio: $record->views_to_subscribers_ratio !== null ? (float) $record->views_to_subscribers_ratio : null,
+                    subscriberCount: $record->subscriber_count !== null ? (int) $record->subscriber_count : null,
                     analyzerRunPublicId: $analyzerRun?->public_id,
                     inferredTopics: $analyzerRun === null ? [] : array_values(array_filter(
                         $topicsByAnalyzerRun->get($analyzerRun->public_id) ?? [],

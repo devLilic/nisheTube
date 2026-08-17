@@ -91,7 +91,7 @@ final class EndToEndLocalWorkflowTest extends TestCase
                 ->where('run.status', ResearchRunStatus::Completed->value)
                 ->where('run.analysis.summary.video_count', 1)
                 ->where('run.analysis.summary.channel_count', 1)
-                ->where('run.score.formula_version', 'niche-opportunity-v1')
+                ->where('run.score.formula_version', 'niche-opportunity-v2')
                 ->where('run.score.sample_size', 1));
 
         $this->post(route('library.projects.store'), [

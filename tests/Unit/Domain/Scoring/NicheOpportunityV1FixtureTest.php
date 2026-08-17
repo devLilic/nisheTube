@@ -106,7 +106,6 @@ class NicheOpportunityV1FixtureTest extends TestCase
         $result = $this->score(NicheOpportunityV1Fixtures::balanced());
 
         $this->assertSame('niche-opportunity-v1', NicheOpportunityV1::VERSION);
-        $this->assertSame(NicheOpportunityV1::VERSION, config('scoring.default_version'));
         $this->assertSame(NicheOpportunityV1::VERSION, $result->formulaVersion);
         $this->assertSame([
             'demand_momentum' => 0.25,

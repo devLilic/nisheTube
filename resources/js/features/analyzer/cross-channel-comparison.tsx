@@ -192,6 +192,47 @@ export function CrossChannelComparisonView({
                                     {run.requested_video_count} requested
                                 </dd>
                                 <dt className="text-muted-foreground">
+                                    Subscribers
+                                </dt>
+                                <dd>
+                                    {run.subscriber_count_hidden
+                                        ? 'Not public'
+                                        : value(run.subscriber_count)}
+                                </dd>
+                                <dt className="text-muted-foreground">
+                                    Size band
+                                </dt>
+                                <dd>{run.channel_size_band}</dd>
+                                <dt className="text-muted-foreground">
+                                    Freshness
+                                </dt>
+                                <dd>
+                                    {run.freshness.state === 'stale'
+                                        ? 'Stale observation'
+                                        : 'Recent observation'}{' '}
+                                    ({run.freshness.observed_age_hours}h old)
+                                </dd>
+                                <dt className="text-muted-foreground">
+                                    Niche concentration
+                                </dt>
+                                <dd>
+                                    {run.niche?.label ?? 'Not available'} ·{' '}
+                                    {value(run.niche?.concentration_score ?? null)}
+                                </dd>
+                                <dt className="text-muted-foreground">
+                                    Shorts share
+                                </dt>
+                                <dd>
+                                    {value(run.shorts_share.percent, '%')} · n=
+                                    {run.shorts_share.sample_count} ({run.shorts_share.state})
+                                </dd>
+                                <dt className="text-muted-foreground">
+                                    Public engagement
+                                </dt>
+                                <dd title={run.public_engagement.reason}>
+                                    {value(run.public_engagement.rate_percent, '%')} ({run.public_engagement.state})
+                                </dd>
+                                <dt className="text-muted-foreground">
                                     Channel model
                                 </dt>
                                 <dd className="break-all">
@@ -216,6 +257,28 @@ export function CrossChannelComparisonView({
                                         'Not analyzed'}
                                 </dd>
                             </dl>
+                            {run.peer_labels.length > 0 ? (
+                                <ul
+                                    className="mt-4 flex flex-wrap gap-2"
+                                    aria-label="Stored peer evidence labels"
+                                >
+                                    {run.peer_labels.map((label) => (
+                                        <li key={label.key}>
+                                            <Badge
+                                                variant="secondary"
+                                                title={label.reason}
+                                            >
+                                                {label.label}
+                                            </Badge>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="mt-4 text-xs text-muted-foreground">
+                                    No conservative peer label is available
+                                    from the stored evidence.
+                                </p>
+                            )}
                         </article>
                     ))}
                 </CardContent>

@@ -21,6 +21,8 @@ test('Explore exposes contextual filters, bounded pagination, and honest missing
     assert.match(page, /Breakout class/);
     assert.match(page, /Channel size/);
     assert.match(page, /Minimum score/);
+    assert.match(page, /Research opportunity score/);
+    assert.match(page, /Discovery score/);
     assert.match(page, /Observed from/);
     assert.match(page, /Unavailable/);
     assert.match(page, /PaginationControls/);
@@ -49,4 +51,12 @@ test('Explore includes loading, empty, partial, and safe unavailable-module stat
     assert.match(page, /watchlist_available/);
     assert.match(page, /workspace_available/);
     assert.match(page, /action="\/watchlist"/);
+});
+
+test('Explore saves, applies, and manages owner-scoped filter presets', () => {
+    assert.match(page, /Saved filter presets/);
+    assert.match(page, /Save current filters/);
+    assert.match(page, /No saved presets yet/);
+    assert.match(page, /\/explore\/presets/);
+    assert.match(page, /Delete preset/);
 });

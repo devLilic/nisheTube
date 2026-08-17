@@ -39,6 +39,26 @@ export type AnalyzerComparisonRun = {
     market: { key: string | null; source: string };
     cohort_video_count: number;
     requested_video_count: number;
+    subscriber_count: number | null;
+    subscriber_count_hidden: boolean;
+    channel_size_band: string;
+    peer_labels: Array<{ key: string; label: string; reason: string }>;
+    freshness: { observed_age_hours: number; state: string };
+    shorts_share: {
+        percent: number | null;
+        sample_count: number;
+        state: string;
+    };
+    public_engagement: {
+        rate_percent: number | null;
+        state: string;
+        reason: string;
+    };
+    niche: null | {
+        label: string | null;
+        concentration_score: number | null;
+        confidence_score: number | null;
+    };
     channel_model: {
         calculation_version: string | null;
         behavior_version: string | null;
@@ -67,7 +87,13 @@ export type AnalyzerComparisonRun = {
 export type CrossChannelComparison = {
     runs:
         | [AnalyzerComparisonRun, AnalyzerComparisonRun]
-        | [AnalyzerComparisonRun, AnalyzerComparisonRun, AnalyzerComparisonRun];
+        | [AnalyzerComparisonRun, AnalyzerComparisonRun, AnalyzerComparisonRun]
+        | [
+              AnalyzerComparisonRun,
+              AnalyzerComparisonRun,
+              AnalyzerComparisonRun,
+              AnalyzerComparisonRun,
+          ];
     compatibility: {
         channel_metrics: boolean;
         topics: boolean;

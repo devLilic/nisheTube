@@ -1,22 +1,21 @@
 import { Link } from '@inertiajs/react';
 import {
-    Beaker,
+    Binoculars,
     Compass,
     FileDown,
     FolderKanban,
-    Gauge,
     Heart,
     History,
     LayoutDashboard,
     Lightbulb,
-    Search,
+    PanelsTopLeft,
+    Scale,
     ScanSearch,
+    SearchCheck,
     Settings,
     Telescope,
-    PanelsTopLeft,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -30,38 +29,71 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { create as createResearch } from '@/routes/research';
-import type { NavItem } from '@/types';
+import type { NavGroup } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const navigationGroups: NavGroup[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutDashboard,
+        label: 'Research',
+        items: [
+            { title: 'Dashboard', href: dashboard(), icon: LayoutDashboard },
+            {
+                title: 'Discover themes',
+                href: '/discover',
+                icon: Compass,
+                activePaths: ['/discover'],
+            },
+            {
+                title: 'Validate a niche',
+                href: createResearch(),
+                icon: SearchCheck,
+                activePaths: ['/search', '/research'],
+            },
+            {
+                title: 'Explore',
+                href: '/explore',
+                icon: Binoculars,
+                activePaths: ['/explore'],
+            },
+            {
+                title: 'Compare niches',
+                href: '/analyzer/compare',
+                icon: Scale,
+                activePaths: ['/analyzer/compare'],
+            },
+            { title: 'History', href: '/history', icon: History },
+        ],
     },
-    { title: 'Search', href: createResearch(), icon: Search },
-    { title: 'Explore', href: '/explore', icon: Compass },
-    { title: 'Analyzer', href: '/analyzer', icon: ScanSearch },
-    { title: 'Watchlist', href: '/watchlist', icon: Telescope },
-    { title: 'Topic Workspaces', href: '/topics', icon: PanelsTopLeft },
-    { title: 'Discover', href: '/discover', icon: Compass },
     {
-        title: 'Projects',
-        href: '/projects',
-        icon: FolderKanban,
+        label: 'Library',
+        items: [
+            { title: 'Shortlist', href: '/favorites', icon: Heart },
+            {
+                title: 'Topic Workspaces',
+                href: '/topics',
+                icon: PanelsTopLeft,
+            },
+            { title: 'Watchlist', href: '/watchlist', icon: Telescope },
+            { title: 'Projects', href: '/projects', icon: FolderKanban },
+            { title: 'Ideas', href: '/ideas', icon: Lightbulb },
+        ],
     },
-    { title: 'Favorites', href: '/favorites', icon: Heart },
-    { title: 'Ideas', href: '/ideas', icon: Lightbulb },
-    { title: 'History', href: '/history', icon: History },
-    { title: 'Exports', href: '/exports', icon: FileDown },
-    { title: 'Settings', href: '/settings/profile', icon: Settings },
-    { title: 'UI showcase', href: '/design-system', icon: Beaker },
-];
-
-const footerNavItems: NavItem[] = [
     {
-        title: 'Local quota estimate',
-        href: '/design-system#status-and-feedback',
-        icon: Gauge,
+        label: 'Tools',
+        items: [
+            {
+                title: 'Analyzer',
+                href: '/analyzer',
+                icon: ScanSearch,
+                excludedPaths: ['/analyzer/compare'],
+            },
+            { title: 'Exports', href: '/exports', icon: FileDown },
+            {
+                title: 'Settings',
+                href: '/settings/profile',
+                icon: Settings,
+                activePaths: ['/settings'],
+            },
+        ],
     },
 ];
 
@@ -81,11 +113,10 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain groups={navigationGroups} />
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

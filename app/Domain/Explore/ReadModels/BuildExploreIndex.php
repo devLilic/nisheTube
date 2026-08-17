@@ -20,12 +20,12 @@ class BuildExploreIndex
     /** @param array<string, mixed> $filters
      * @return array<string, mixed>
      */
-    public function handle(User $user, array $filters): array
+    public function handle(User $user, array $filters, int $page = 1): array
     {
         $results = match ($filters['entity_type']) {
-            'channel' => $this->channels($user, $filters),
-            'candidate' => $this->candidates($user, $filters),
-            default => $this->videos($user, $filters),
+            'channel' => $this->channels($user, $filters, $page),
+            'candidate' => $this->candidates($user, $filters, $page),
+            default => $this->videos($user, $filters, $page),
         };
 
         return [
@@ -50,13 +50,14 @@ class BuildExploreIndex
                 'workspace_available' => true,
             ],
             'workspaces' => $user->topicWorkspaces()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name', 'market_key']),
+            'presets' => $user->explorePresets()->latest('updated_at')->get(['public_id', 'name', 'filters']),
         ];
     }
 
     /** @param array<string, mixed> $filters
      * @return array{data: list<array<string, mixed>>, current_page: int, last_page: int, from: int|null, to: int|null, total: int, per_page: int}
      */
-    private function videos(User $user, array $filters): array
+    private function videos(User $user, array $filters, int $returnPage): array
     {
         $query = $this->ownedVideos($user)->select('videos.*')->with('channel');
         $this->filterVideoQuery($query, $user, $filters);
@@ -85,7 +86,7 @@ class BuildExploreIndex
             'favorite' => (bool) $video->getAttribute('is_favorite'),
             'research_status' => $video->getAttribute('research_status'),
             'sources' => $this->sources($video),
-            'analyzer_url' => $this->analyzerUrl('video', $video->provider_video_id, $video->getAttribute('analyzer_public_id'), $filters),
+            'analyzer_url' => $this->analyzerUrl('video', $video->provider_video_id, $video->getAttribute('analyzer_public_id'), $filters, $returnPage),
             'validate_url' => null,
             'watchlist_public_id' => $video->getAttribute('watchlist_public_id'),
             'partial' => $video->getAttribute('observed_at') === null || $video->getAttribute('performance') === null,
@@ -98,7 +99,7 @@ class BuildExploreIndex
     /** @param array<string, mixed> $filters
      * @return array{data: list<array<string, mixed>>, current_page: int, last_page: int, from: int|null, to: int|null, total: int, per_page: int}
      */
-    private function channels(User $user, array $filters): array
+    private function channels(User $user, array $filters, int $returnPage): array
     {
         $query = $this->ownedChannels($user)->select('channels.*');
         $this->filterChannelQuery($query, $user, $filters);
@@ -124,7 +125,7 @@ class BuildExploreIndex
             'favorite' => (bool) $channel->getAttribute('is_favorite'),
             'research_status' => $channel->getAttribute('research_status'),
             'sources' => $this->sources($channel),
-            'analyzer_url' => $this->analyzerUrl('channel', $channel->provider_channel_id, $channel->getAttribute('analyzer_public_id'), $filters),
+            'analyzer_url' => $this->analyzerUrl('channel', $channel->provider_channel_id, $channel->getAttribute('analyzer_public_id'), $filters, $returnPage),
             'validate_url' => null,
             'watchlist_public_id' => $channel->getAttribute('watchlist_public_id'),
             'partial' => $channel->getAttribute('observed_at') === null || $channel->getAttribute('subscriber_count') === null,
@@ -137,7 +138,7 @@ class BuildExploreIndex
     /** @param array<string, mixed> $filters
      * @return array{data: list<array<string, mixed>>, current_page: int, last_page: int, from: int|null, to: int|null, total: int, per_page: int}
      */
-    private function candidates(User $user, array $filters): array
+    private function candidates(User $user, array $filters, int $returnPage): array
     {
         $query = $this->ownedCandidates($user)->select('niche_candidates.*')->with(['discoveryRun', 'validationResearchRun']);
         $this->filterCandidateQuery($query, $user, $filters);
@@ -550,9 +551,9 @@ class BuildExploreIndex
     }
 
     /** @param array<string, mixed> $filters */
-    private function analyzerUrl(string $kind, string $providerId, mixed $analyzerPublicId, array $filters): string
+    private function analyzerUrl(string $kind, string $providerId, mixed $analyzerPublicId, array $filters, int $page): string
     {
-        $returnUrl = '/explore?'.http_build_query(array_filter($filters, fn (mixed $value): bool => is_scalar($value) && $value !== ''), '', '&', PHP_QUERY_RFC3986);
+        $returnUrl = '/explore?'.http_build_query(array_filter([...$filters, 'page' => $page], fn (mixed $value): bool => is_scalar($value) && $value !== ''), '', '&', PHP_QUERY_RFC3986);
         $base = is_string($analyzerPublicId) && $analyzerPublicId !== ''
             ? '/analyzer/runs/'.$analyzerPublicId
             : '/analyzer?'.$kind.'='.rawurlencode($providerId).'&origin=explore';

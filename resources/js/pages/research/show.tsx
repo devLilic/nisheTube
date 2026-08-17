@@ -1,22 +1,17 @@
-import { Form, Head, Link, usePage, usePoll } from '@inertiajs/react';
+import { Head, Link, usePage, usePoll } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowLeft,
     CalendarClock,
-    CheckCircle2,
     ExternalLink,
     FileSearch,
     ListChecks,
-    RefreshCw,
 } from 'lucide-react';
 import { useEffect } from 'react';
-import ResearchRunController from '@/actions/App/Http/Controllers/Research/ResearchRunController';
 import { AnalyticsGlossary } from '@/components/analytics-glossary';
 import { MarketBadge } from '@/components/market-badge';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
-import { PartialDataBanner } from '@/components/partial-data-banner';
-import { RunStatus } from '@/components/run-status';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,13 +22,16 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
 import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
-import { FavoriteToggle } from '@/features/library/favorite-toggle';
+import { WorkspaceHandoff } from '@/features/integration/workspace-handoff';
 import { ResearchAnalysisSection } from '@/features/research/analysis/research-analysis';
+import { ResearchDecisionSummary } from '@/features/research/decision-summary';
+import { ResearchEvidenceInspection } from '@/features/research/evidence-inspection';
 import { ProvenancePanel } from '@/features/research/provenance-panel';
-import { RunProgress } from '@/features/research/run-progress';
+import { ResearchActions } from '@/features/research/research-actions';
+import { ResearchEvidenceProfile } from '@/features/research/research-evidence-profile';
 import { OpportunityScoreSection } from '@/features/research/scoring/opportunity-score-section';
+import { ProfitabilityFitSection } from '@/features/research/scoring/profitability-fit-section';
 import { create } from '@/routes/research';
 import { show } from '@/routes/research/runs';
 import { edit as editYouTube } from '@/routes/youtube';
@@ -95,7 +93,6 @@ export default function ResearchRunShow({
         (bucket) =>
             bucket.bucket === 'search' || bucket.bucket === 'search.list',
     );
-    const progressLabel = `${run.progress_percent}% complete`;
 
     return (
         <>
@@ -104,7 +101,7 @@ export default function ResearchRunShow({
                 <PageHeader
                     eyebrow={`Research attempt ${run.attempt_number}`}
                     title={run.query_text}
-                    description="Live collection status from the persisted run. Counts and warnings update as the local queue worker progresses."
+                    description="A decision view over this immutable stored sample. Viewing and inspecting it does not call YouTube."
                     actions={
                         <>
                             {returnTo && (
@@ -115,39 +112,11 @@ export default function ResearchRunShow({
                                     </Link>
                                 </Button>
                             )}
-                            <FavoriteToggle
+                            <ResearchActions
                                 library={library}
-                                targetType="research_run"
-                                targetReference={run.public_id}
-                                label={run.query_text}
+                                runPublicId={run.public_id}
+                                queryText={run.query_text}
                             />
-                            <Button variant="outline" asChild>
-                                <Link href={create()}>
-                                    <ArrowLeft aria-hidden="true" />
-                                    New search
-                                </Link>
-                            </Button>
-                            {run.can_retry && (
-                                <Form
-                                    {...ResearchRunController.retry.form(
-                                        run.public_id,
-                                    )}
-                                    disableWhileProcessing
-                                >
-                                    {({ processing }) => (
-                                        <Button disabled={processing}>
-                                            {processing ? (
-                                                <Spinner />
-                                            ) : (
-                                                <RefreshCw aria-hidden="true" />
-                                            )}
-                                            {processing
-                                                ? 'Queuing retry...'
-                                                : 'Retry run'}
-                                        </Button>
-                                    )}
-                                </Form>
-                            )}
                         </>
                     }
                 />
@@ -155,7 +124,6 @@ export default function ResearchRunShow({
 
                 <div className="flex flex-wrap items-center gap-2">
                     <MarketBadge market={run.market.key} />
-                    <RunStatus state={run.status} />
                     <Badge variant="outline">
                         Attempt {run.attempt_number}
                     </Badge>
@@ -173,13 +141,12 @@ export default function ResearchRunShow({
                     )}
                 </div>
 
-                {run.collection_warnings.map((warning) => (
-                    <PartialDataBanner
-                        key={warning}
-                        title="Partial collection saved"
-                        description={warning}
-                    />
-                ))}
+                <ResearchDecisionSummary
+                    summary={run.decision_summary}
+                    score={run.score}
+                    timezone={auth.user.timezone}
+                    runPublicId={run.public_id}
+                />
 
                 {run.error && (
                     <Alert
@@ -212,58 +179,6 @@ export default function ResearchRunShow({
                     </Alert>
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <CardTitle>Run progress</CardTitle>
-                                <CardDescription className="mt-1">
-                                    Real persisted progress; final analysis
-                                    remains hidden until its stage is ready.
-                                </CardDescription>
-                            </div>
-                            <span className="text-2xl font-semibold tabular-nums">
-                                {run.progress_percent}%
-                            </span>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-5">
-                        <div>
-                            <div
-                                className="h-2.5 overflow-hidden rounded-full bg-muted"
-                                role="progressbar"
-                                aria-label="Research run progress"
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                                aria-valuenow={run.progress_percent}
-                                aria-valuetext={progressLabel}
-                            >
-                                <div
-                                    className="h-full rounded-full bg-primary transition-[width] duration-500"
-                                    style={{
-                                        width: `${run.progress_percent}%`,
-                                    }}
-                                />
-                            </div>
-                            <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
-                                <span>
-                                    {run.collected_result_count} of{' '}
-                                    {run.requested_result_count} candidates
-                                    collected
-                                </span>
-                                <span>
-                                    {run.enriched_result_count} enriched
-                                </span>
-                            </div>
-                        </div>
-                        <RunProgress
-                            status={run.status}
-                            startedAt={run.started_at}
-                            searchCompletedAt={run.search_completed_at}
-                        />
-                    </CardContent>
-                </Card>
-
                 <OpportunityScoreSection
                     score={run.score}
                     status={run.status}
@@ -271,6 +186,19 @@ export default function ResearchRunShow({
                     collectedAt={
                         run.analysis?.summary.latest_collected_at ?? null
                     }
+                />
+
+                <ProfitabilityFitSection
+                    fit={run.profitability_fit}
+                    status={run.status}
+                />
+
+                <ResearchEvidenceProfile profile={run.evidence_profile} />
+
+                <ResearchEvidenceInspection
+                    inspection={run.evidence_inspection}
+                    runPublicId={run.public_id}
+                    timezone={auth.user.timezone}
                 />
 
                 <ResearchAnalysisSection
@@ -285,7 +213,30 @@ export default function ResearchRunShow({
                 <ProvenancePanel
                     provenance={run.provenance}
                     timezone={auth.user.timezone}
+                    queryText={run.query_text}
+                    marketName={run.market.name}
+                    parameters={run.parameters}
+                    formulaVersion={run.score?.formula_version ?? null}
                 />
+
+                <Card id="research-workspace-handoff">
+                    <CardHeader>
+                        <CardTitle className="text-base">
+                            Workspace handoff
+                        </CardTitle>
+                        <CardDescription>
+                            Link this immutable Research run as evidence without
+                            copying its metric payload.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <WorkspaceHandoff
+                            workspaces={workspaces}
+                            targetType="research_run"
+                            targetReference={run.public_id}
+                        />
+                    </CardContent>
+                </Card>
 
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
                     <Card>
@@ -373,6 +324,32 @@ export default function ResearchRunShow({
                                 <dl className="space-y-3 text-sm">
                                     <div className="flex justify-between gap-4">
                                         <dt className="text-muted-foreground">
+                                            Outcome
+                                        </dt>
+                                        <dd className="text-right font-medium">
+                                            {run.decision_summary?.lifecycle
+                                                .label ?? 'Preparing'}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                        <dt className="text-muted-foreground">
+                                            Persisted progress
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {run.progress_percent}%
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                        <dt className="text-muted-foreground">
+                                            Collected / enriched
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {run.collected_result_count} /{' '}
+                                            {run.enriched_result_count}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between gap-4">
+                                        <dt className="text-muted-foreground">
                                             Pages saved
                                         </dt>
                                         <dd className="font-medium tabular-nums">
@@ -443,21 +420,6 @@ export default function ResearchRunShow({
                                     : 'Review YouTube settings before starting another run.'}
                             </AlertDescription>
                         </Alert>
-
-                        {run.status === 'completed' && (
-                            <Alert className="border-success/35 bg-success/8 text-success-foreground">
-                                <CheckCircle2 aria-hidden="true" />
-                                <AlertTitle>Snapshot complete</AlertTitle>
-                                <AlertDescription className="text-current/80">
-                                    Completed{' '}
-                                    {formatTimestamp(
-                                        run.completed_at,
-                                        auth.user.timezone,
-                                    )}
-                                    .
-                                </AlertDescription>
-                            </Alert>
-                        )}
                     </div>
                 </div>
             </PageContainer>

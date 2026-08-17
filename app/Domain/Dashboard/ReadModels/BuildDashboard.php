@@ -3,6 +3,7 @@
 namespace App\Domain\Dashboard\ReadModels;
 
 use App\Domain\Research\Enums\ResearchRunStatus;
+use App\Domain\Scoring\Actions\CalculateProfitabilityFit;
 use App\Domain\Scoring\Services\NicheOpportunityV1;
 use App\Domain\YouTube\Contracts\QuotaLedger;
 use App\Models\User;
@@ -186,8 +187,14 @@ final class BuildDashboard
     /** @return list<array<string, mixed>> */
     private function topOpportunities(User $user, CarbonImmutable $startsAt): array
     {
+        $fitVersion = CalculateProfitabilityFit::VERSION;
+
         return array_values(DB::table('opportunity_scores as score')
             ->join('research_runs as run', 'run.id', '=', 'score.research_run_id')
+            ->leftJoin('profitability_fit_scores as fit', function ($join) use ($fitVersion): void {
+                $join->on('fit.research_run_id', '=', 'run.id')
+                    ->where('fit.formula_version', '=', $fitVersion);
+            })
             ->where('run.user_id', $user->id)
             ->where('run.status', ResearchRunStatus::Completed->value)
             ->where('score.formula_version', $this->formulaVersion())
@@ -205,6 +212,10 @@ final class BuildDashboard
                 'score.formula_version',
                 'score.sample_size',
                 'score.calculated_at',
+                'fit.fit_score as profitability_fit_score',
+                'fit.confidence_score as profitability_fit_confidence_score',
+                'fit.formula_version as profitability_fit_formula_version',
+                'fit.calculated_at as profitability_fit_calculated_at',
             ])
             ->map(fn (stdClass $record): array => [
                 'public_id' => (string) $record->public_id,
@@ -216,6 +227,12 @@ final class BuildDashboard
                 'sample_size' => (int) $record->sample_size,
                 'completed_at' => $this->timestamp($record->completed_at),
                 'calculated_at' => $this->timestamp($record->calculated_at),
+                'profitability_fit' => $record->profitability_fit_score === null ? null : [
+                    'fit_score' => (float) $record->profitability_fit_score,
+                    'confidence_score' => (float) $record->profitability_fit_confidence_score,
+                    'formula_version' => (string) $record->profitability_fit_formula_version,
+                    'calculated_at' => $this->timestamp($record->profitability_fit_calculated_at),
+                ],
             ])
             ->all());
     }

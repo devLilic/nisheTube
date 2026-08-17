@@ -32,11 +32,12 @@ class DeterministicDiscoveryEngineTest extends TestCase
         $this->assertNotEmpty($first);
         $this->assertLessThanOrEqual(20, count($first));
         $this->assertContains(
-            'organizare apartament',
+            'organize apartment',
             array_map(fn (DiscoveryCandidateDraft $candidate): string => $candidate->phrase, $first),
         );
         $this->assertSame(DeterministicDiscoveryEngine::FORMULA_VERSION, $first[0]->formulaVersion);
-        $this->assertSame('returned_video_breakout', $first[0]->evidence['observed_signal']);
+        $this->assertContains($first[0]->evidenceState->value, ['candidate', 'weak_phrase_signal']);
+        $this->assertSame('discovery-phrase-normalization-v1', $first[0]->evidence['normalization_version']);
         $this->assertGreaterThanOrEqual(0, $first[0]->overallScore);
         $this->assertLessThanOrEqual(100, $first[0]->overallScore);
         $this->assertGreaterThanOrEqual(0, $first[0]->confidenceScore);

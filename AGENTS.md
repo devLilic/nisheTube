@@ -6,19 +6,15 @@ Build NisheTube as a local, multi-user YouTube research application for discover
 
 ## Read before changing code
 
-Read these documents in order:
+Read only these working documents, in order:
 
-1. `docs/01_PRODUCT_REQUIREMENTS.md`
-2. `docs/02_ARCHITECTURE.md`
-3. `docs/03_DATA_MODEL.md`
-4. `docs/04_SCORING_MODEL.md`
-5. `docs/05_UI_UX.md`
-6. `docs/06_YOUTUBE_API.md`
-7. `docs/08_BACKLOG.md`
-8. `docs/TASK_STATUS.md`
-9. `docs/09_ACCEPTANCE_AND_TESTING.md`
+1. `docs/00_WORKING_RULES.md`
+2. `docs/TASK_INDEX.md`
+3. the brief linked for the single `In progress` task in `docs/task-briefs/`
 
-If implementation requires changing a locked decision, update `docs/10_DECISIONS.md` in the same change and explain the reason.
+The task brief is the operational source of truth for scope, acceptance, relevant decisions, code touchpoints, and focused checks. Read a document in `docs/reference/` only when the brief links to an exact section or cannot resolve a material ambiguity. Do not reload historical status, the full backlog, or the full decision log by default.
+
+If implementation requires changing a locked decision, update `docs/DECISION_INDEX.md`, the active task brief, and the full entry in `docs/10_DECISIONS.md` in the same change, with the reason.
 
 ## Locked technical direction
 
@@ -58,16 +54,16 @@ A backend-only module is not done. A UI using hard-coded production data is not 
 
 ## Development workflow
 
-1. Read `docs/TASK_STATUS.md` first. It is the live task-state register.
+1. Read `docs/00_WORKING_RULES.md`, `docs/TASK_INDEX.md`, and the active task brief first. They are the live working context.
 2. Work only on the single task marked `In progress`.
-3. If no task is `In progress`, select the next unblocked `Pending` task from `docs/08_BACKLOG.md`, mark it `In progress` in `docs/TASK_STATUS.md`, and state its ID before editing code.
+3. If no task is `In progress`, select the next unblocked `Pending` task from `docs/TASK_INDEX.md`, create its complete brief, mark it `In progress` in `docs/TASK_INDEX.md`, and state its ID before editing code.
 4. Inspect existing code and tests before editing.
 5. Implement the smallest complete vertical slice.
 6. Run only tests and checks strictly scoped to the current task and the files changed for it. Codex must never run a full or aggregate PHP, React, frontend, or project verification suite.
-7. Only when every acceptance criterion and Codex-scoped check passes: mark the task `Completed` in both `docs/TASK_STATUS.md` and `docs/08_BACKLOG.md`; include the date, passed focused commands, and a short manual verification checklist in the task-status file.
-8. Immediately mark the next unblocked backlog task `In progress` in `docs/TASK_STATUS.md`. Do not begin its implementation in the same turn unless the user explicitly asks.
-9. If verification fails or a dependency is missing, keep the current task `In progress`, record the blocker in `docs/TASK_STATUS.md`, and do not promote another task.
-10. Record material architectural decisions in `docs/10_DECISIONS.md`.
+7. Only when every acceptance criterion and Codex-scoped check passes: mark the task `Completed` in `docs/TASK_INDEX.md`; append the date, changed scope, focused checks, and manual checklist to the task's archival entry in `docs/TASK_STATUS.md`.
+8. Create the next unblocked task's complete brief before marking it `In progress` in `docs/TASK_INDEX.md`. Do not implement it in the same turn unless the user explicitly asks.
+9. If verification fails or a dependency is missing, keep the current task `In progress`, record the blocker in its brief and archival entry, and do not promote another task.
+10. Record material architectural decisions in `docs/DECISION_INDEX.md` and `docs/10_DECISIONS.md`.
 
 Do not begin a later phase when an earlier dependency is incomplete, except for isolated design-system work that does not create throwaway behavior.
 

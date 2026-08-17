@@ -4,6 +4,7 @@ namespace App\Domain\Discovery\Actions;
 
 use App\Domain\Discovery\Enums\DiscoveryRunStatus;
 use App\Domain\Discovery\Enums\DiscoverySeedSource;
+use App\Domain\Discovery\Services\DeterministicDiscoveryEngine;
 use App\Domain\Settings\Actions\FreezeMarketForRequest;
 use App\Models\DiscoveryRun;
 use App\Models\Market;
@@ -11,6 +12,7 @@ use App\Models\ResearchProject;
 use App\Models\User;
 use DomainException;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -20,6 +22,7 @@ class CreateDiscoveryRun
 
     /**
      * @param  list<string>  $seedQueries
+     * @param  array<string, string>  $intakeContext
      *
      * @throws AuthorizationException
      */
@@ -30,6 +33,8 @@ class CreateDiscoveryRun
         ?ResearchProject $project = null,
         int $samplePerSeed = 25,
         int $candidateLimit = 20,
+        ?string $submissionToken = null,
+        array $intakeContext = [],
     ): DiscoveryRun {
         if ($project !== null && $project->user_id !== $user->id) {
             throw new AuthorizationException;
@@ -45,10 +50,21 @@ class CreateDiscoveryRun
         }
 
         $frozenMarket = ($this->freezeMarket)->handle($market);
+        $period = (string) ($intakeContext['period'] ?? 'past_three_months');
+        $periodDays = match ($period) {
+            'past_week' => 7,
+            'past_month' => 30,
+            'past_three_months' => 90,
+            'past_year' => 365,
+            default => null,
+        };
+        $periodBefore = Date::now()->utc();
+        $periodAfter = $periodDays === null ? null : $periodBefore->copy()->subDays($periodDays);
 
-        return DB::transaction(function () use ($user, $market, $project, $seeds, $frozenMarket, $samplePerSeed, $candidateLimit): DiscoveryRun {
+        return DB::transaction(function () use ($user, $market, $project, $seeds, $frozenMarket, $samplePerSeed, $candidateLimit, $submissionToken, $intakeContext, $period, $periodAfter, $periodBefore): DiscoveryRun {
             $run = DiscoveryRun::query()->create([
                 'user_id' => $user->id,
+                'submission_token' => $submissionToken,
                 'research_project_id' => $project?->id,
                 'market_id' => $market->id,
                 'status' => DiscoveryRunStatus::Draft,
@@ -58,7 +74,15 @@ class CreateDiscoveryRun
                 'parameters' => [
                     'sample_per_seed' => $samplePerSeed,
                     'candidate_limit' => $candidateLimit,
-                    'formula_version' => 'discovery-breakout-v1',
+                    'formula_version' => DeterministicDiscoveryEngine::FORMULA_VERSION,
+                    'candidate_evidence_thresholds' => DeterministicDiscoveryEngine::THRESHOLDS,
+                    'language' => $intakeContext['language'] ?? $frozenMarket->relevanceLanguage,
+                    'content_format' => $intakeContext['content_format'] ?? 'any',
+                    'period' => $period,
+                    'period_after' => $periodAfter?->toIso8601String(),
+                    'period_before' => $periodBefore->toIso8601String(),
+                    'target_channel_size' => $intakeContext['target_channel_size'] ?? 'any',
+                    'channel_size_thresholds' => ['small_max' => 99999, 'mid_size_max' => 999999],
                 ],
                 'seed_count' => count($seeds),
                 'candidate_count' => 0,

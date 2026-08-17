@@ -4,38 +4,44 @@ namespace App\Domain\Discovery\Services;
 
 use App\Domain\Discovery\Contracts\TopicExpansionProvider;
 use App\Domain\Discovery\Data\TopicPhraseSignal;
-use Illuminate\Support\Str;
 
 class DeterministicTopicExpansionProvider implements TopicExpansionProvider
 {
     private const PHRASE_LIMIT = 100;
 
-    private const STOP_WORDS = [
-        'about', 'after', 'best', 'from', 'have', 'into', 'more', 'that', 'this', 'video', 'with',
-        'care', 'cele', 'cum', 'din', 'este', 'pentru',
-        'более', 'видео', 'для', 'как', 'это',
-    ];
+    public function __construct(private readonly MultilingualPhraseNormalizer $normalizer) {}
 
     public function expand(array $signals): array
     {
-        /** @var array<string, array{phrase: string, tokens: list<string>, videos: array<string, true>, seeds: array<string, true>, strength: float}> $phrases */
+        /** @var array<string, array{phrase: string, tokens: list<string>, videos: array<string, true>, seeds: array<string, true>, originals: array<string, true>, languages: array<string, true>, transformations: array<string, true>, strength: float}> $phrases */
         $phrases = [];
 
         foreach ($signals as $signal) {
-            $tokens = $this->tokens($signal->observation->title);
+            $normalized = $this->normalizer->normalize($signal->observation->title);
+            $tokens = $normalized->tokens;
 
             foreach ($this->ngrams($tokens) as $ngram) {
                 $phrase = implode(' ', $ngram);
-                $key = Str::lower($phrase);
+                $key = $phrase;
                 $phrases[$key] ??= [
                     'phrase' => $phrase,
                     'tokens' => $ngram,
                     'videos' => [],
                     'seeds' => [],
+                    'originals' => [],
+                    'languages' => [],
+                    'transformations' => [],
                     'strength' => 0.0,
                 ];
                 $phrases[$key]['videos'][$signal->observation->providerVideoId] = true;
                 $phrases[$key]['seeds'][$signal->observation->seedQuery] = true;
+                $phrases[$key]['originals'][$normalized->original] = true;
+                foreach ($normalized->languages as $language) {
+                    $phrases[$key]['languages'][$language] = true;
+                }
+                foreach ($normalized->transformations as $transformation) {
+                    $phrases[$key]['transformations'][$transformation] = true;
+                }
                 $phrases[$key]['strength'] += $signal->strength;
             }
         }
@@ -48,6 +54,9 @@ class DeterministicTopicExpansionProvider implements TopicExpansionProvider
                 videoIds: array_keys($phrase['videos']),
                 seedQueries: array_keys($phrase['seeds']),
                 strength: round($phrase['strength'], 4),
+                originalPhrases: array_keys($phrase['originals']),
+                languages: array_keys($phrase['languages']),
+                normalizationTransformations: array_keys($phrase['transformations']),
             ),
             array_keys($phrases),
             array_values($phrases),
@@ -62,18 +71,6 @@ class DeterministicTopicExpansionProvider implements TopicExpansionProvider
         ]);
 
         return array_slice($expanded, 0, self::PHRASE_LIMIT);
-    }
-
-    /** @return list<string> */
-    private function tokens(string $title): array
-    {
-        $normalized = preg_replace('/[^\p{L}\p{N}]+/u', ' ', Str::lower($title)) ?? '';
-        $tokens = preg_split('/\s+/u', trim($normalized), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-        return array_values(array_filter(
-            $tokens,
-            fn (string $token): bool => mb_strlen($token) >= 3 && ! in_array($token, self::STOP_WORDS, true),
-        ));
     }
 
     /**

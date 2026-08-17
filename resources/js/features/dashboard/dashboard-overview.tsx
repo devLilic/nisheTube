@@ -33,6 +33,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { DecisionCockpit } from '@/features/dashboard/decision-cockpit';
 import { ScoreTrend } from '@/features/dashboard/score-trend';
 import { create } from '@/routes/research';
 import { show } from '@/routes/research/runs';
@@ -307,6 +308,8 @@ export function DashboardOverview({
 
     return (
         <>
+            <DecisionCockpit dashboard={dashboard} />
+
             <section
                 className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4"
                 aria-label="Dashboard summary"

@@ -87,12 +87,14 @@ class DiscoveryGenerationTest extends TestCase
         $this->assertSame(100, $completed->progress_percent);
         $this->assertSame($completed->candidates()->count(), $completed->candidate_count);
         $this->assertGreaterThan(0, $completed->candidate_count);
-        $this->assertSame('discovery-breakout-v1', $candidate->formula_version);
-        $this->assertSame('returned_video_breakout', $candidate->evidence['observed_signal']);
+        $this->assertSame(DeterministicDiscoveryEngine::FORMULA_VERSION, $candidate->formula_version);
+        $this->assertSame('weak_phrase_signal', $candidate->evidence_state->value);
+        $this->assertSame('Weak phrase signal', $candidate->evidence['quality_label']);
         $this->assertSame(2, $candidate->evidence['source_video_count']);
         $this->assertSame([$analyzerRun->public_id], $candidate->evidence['analyzer_run_ids']);
         $this->assertSame(['research_snapshot', 'analyzer_profile'], $candidate->evidence['evidence_provenance']);
         $this->assertSame('requires_validation_search', $candidate->evidence['opportunity_score_status']);
+        $this->assertSame('discovery-phrase-normalization-v1', $candidate->evidence['normalization_version']);
         $this->assertTrue(Gate::forUser($user)->allows('view', $candidate));
         $this->assertDatabaseCount('api_usage_events', 0);
 
@@ -127,6 +129,32 @@ class DiscoveryGenerationTest extends TestCase
         $this->assertSame(DiscoveryRunStatus::Completed, $discovery->fresh()->status);
         $this->assertSame(0, $discovery->fresh()->candidate_count);
         $this->assertDatabaseCount('niche_candidates', 0);
+    }
+
+    public function test_content_format_filters_use_the_stored_video_duration(): void
+    {
+        $user = User::factory()->create();
+        $market = Market::query()->where('key', 'global_en')->firstOrFail();
+        $sample = $this->completedSample($user, $market, [
+            ['short storage tip', 100, 0.2],
+            ['long storage guide', 200, 0.3],
+        ]);
+        $videos = $sample->videos()->orderBy('id')->get();
+        $videos[0]->update(['duration_seconds' => 180]);
+        $videos[1]->update(['duration_seconds' => 1500]);
+
+        $discovery = app(CreateDiscoveryRun::class)->handle(
+            $user,
+            $market,
+            ['storage ideas'],
+            intakeContext: ['content_format' => 'long_form'],
+        );
+        app(LinkDiscoverySeedResearchRun::class)->handle($user, $discovery->seeds->firstOrFail(), $sample);
+
+        $observations = app(CollectDiscoveryObservations::class)->handle($discovery);
+
+        $this->assertCount(1, $observations);
+        $this->assertSame($videos[1]->provider_video_id, $observations[0]->providerVideoId);
     }
 
     public function test_failed_generation_can_retry_without_duplicating_or_resetting_saved_candidates(): void
@@ -174,7 +202,32 @@ class DiscoveryGenerationTest extends TestCase
         $this->assertSame(DiscoveryRunStatus::Completed, $discovery->fresh()->status);
         $this->assertSame(1, $discovery->candidates()->where('phrase_key', 'small apartment')->count());
         $this->assertSame(NicheCandidateStatus::Saved, $saved->fresh()->status);
+        $this->assertSame(50.0, $saved->fresh()->overall_score);
         $this->assertDatabaseCount('api_usage_events', 0);
+    }
+
+    public function test_candidate_evidence_fields_cannot_be_mutated_after_creation(): void
+    {
+        $user = User::factory()->create();
+        $market = Market::query()->where('key', 'global_en')->firstOrFail();
+        $run = app(CreateDiscoveryRun::class)->handle($user, $market, ['apartment storage']);
+        $candidate = $run->candidates()->create([
+            'phrase' => 'apartment storage',
+            'cluster_key' => 'immutable-cluster',
+            'summary' => 'Frozen evidence.',
+            'evidence' => ['evidence_state' => 'candidate'],
+            'overall_score' => 72,
+            'confidence_score' => 68,
+            'formula_version' => DeterministicDiscoveryEngine::FORMULA_VERSION,
+            'evidence_state' => 'candidate',
+            'status' => NicheCandidateStatus::New,
+        ]);
+
+        $candidate->update(['status' => NicheCandidateStatus::Saved]);
+        $this->assertSame(NicheCandidateStatus::Saved, $candidate->fresh()->status);
+
+        $this->expectException(DomainException::class);
+        $candidate->update(['overall_score' => 99]);
     }
 
     public function test_candidate_validation_linkage_requires_owner_market_and_validation_kind(): void

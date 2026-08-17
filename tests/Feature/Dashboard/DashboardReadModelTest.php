@@ -11,6 +11,7 @@ use App\Domain\YouTube\Enums\QuotaUsageOutcome;
 use App\Models\ApiUsageEvent;
 use App\Models\Market;
 use App\Models\OpportunityScore;
+use App\Models\ProfitabilityFitScore;
 use App\Models\ResearchProject;
 use App\Models\ResearchQuery;
 use App\Models\ResearchRun;
@@ -76,7 +77,8 @@ class DashboardReadModelTest extends TestCase
             completedAt: '2026-08-07 08:30:00',
             warnings: ['youtube_partial_data'],
         );
-        $this->score($best, 84.75, 81.5, '2026-08-07 08:35:00');
+        $bestScore = $this->score($best, 84.75, 81.5, '2026-08-07 08:35:00');
+        $this->profitabilityFit($best, $bestScore, 72.5, '2026-08-07 08:36:00');
 
         $active = $this->researchRun(
             $owner,
@@ -128,6 +130,8 @@ class DashboardReadModelTest extends TestCase
                     ->where('dashboard.availability.discovery_candidates', false)
                     ->where('dashboard.best_opportunity.public_id', $best->public_id)
                     ->where('dashboard.best_opportunity.overall_score', 84.75)
+                    ->where('dashboard.best_opportunity.profitability_fit.fit_score', 72.5)
+                    ->where('dashboard.best_opportunity.profitability_fit.formula_version', 'profitability-fit-v1')
                     ->has('dashboard.recent_runs', 4)
                     ->where('dashboard.recent_runs.0.public_id', $active->public_id)
                     ->where('dashboard.recent_runs.1.public_id', $best->public_id)
@@ -140,7 +144,7 @@ class DashboardReadModelTest extends TestCase
                     ->where('dashboard.score_trend.1.public_id', $best->public_id)
                     ->where('dashboard.quota.label', 'NisheTube estimate')
                     ->where('dashboard.quota.buckets.0.bucket', 'search')
-                    ->where('dashboard.quota.buckets.0.used', 3)
+                    ->where('dashboard.quota.buckets.0.used', 2)
                     ->where('dashboard.cleanup.status', 'due')
                     ->where('dashboard.cleanup.candidate_run_count', 1)
                     ->where('dashboard.cleanup.oldest_candidate_at', '2026-01-01T10:05:00+00:00'))
@@ -510,7 +514,7 @@ class DashboardReadModelTest extends TestCase
         float $overall,
         float $confidence,
         string $calculatedAt,
-        string $formulaVersion = 'niche-opportunity-v1',
+        string $formulaVersion = 'niche-opportunity-v2',
     ): OpportunityScore {
         return OpportunityScore::query()->create([
             'research_run_id' => $run->id,
@@ -525,6 +529,25 @@ class DashboardReadModelTest extends TestCase
             'sample_size' => 25,
             'input_summary' => [],
             'explanations' => [],
+            'warnings' => [],
+            'calculated_at' => $calculatedAt,
+        ]);
+    }
+
+    private function profitabilityFit(
+        ResearchRun $run,
+        OpportunityScore $score,
+        float $fit,
+        string $calculatedAt,
+    ): ProfitabilityFitScore {
+        return ProfitabilityFitScore::query()->create([
+            'research_run_id' => $run->id,
+            'opportunity_score_id' => $score->id,
+            'formula_version' => 'profitability-fit-v1',
+            'fit_score' => $fit,
+            'confidence_score' => $score->confidence_score,
+            'input_summary' => ['source' => ['formula_version' => $score->formula_version]],
+            'explanations' => ['fit' => 'Stored estimate.'],
             'warnings' => [],
             'calculated_at' => $calculatedAt,
         ]);

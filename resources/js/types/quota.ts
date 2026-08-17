@@ -1,5 +1,6 @@
 export type QuotaBucketSummary = {
     bucket: string;
+    measure: 'requests' | 'units';
     allowance: number;
     used: number;
     remaining: number;

@@ -1,10 +1,17 @@
-import { BookmarkCheck, Clapperboard, RadioTower } from 'lucide-react';
+import {
+    ChartNoAxesCombined,
+    Clapperboard,
+    Database,
+    RadioTower,
+} from 'lucide-react';
 import { useId, useState } from 'react';
 import { AnalyzerChannelCohort } from '@/features/analyzer/analyzer-channel-cohort';
 import { AnalyzerCommentsSection } from '@/features/analyzer/analyzer-comments';
 import { AnalyzerCurationPanel } from '@/features/analyzer/analyzer-curation';
+import { AnalyzerDecisionSummary } from '@/features/analyzer/analyzer-decision-summary';
 import { AnalyzerGrowthHistory } from '@/features/analyzer/analyzer-growth-history';
 import { AnalyzerProfile } from '@/features/analyzer/analyzer-profile';
+import { AnalyzerRawData } from '@/features/analyzer/analyzer-raw-data';
 import { AnalyzerTranscriptSection } from '@/features/analyzer/analyzer-transcript';
 import { AudienceSignalsSection } from '@/features/analyzer/audience-signals';
 import { ThumbnailAnalysis } from '@/features/analyzer/thumbnail-analysis';
@@ -15,12 +22,13 @@ import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import { cn } from '@/lib/utils';
 import type { AnalyzerRun, LibraryContext } from '@/types';
 
-type TabKey = 'video' | 'channel' | 'organize';
+type TabKey = 'summary' | 'content' | 'channel' | 'raw';
 
 const tabs = [
-    { key: 'video' as const, label: 'Video & content', icon: Clapperboard },
+    { key: 'summary' as const, label: 'Summary', icon: ChartNoAxesCombined },
+    { key: 'content' as const, label: 'Content patterns', icon: Clapperboard },
     { key: 'channel' as const, label: 'Channel', icon: RadioTower },
-    { key: 'organize' as const, label: 'Save & organize', icon: BookmarkCheck },
+    { key: 'raw' as const, label: 'Raw data', icon: Database },
 ];
 
 export function AnalyzerProfileTabs({
@@ -34,9 +42,7 @@ export function AnalyzerProfileTabs({
     library: LibraryContext;
     workspaces: WorkspaceOption[];
 }) {
-    const [activeTab, setActiveTab] = useState<TabKey>(
-        run.target_kind === 'channel' ? 'channel' : 'video',
-    );
+    const [activeTab, setActiveTab] = useState<TabKey>('summary');
     const id = useId();
     const selectAdjacentTab = (current: TabKey, direction: -1 | 1) => {
         const currentIndex = tabs.findIndex((tab) => tab.key === current);
@@ -96,10 +102,20 @@ export function AnalyzerProfileTabs({
             </div>
 
             <div
-                id={`${id}-video-panel`}
+                id={`${id}-summary-panel`}
                 role="tabpanel"
-                aria-labelledby={`${id}-video-tab`}
-                hidden={activeTab !== 'video'}
+                aria-labelledby={`${id}-summary-tab`}
+                hidden={activeTab !== 'summary'}
+                className="mt-5 space-y-5 [&_[data-slot=card-content]]:px-5 [&_[data-slot=card-header]]:px-5 [&_[data-slot=card]]:gap-5 [&_[data-slot=card]]:py-5"
+            >
+                <AnalyzerDecisionSummary run={run} />
+            </div>
+
+            <div
+                id={`${id}-content-panel`}
+                role="tabpanel"
+                aria-labelledby={`${id}-content-tab`}
+                hidden={activeTab !== 'content'}
                 className="mt-5 space-y-5 [&_[data-slot=card-content]]:px-5 [&_[data-slot=card-header]]:px-5 [&_[data-slot=card]]:gap-5 [&_[data-slot=card]]:py-5"
             >
                 <AnalyzerProfile
@@ -143,24 +159,19 @@ export function AnalyzerProfileTabs({
             </div>
 
             <div
-                id={`${id}-organize-panel`}
+                id={`${id}-raw-panel`}
                 role="tabpanel"
-                aria-labelledby={`${id}-organize-tab`}
-                hidden={activeTab !== 'organize'}
+                aria-labelledby={`${id}-raw-tab`}
+                hidden={activeTab !== 'raw'}
                 className="mt-5 space-y-5 [&_[data-slot=card-content]]:px-5 [&_[data-slot=card-header]]:px-5 [&_[data-slot=card]]:gap-5 [&_[data-slot=card]]:py-5"
             >
-                {run.channel ? (
-                    <AnalyzerCurationPanel
-                        run={run}
-                        library={library}
-                        workspaces={workspaces}
-                    />
-                ) : (
-                    <TabEmptyState
-                        title="Save options are not ready"
-                        description="Notes, research status, Watchlist, and workspace handoffs appear after the analysis pins a channel profile."
-                    />
-                )}
+                <AnalyzerRawData run={run} />
+                <AnalyzerCurationPanel
+                    run={run}
+                    library={library}
+                    workspaces={workspaces}
+                    hideHandoffs
+                />
             </div>
         </section>
     );

@@ -43,12 +43,13 @@ class DiscoverySchemaAuthorizationTest extends TestCase
         $this->assertTrue(Schema::hasColumns('niche_candidates', [
             'public_id', 'discovery_run_id', 'phrase', 'phrase_key', 'cluster_key', 'summary',
             'evidence', 'overall_score', 'confidence_score', 'formula_version', 'status',
-            'validation_research_run_id',
+            'validation_research_run_id', 'evidence_state',
         ]));
         $this->assertTrue(Schema::hasIndex('discovery_runs', ['user_id', 'created_at']));
         $this->assertTrue(Schema::hasIndex('discovery_seeds', ['discovery_run_id', 'seed_key'], 'unique'));
         $this->assertTrue(Schema::hasIndex('niche_candidates', ['discovery_run_id', 'phrase_key'], 'unique'));
         $this->assertTrue(Schema::hasIndex('niche_candidates', ['discovery_run_id', 'status', 'overall_score']));
+        $this->assertTrue(Schema::hasIndex('niche_candidates', ['discovery_run_id', 'evidence_state', 'overall_score']));
     }
 
     public function test_creation_normalizes_unique_seeds_and_freezes_owner_market_and_parameters(): void
@@ -71,7 +72,8 @@ class DiscoverySchemaAuthorizationTest extends TestCase
         $this->assertSame('RO', $run->region_code);
         $this->assertSame('ro', $run->relevance_language);
         $this->assertSame(2, $run->seed_count);
-        $this->assertSame('discovery-breakout-v1', $run->parameters['formula_version']);
+        $this->assertSame('candidate-evidence-v2', $run->parameters['formula_version']);
+        $this->assertSame(3, $run->parameters['candidate_evidence_thresholds']['minimum_videos']);
         $this->assertSame(
             ['Case mici', 'Organizare apartament'],
             $run->seeds->pluck('seed_query')->all(),

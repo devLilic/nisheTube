@@ -9,9 +9,18 @@ import {
 import { ExportWorkspace } from '@/features/exports/export-workspace';
 import type { Auth, ExportBuilderData, ExportJobsData } from '@/types';
 
-type Props = { auth: Auth; builder: ExportBuilderData; jobs?: ExportJobsData };
+type Props = {
+    auth: Auth;
+    builder: ExportBuilderData;
+    jobs?: ExportJobsData;
+    selected_run_id: string | null;
+};
 
-export default function ExportsIndex({ builder, jobs }: Props) {
+export default function ExportsIndex({
+    builder,
+    jobs,
+    selected_run_id: selectedRunId,
+}: Props) {
     const { auth } = usePage<Props>().props;
     const { start, stop } = usePoll(
         2000,
@@ -48,6 +57,7 @@ export default function ExportsIndex({ builder, jobs }: Props) {
                             builder={builder}
                             jobs={jobs}
                             timezone={auth.user.timezone}
+                            selectedRunId={selectedRunId}
                         />
                     ) : (
                         <ExportJobsLoading />

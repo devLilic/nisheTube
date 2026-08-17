@@ -29,6 +29,11 @@ class DiscoveryRunViewModel
                 'sample_per_seed' => (int) ($run->parameters['sample_per_seed'] ?? 25),
                 'candidate_limit' => (int) ($run->parameters['candidate_limit'] ?? 20),
                 'formula_version' => (string) ($run->parameters['formula_version'] ?? 'discovery-breakout-v1'),
+                'candidate_evidence_thresholds' => $run->parameters['candidate_evidence_thresholds'] ?? null,
+                'language' => (string) ($run->parameters['language'] ?? $run->relevance_language),
+                'content_format' => (string) ($run->parameters['content_format'] ?? 'any'),
+                'period' => (string) ($run->parameters['period'] ?? 'past_three_months'),
+                'target_channel_size' => (string) ($run->parameters['target_channel_size'] ?? 'any'),
             ],
             'seed_count' => $run->seed_count,
             'candidate_count' => $run->candidate_count,
@@ -67,7 +72,12 @@ class DiscoveryRunViewModel
             ])->values()->all(),
             'candidates' => $withCandidates
                 ? $run->candidates
-                    ->sortByDesc('overall_score')
+                    ->sortBy(fn (NicheCandidate $candidate): string => sprintf(
+                        '%d-%010.4f-%s',
+                        $candidate->evidence_state->value === 'weak_phrase_signal' ? 1 : 0,
+                        100 - ($candidate->overall_score ?? 0),
+                        $candidate->phrase,
+                    ))
                     ->map(fn (NicheCandidate $candidate): array => [
                         'public_id' => $candidate->public_id,
                         'phrase' => $candidate->phrase,
@@ -76,6 +86,7 @@ class DiscoveryRunViewModel
                         'overall_score' => $candidate->overall_score,
                         'confidence_score' => $candidate->confidence_score,
                         'formula_version' => $candidate->formula_version,
+                        'evidence_state' => $candidate->evidence_state->value,
                         'evidence' => $candidate->evidence,
                         'validation_run' => $candidate->validationResearchRun === null ? null : [
                             'public_id' => $candidate->validationResearchRun->public_id,

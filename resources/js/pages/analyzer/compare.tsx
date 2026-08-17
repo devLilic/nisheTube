@@ -26,7 +26,12 @@ import type {
     CrossChannelComparison,
 } from '@/types';
 
-const selectionLabels = ['First channel', 'Second channel', 'Third channel'];
+const selectionLabels = [
+    'First channel',
+    'Second channel',
+    'Third channel',
+    'Fourth channel',
+];
 
 export default function AnalyzerCompare({
     options,
@@ -45,7 +50,7 @@ export default function AnalyzerCompare({
         ),
     );
     const [selectedIds, setSelectedIds] = useState(
-        selection.runs.filter((id) => eligibleIds.has(id)).slice(0, 3),
+        selection.runs.filter((id) => eligibleIds.has(id)).slice(0, 4),
     );
     const [query, setQuery] = useState('');
     const [loading, setLoading] = useState(false);
@@ -74,11 +79,11 @@ export default function AnalyzerCompare({
                           .includes(normalized),
               );
     }, [options, query]);
-    const canCompare = selectedIds.length >= 2 && selectedIds.length <= 3;
+    const canCompare = selectedIds.length >= 2 && selectedIds.length <= 4;
 
     const addChannel = (option: AnalyzerComparisonOption) => {
         if (
-            selectedIds.length === 3 ||
+            selectedIds.length === 4 ||
             selectedChannelIds.has(option.channel_id)
         ) {
             return;
@@ -105,6 +110,7 @@ export default function AnalyzerCompare({
                 before: selectedIds[0],
                 after: selectedIds[1],
                 third: selectedIds[2] ?? undefined,
+                fourth: selectedIds[3] ?? undefined,
             },
             { preserveState: true, onFinish: () => setLoading(false) },
         );
@@ -117,7 +123,7 @@ export default function AnalyzerCompare({
                 <PageHeader
                     eyebrow="Stored Analyzer evidence"
                     title="Cross-channel comparison"
-                    description="Compare exact stored evidence for two or three channels without creating a score or recommendation."
+                    description="Compare exact stored evidence for two to four channels without creating a score or recommendation."
                     actions={
                         <Button variant="outline" asChild>
                             <Link href="/analyzer">
@@ -130,7 +136,7 @@ export default function AnalyzerCompare({
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Select two or three channels</CardTitle>
+                        <CardTitle>Select two to four channels</CardTitle>
                         <p className="text-sm text-muted-foreground">
                             Channels are ordered alphabetically. Each channel
                             groups up to five recent immutable attempts; the
@@ -162,7 +168,7 @@ export default function AnalyzerCompare({
                                                 Comparison set
                                             </h2>
                                             <p className="text-sm text-muted-foreground">
-                                                {selectedIds.length} of 3
+                                                {selectedIds.length} of 4
                                                 channels selected. At least two
                                                 are required.
                                             </p>
@@ -182,7 +188,7 @@ export default function AnalyzerCompare({
                                         </Button>
                                     </div>
 
-                                    <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                                    <div className="mt-4 grid gap-3 xl:grid-cols-4">
                                         {selectedIds.map((id, index) => {
                                             const option =
                                                 selectedChannels[index];
@@ -214,7 +220,7 @@ export default function AnalyzerCompare({
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
-                                                            size="icon-sm"
+                                                            size="icon"
                                                             aria-label={`Remove ${option.channel_title}`}
                                                             onClick={() =>
                                                                 removeChannel(
@@ -281,7 +287,7 @@ export default function AnalyzerCompare({
                                             );
                                         })}
                                         {Array.from({
-                                            length: 3 - selectedIds.length,
+                                            length: 4 - selectedIds.length,
                                         }).map((_, index) => (
                                             <div
                                                 key={`empty-${index}`}
@@ -404,7 +410,7 @@ export default function AnalyzerCompare({
                                                             disabled={
                                                                 isSelected ||
                                                                 selectedIds.length ===
-                                                                    3
+                                                                    4
                                                             }
                                                             onClick={() =>
                                                                 addChannel(
@@ -435,7 +441,7 @@ export default function AnalyzerCompare({
                 {selected === null && options.length >= 2 ? (
                     <StatePanel
                         title="Choose channels to compare"
-                        description="Select two or three different channels, confirm each immutable attempt, then compare exact metrics and compatibility warnings."
+                        description="Select two to four different channels, confirm each immutable attempt, then compare exact metrics and compatibility warnings."
                         icon={GitCompareArrows}
                     />
                 ) : selected !== null ? (

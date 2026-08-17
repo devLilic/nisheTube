@@ -91,7 +91,7 @@ Resources include projects, queries, research/collection/Analyzer runs, discover
 
 ## 7. Visual acceptance
 
-Every page is reviewed at approximately 1440px and 768px widths:
+Every page is reviewed at approximately 1440px desktop width. Tablet and mobile breakpoints are not acceptance targets:
 
 - no clipped actions or unreadable tables;
 - loading skeletons do not cause severe layout shift;
@@ -158,3 +158,30 @@ These are engineering targets, not external service guarantees:
 - scoring should run from stored data and complete quickly for configured sample sizes.
 - Analyzer cohort collection batches video IDs within provider limits and renders/paginates recent videos without unbounded payloads.
 - Explore reads stored user-owned projections and performs no provider I/O during ordinary browsing/filtering.
+
+## 10. Planned decision-workflow acceptance
+
+Phases 19–22 use the task-specific acceptance criteria and requirement traceability in `13_DECISION_WORKFLOW_REDESIGN.md` in addition to this file. Their final hardening gate is `QA-02`. Required visual verification is desktop-only at approximately 1440px; tablet and mobile-specific acceptance are excluded, and all application-interface copy remains English.
+
+### Research decision summary
+
+- Research inspection is owner-scoped and performs no provider request or quota-ledger write.
+- Active runs expose the persisted stage, percentage, collected/requested counts, warnings, and no precise ETA unless supported by stored timing evidence.
+- Terminal runs expose exactly one lifecycle outcome: complete data, partial data, reduced confidence, or failure with an explicit saved-partial distinction.
+- Field completeness uses exact available/total denominators; missing values stay null, partial evidence remains inspectable, stability is not inferred from one snapshot, and deterministic evidence/risks lead to one next action.
+- Research video evidence sorts and filters execute against owner-scoped pinned rows with a fixed 10-row page bound, preserve exact null-aware values and safe Analyzer return context, and perform no provider request or quota-ledger write.
+- Dense score and provenance detail is keyboard-disclosed; one primary Shortlist action is distinct from authorized Discover, Compare, Repeat, Workspace, Analyzer, and Export handoffs. Strict relevance remains unavailable until its versioned evidence task is complete.
+
+### Discovery candidate evidence
+
+- New runs freeze `candidate-evidence-v2`, its thresholds, input reference time, normalization version, exact component inputs/output, and owner-scoped candidate state without modifying legacy rows.
+- A candidate niche requires at least three videos, two unique channels, a coherent complete phrase, seed relevance, typical-performance evidence, confidence, and no total dependence on one outlier. One video cannot score above 35 or become a candidate.
+- English, Romanian, Russian, transliterated, synonymous, inflected, and mixed-language fixtures preserve original evidence while producing deterministic normalized clusters and intelligible suggested validation queries.
+- Below-threshold output remains inspectable under `Weak phrase signals` with exact reasons, nullable robust evidence, complete/partial/empty/error states, no provider work while viewing, and owner-isolated actions.
+
+### Research evidence quality
+
+- New scored runs persist one immutable `research-evidence-v1` profile and exact per-result source rows; duplicate delivery reuses them, legacy runs remain unchanged, and another evidence version creates separate history.
+- Relevance tests cover strict, related, weak, and off-topic boundaries; negative terms; language/known-format mismatches; optional semantic/category/topic support; duplicate titles; and missing fields without coercing unknowns to zero or false.
+- Complete and strictly relevant samples expose minimum-sample-aware median/percentile/trimmed-mean values. Shorts and long-form remain separate, while viral-outlier fixtures expose top dependency and values after removing the top one through three observations.
+- Stability is calculated only for owner-scoped compatible snapshots and tests stable, unstable, insufficient-overlap, missing-history, metric-null, and historical-immutability behavior. Research inspection remains bounded, authorized, accessible, and provider-free.

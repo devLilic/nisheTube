@@ -66,6 +66,27 @@ const searchTable = readFileSync(
     ),
     'utf8',
 );
+const decisionSummary = readFileSync(
+    new URL(
+        '../../resources/js/features/analyzer/analyzer-decision-summary.tsx',
+        import.meta.url,
+    ),
+    'utf8',
+);
+const rawData = readFileSync(
+    new URL(
+        '../../resources/js/features/analyzer/analyzer-raw-data.tsx',
+        import.meta.url,
+    ),
+    'utf8',
+);
+const topicProfile = readFileSync(
+    new URL(
+        '../../resources/js/features/analyzer/topic-profile.tsx',
+        import.meta.url,
+    ),
+    'utf8',
+);
 
 test('Analyzer intake documents canonical supported inputs and validation state', () => {
     assert.match(intake, /watch, youtu\.be, Shorts, embed/);
@@ -79,6 +100,7 @@ test('Analyzer live page exposes progress, cache, partial, quota, and refresh st
     assert.match(show, /role="progressbar"/);
     assert.match(show, /PartialDataBanner/);
     assert.match(show, /Force Refresh/);
+    assert.match(show, /Return to Explore/);
     assert.match(show, /youtubeQuota/);
     assert.match(show, /Video unavailable|run\.error\.title/);
     assert.match(
@@ -187,18 +209,39 @@ test('standalone channel intake and recent analyses expose the shared Analyzer r
     assert.match(index, /channel_page: channelPage/);
 });
 
-test('Analyzer profile groups video, channel, and organization blocks into accessible compact tabs', () => {
+test('Analyzer profile groups decision evidence into accessible compact tabs', () => {
     assert.match(profileTabs, /role="tablist"/);
     assert.match(profileTabs, /role="tab"/);
     assert.match(profileTabs, /role="tabpanel"/);
     assert.match(profileTabs, /aria-selected/);
     assert.match(profileTabs, /ArrowRight/);
-    assert.match(profileTabs, /Video & content/);
+    assert.match(profileTabs, /Summary/);
+    assert.match(profileTabs, /Content patterns/);
     assert.match(profileTabs, /Channel/);
-    assert.match(profileTabs, /Save & organize/);
+    assert.match(profileTabs, /Raw data/);
     assert.match(profileTabs, /gap-5/);
     assert.match(profileTabs, /Channel profile is not ready/);
-    assert.match(profileTabs, /Save options are not ready/);
+    assert.match(profileTabs, /AnalyzerDecisionSummary/);
+    assert.match(profileTabs, /AnalyzerRawData/);
+});
+
+test('Analyzer decision views keep exact stored provenance and quality guardrails visible', () => {
+    assert.match(decisionSummary, /Stored evidence only/);
+    assert.match(
+        decisionSummary,
+        /not a prediction,[\s\S]*YouTube search-volume[\s\S]*measure/,
+    );
+    assert.match(rawData, /Values are[\s\S]*not recalculated on this page/);
+    assert.match(rawData, /Lifetime views\/day formula/);
+    assert.match(rawData, /Topic profile version/);
+    assert.match(topicProfile, /stored[\s\S]*confidence and frequency guard/);
+    assert.match(topicProfile, /Title fragment:/);
+    assert.match(
+        topicProfile,
+        /Topic confidence applies to each repeated topic/,
+    );
+    assert.match(curation, /context="shortlist"/);
+    assert.match(curation, /WorkspaceHandoff/);
 });
 
 test('important video and channel metrics use soft accents and hover or focus explanations', () => {

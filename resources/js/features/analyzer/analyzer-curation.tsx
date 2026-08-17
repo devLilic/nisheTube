@@ -222,10 +222,14 @@ export function AnalyzerCurationPanel({
     run,
     library,
     workspaces,
+    compact = false,
+    hideHandoffs = false,
 }: {
     run: AnalyzerRun;
     library: LibraryContext;
     workspaces: WorkspaceOption[];
+    compact?: boolean;
+    hideHandoffs?: boolean;
 }) {
     if (!run.channel || !run.curation) {
         return null;
@@ -250,6 +254,38 @@ export function AnalyzerCurationPanel({
         },
     ];
 
+    if (compact) {
+        const subject = subjects[0];
+
+        return (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <p className="text-sm font-medium">
+                        Keep this evidence moving
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        Shortlist and Workspace actions reference this immutable
+                        attempt.
+                    </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <FavoriteToggle
+                        library={library}
+                        targetType={subject.type as LibraryTargetType}
+                        targetReference={subject.reference}
+                        label={subject.label}
+                        context="shortlist"
+                    />
+                    <WorkspaceHandoff
+                        workspaces={workspaces}
+                        targetType="analyzer_run"
+                        targetReference={run.public_id}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -268,47 +304,53 @@ export function AnalyzerCurationPanel({
                         subject={subject}
                     />
                 ))}
-                <div className="grid gap-3 border-t pt-5 md:grid-cols-2">
-                    {run.handoffs?.watchlist.watchlist_public_id ? (
-                        <Button variant="outline" asChild>
-                            <a href="/watchlist">Open watched item</a>
-                        </Button>
-                    ) : (
-                        <Form
-                            action="/watchlist"
-                            method="post"
-                            disableWhileProcessing
-                        >
-                            <input
-                                type="hidden"
-                                name="target_type"
-                                value={run.handoffs?.watchlist.target_kind}
-                            />
-                            <input
-                                type="hidden"
-                                name="target_reference"
-                                value={run.handoffs?.watchlist.target_reference}
-                            />
-                            <Button
-                                type="submit"
-                                variant="outline"
-                                className="w-full"
-                            >
-                                Add to Watchlist
+                {!hideHandoffs && (
+                    <div className="grid gap-3 border-t pt-5 md:grid-cols-2">
+                        {run.handoffs?.watchlist.watchlist_public_id ? (
+                            <Button variant="outline" asChild>
+                                <a href="/watchlist">Open watched item</a>
                             </Button>
-                        </Form>
-                    )}
-                    <WorkspaceHandoff
-                        workspaces={workspaces}
-                        targetType="analyzer_run"
-                        targetReference={run.public_id}
-                    />
-                </div>
-                <p className="text-xs leading-5 text-muted-foreground">
-                    Watchlist is an explicit repeated-observation opt-in and
-                    remains independent from Favorites. Workspace links reuse
-                    this immutable attempt and copy no metric payload.
-                </p>
+                        ) : (
+                            <Form
+                                action="/watchlist"
+                                method="post"
+                                disableWhileProcessing
+                            >
+                                <input
+                                    type="hidden"
+                                    name="target_type"
+                                    value={run.handoffs?.watchlist.target_kind}
+                                />
+                                <input
+                                    type="hidden"
+                                    name="target_reference"
+                                    value={
+                                        run.handoffs?.watchlist.target_reference
+                                    }
+                                />
+                                <Button
+                                    type="submit"
+                                    variant="outline"
+                                    className="w-full"
+                                >
+                                    Add to Watchlist
+                                </Button>
+                            </Form>
+                        )}
+                        <WorkspaceHandoff
+                            workspaces={workspaces}
+                            targetType="analyzer_run"
+                            targetReference={run.public_id}
+                        />
+                    </div>
+                )}
+                {!hideHandoffs && (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                        Watchlist is an explicit repeated-observation opt-in and
+                        remains independent from Favorites. Workspace links
+                        reuse this immutable attempt and copy no metric payload.
+                    </p>
+                )}
             </CardContent>
         </Card>
     );

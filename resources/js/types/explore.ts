@@ -22,6 +22,12 @@ export type ExploreFilters = {
     sort: 'latest' | 'score_desc' | 'performance_desc' | 'title';
 };
 
+export type ExplorePreset = {
+    public_id: string;
+    name: string;
+    filters: ExploreFilters;
+};
+
 export type ExploreResult = {
     entity_type: ExploreEntityType;
     id: string;

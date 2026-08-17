@@ -280,6 +280,100 @@
 - [x] **UX-07 — Saved comment ideas (UI)**
       Let an owner save an interesting collected top-level comment as an idea, remove it after an accidental save, and browse all saved ideas on a dedicated paginated page. Each item retains the exact stored comment and canonical source-video context and exposes a safe YouTube video link. Acceptance: saves are owner-scoped and idempotent; foreign comments and saved ideas are not exposed; removal does not mutate or delete immutable comment collections; Analyzer controls and the Ideas page cover loading, empty, success, partial-source, and error feedback; list queries are bounded and deterministic; no provider request is introduced; responsive keyboard-accessible UI and focused persistence/domain/authorization/frontend tests plus documentation pass.
 
+## Phase 19 — Decision foundation
+
+Detailed scope and traceability for Phases 19–22 are defined in `13_DECISION_WORKFLOW_REDESIGN.md`.
+
+- [x] **IA-01 — Task-oriented navigation and persistent research context**
+      Group production navigation into Research, Library, and Tools; expose Discover themes, Validate a niche, Compare niches, and Shortlist as decision-oriented destinations; hide the UI showcase outside development; preserve the active market/project/workspace safely across pages. Acceptance: owner-scoped context, incompatible/archived fallbacks, active-page and keyboard behavior, zero provider calls, complete desktop states, focused frontend/backend tests, and documentation pass.
+
+- [x] **BRAND-01 — NisheTube identity mark refresh (UI)**
+      Replace the generic play-button mark with a distinctive code-native NisheTube logo that combines video and niche-research cues, remains recognizable at compact sidebar/auth sizes, works in light and dark themes, preserves accessible product naming, and introduces no raster or remote asset dependency. Acceptance: consistent shell/auth usage, scalable SVG semantics, desktop visual QA, focused frontend tests, and documentation pass.
+
+- [x] **IA-02 — Global research bar, stored-data search, and compact quota**
+      Add a working market selector, active project/workspace context, bounded owner-scoped search across themes/videos/channels/runs, Shortlist access, completed-run notifications, and a compact quota popover with correct request/unit vocabulary and configuration-backed costs. Acceptance: persistence, owner isolation, debounce/bounds, read state, quota states, accessible search/popover behavior, no provider calls from navigation/search, focused tests, and documentation pass.
+
+- [x] **SRCH-05 — Discover-market and validate-idea intake**
+      Split Search into Discover a market and Validate my idea; add market/language/format/period/channel-size discovery inputs, validation presets, collapsed advanced filters, exact preflight parameters/cost, observed-demand guidance, and safe single submission. Acceptance: frozen validated inputs, preserved values, idempotency, `Creating run`, no false post-create validation errors, complete states, quota/ownership coverage, responsive UI, focused tests, and documentation pass.
+
+- [x] **RSLT-01 — Research decision summary and lifecycle clarity**
+      Lead Research results with verdict, opportunity, confidence, field-level completeness, stability, freshness/sample context, deterministic interpretation, principal evidence, risks, and one next action; clarify active progress and terminal complete/partial/reduced-confidence/failed states. Acceptance: no contradictory labels or unsupported ETA precision, partial data is preserved, all states are accessible and owner-scoped, viewing causes no provider calls, focused tests, and documentation pass.
+
+- [x] **RSLT-02 — Research evidence inspection and actions**
+      Add compact expandable components, evidence sorts/quick filters, one primary decision CTA, secondary handoffs, and a progressive provenance drawer for provider/query/parameters/window/cache/formula/snapshot details. Acceptance: server-bounded queries, exact accessible values, authorized handoffs and return context, no duplicate provider work, long-title/table responsiveness, focused tests, and documentation pass.
+
+- [x] **DISC-04 — Discovery candidate evidence quality and multilingual normalization**
+      Version candidate scoring around multi-video/channel proof, semantic coherence, robust typical performance, relevance, stability, outlier resistance, and English/Romanian/Russian normalization; classify below-threshold output as Weak phrase signals. Acceptance: at least three videos/two channels for a valid candidate, no one-video perfect score, intelligible labels/suggested queries, immutable evidence/versioning, owner isolation, complete states, focused formula/authorization/UI tests, and documentation pass.
+
+- [x] **DISC-05 — Compact Discover decision table**
+      Replace oversized candidate cards with a paginated evidence table and accessible expanded detail; keep Validate primary and organization actions secondary; visibly separate weak phrases. Acceptance: deterministic sorting/bounds, exact evidence alternatives, no provider calls on inspection, complete states, owner isolation, desktop usability at approximately 1440px, focused tests, and documentation pass.
+
+- [x] **SCR-04 — Relevance, format, outlier, and stability evidence**
+      Persist versioned per-result relevance, strict/related/weak/off-topic classes, separate Shorts/long-form evidence, robust outlier-resistant statistics, and compatible-snapshot stability. Acceptance: immutable/null-safe inputs, minimum-sample and compatibility rules, no direct cross-format claims, full-versus-strict outputs, focused edge fixtures and accessible UI evidence, and documentation pass.
+
+- [ ] **SCR-05 — Opportunity and confidence v2**
+      Add `niche-opportunity-v2` and `confidence-v2` using improved competition, reachability, creator-viability, observed-activity/momentum, freshness-gap, evidence-independence, stability, relevance, format, and outlier signals without overwriting v1. Acceptance: frozen versioned inputs/configuration, strict/full sample views, explicit confidence reductions and inferred provenance, deterministic tests/bounds, historical compatibility warnings, complete UI states, and documentation pass.
+
+- [ ] **PROF-01 — Estimated profitability fit**
+      Add an explainable estimated profitability-fit model separate from Opportunity, covering advertiser/affiliate/sponsor fit, production/access/copyright/seasonality risk, repeatability, format suitability, and user assumptions. Acceptance: owner-scoped versioned inputs, editable assumptions without historical score mutation, explicit estimated/unknown provenance, no CPM/revenue guarantee, comparison support, complete UI/tests, and documentation pass.
+
+## Phase 20 — Decision workspaces
+
+- [ ] **DASH-04 — Decision Cockpit**
+      Lead Dashboard with one recommended next action, three to five top opportunities, Shortlist status, and Watchlist alerts; move runs/errors/quota/system/cleanup below and remove coming-soon/actionless technical cards. Acceptance: deterministic priority, bounded N+1-safe owner queries, no provider work, complete states, responsive keyboard UI, focused tests, and documentation pass.
+
+- [ ] **SHORT-01 — Shortlist and niche comparison**
+      Add an owner-scoped Shortlist decision surface and compare two to five candidates across opportunity, confidence, stability, relevance, components, profitability fit, risks, validation, and next step, with explained Go/Validate further/Monitor/Avoid verdicts. Acceptance: authorized/idempotent persistence, immutable evidence links, compatibility warnings, bounded provider-free comparisons, complete accessible states, focused tests, and documentation pass.
+
+- [ ] **XPLR-02 — Explore productivity and score clarity**
+      Simplify primary/advanced filters, add quick and owner-saved presets, table/card views, entity-specific fields, correct Parent niche score labeling, preserved filters/scroll, and bulk-selection hooks. Acceptance: server pagination, owner-scoped saved state, deterministic return context, honest nulls, zero provider calls, accessible responsive UI, focused tests, and documentation pass.
+
+- [ ] **ANA-06 — Analyzer decision hierarchy and topic-quality guardrails**
+      Reorganize Analyzer into Summary, Content patterns, Channel, and Raw data; make Shortlist/Workspace actions persistent; translate jargon while retaining tooltips/raw values; enforce semantic confidence/frequency/synonym/topic-versus-title distinctions. Acceptance: no duplicated formulas/provider work, complete accessible states, visible provenance/versioning, multilingual/responsive behavior, focused tests, and documentation pass.
+
+- [ ] **XCMP-02 — Peer-aware comparison of up to four channels**
+      After updating the decision log, extend comparison to two through four channels with peer groups, subscriber/performance/cadence/Shorts/niche/growth/freshness metrics, comparability warnings, accessible winners, and evidence-based competitor labels. Acceptance: owner authorization, deterministic bounds, null/version/sample guards, no provider work or unsupported score claim, responsive exact tables, focused tests, and documentation pass.
+
+- [ ] **HIST-04 — Searchable history and direct snapshot comparison**
+      Add bounded history search/filters, readable parameters, direct two-run selection, expanded score/evidence/stability deltas, and confirmed Repeat with same parameters when no compatible snapshot exists. Acceptance: owner isolation, pair/version validation, null-safe deltas, no provider call before confirmation, duplicate-submit prevention, complete states, focused tests, and documentation pass.
+
+- [ ] **TOPIC-02 — Topic Workspace decision canvas**
+      Add hypothesis/audience/market/opportunity/evidence-for-and-against/competitor/outlier/counterexample/angle/monetization/risk/decision/next-step fields, six decision statuses, grouped metric summaries, bulk evidence, notes/tags, and workflow history. Acceptance: owner policies, cross-market confirmation, immutable references without copied mutable metrics, bounded history, complete states, focused tests, and documentation pass.
+
+- [ ] **WATCH-02 — Watchlist alerts and monitoring controls**
+      Add compact change/refresh/workspace context, versioned alerts for performance/growth/breakout/score/competitor/topic/staleness, bulk refresh, pause, filters, largest-change sort, and notification-center integration. Acceptance: owner isolation, observation-only deltas, quota-confirmed idempotent refreshes, honest local-worker scheduling, complete states, focused tests, and documentation pass.
+
+- [ ] **LIB-04 — Project and idea decision context**
+      Extend Projects with purpose/market/themes/Shortlist/workspaces/status/activity/decisions and Ideas with optional topic/candidate/video/workspace/format/audience/status context while preserving saved-comment source semantics. Acceptance: owner-scoped optional relations, incompatible/foreign rejection, retention safety, bounded queries, complete UI states, focused tests, and documentation pass.
+
+## Phase 21 — Operational productivity and presentation
+
+- [ ] **EXP-04 — Selection-aware exports**
+      Export filtered rows, explicit selections, Shortlists, comparisons, and workspaces with optional technical details and mandatory dataset confirmation. Acceptance: frozen owner-scoped manifests, queued authorization, Unicode/formula safety, bounded generation, complete job/download/expiry states, focused tests, and documentation pass.
+
+- [ ] **SET-05 — Consolidated preferences and formatting**
+      Regroup Settings and add default period, peer group, Shorts handling, numeric formatting, and notification preferences while keeping the interface English-only and adding no UI-language selector. Acceptance: validated owner preferences, backward-compatible defaults, UTC/timezone and exact-number behavior, no secret exposure, complete states, focused tests, and documentation pass.
+
+- [ ] **LAND-01 — NisheTube landing and authentication entry**
+      Replace the default Laravel landing page with accurate NisheTube purpose/data/limits/privacy/local-install copy and Login/Register actions; redirect authenticated users to Dashboard. Acceptance: loopback registration rules, guest/auth redirects, no framework/deployment marketing or secret leakage, accessible responsive UI, focused tests, and documentation pass.
+
+- [ ] **JOB-01 — Controlled background jobs and notifications**
+      Add safe failure reasons, preserved partial data, explicitly estimated ETA, pre-start cancel, controlled retry, meaningful completion/failure notifications, and a worker-not-running indicator without accidental quota duplication. Acceptance: guarded idempotent state transitions, ownership rechecks, quota-ledger integrity, notification read state, complete UI/tests, and documentation pass.
+
+- [ ] **PERF-02 — Stored-interface performance and navigation continuity**
+      Measure and apply server pagination, justified virtualization, lazy thumbnails, debounce, safe filter caching, skeletons, partial reloads, scroll restoration, prefetch, and sticky tables to redesigned surfaces. Acceptance: documented per-surface budgets, bounded payload/memory/query counts, no N+1/cache/accessibility regressions, focused performance/frontend tests, and documentation pass.
+
+- [ ] **BULK-01 — Cross-surface bulk actions**
+      Add a bounded shared selection model and valid Workspace, Shortlist/Favorite, Dismiss, Export, Compare, and Watch actions with explicit confirmation for destructive or quota-consuming work. Acceptance: per-target owner authorization, bounds/idempotency, mixed/foreign/partial outcomes, quota preview, accessible keyboard selection, focused backend/frontend tests, and documentation pass.
+
+- [ ] **A11Y-02 — Terminology, accessibility, density, and desktop hardening**
+      Standardize English decision terminology, move jargon to progressive help, audit WCAG-oriented contrast/focus/keyboard/labels/status/chart/table/zoom behavior, and implement desktop density rules; tablet and mobile-specific work is excluded. Acceptance: 200% zoom, long EN/RO/RU evidence text, desktop QA at approximately 1440px, non-color/exact alternatives, focused tests, and documentation pass.
+
+## Phase 22 — Decision workflow hardening
+
+- [ ] **QA-02 — Decision-workflow acceptance and regression suite**
+      Add the focused calculation, Discover, UI, and cross-stack cases in `13_DECISION_WORKFLOW_REDESIGN.md`, then verify Discover -> select -> validate -> compare -> decide -> monitor. Acceptance: theme-to-verdict takes at most five meaningful steps; first-view decision hierarchy is complete; weak candidates cannot overclaim; opportunity and profitability remain distinct; v1 history remains immutable; quota vocabulary/configuration and production navigation are correct; focused cross-stack/accessibility/documentation checks pass.
+
 ## Suggested milestone releases
 
 - **M1 — Searchable:** Phases 0–4.
@@ -292,3 +386,7 @@
 - **M8 — Semantic depth:** Phase 16, subject to the Transcript gate.
 - **M9 — Advanced patterns:** Phase 17.
 - **M10 — Research UX refinement:** Phase 18.
+- **M11 — Decision foundation:** Phase 19.
+- **M12 — Decision workspaces:** Phase 20.
+- **M13 — Operational productivity:** Phase 21.
+- **M14 — Decision workflow hardening:** Phase 22.

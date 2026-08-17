@@ -263,3 +263,51 @@
 **Decision:** A heart action creates one owner-scoped `saved_comment_ideas` record per canonical video and provider comment ID. It intentionally copies the exact selected top-level text and source publish time, pins the canonical video, and keeps a nullable link to the retained `public_comments` row. Raw comment cleanup nulls that link but preserves the private idea and its video URL. Removing the heart deletes only the saved idea and never mutates the immutable comment collection.
 
 **Reason:** A research idea is explicit durable user intent, while a raw public-comment collection remains a bounded six-month evidence sample. A nullable provenance link plus a minimal intentional copy prevents retention from unexpectedly erasing the user's curated list, avoids preserving an entire comment collection for one selection, and keeps save/remove actions local, idempotent, and quota-free.
+
+## D-038 — Interface implementation and QA are desktop-only
+
+**Status:** Accepted
+
+**Decision:** Beginning with IA-01, NisheTube interface implementation and visual acceptance target desktop browsers at approximately 1440px, with supported desktop widths starting at 1280px. Tablet and mobile-specific layouts, breakpoint optimization, and dedicated visual QA are out of scope. Smaller widths may retain best-effort wrapping or scrolling but are not completion gates.
+
+**Reason:** The product owner explicitly deprioritized tablet behavior so implementation and verification effort can remain focused on the local desktop research workflow. Keyboard access, zoom, long multilingual evidence, exact-value access, and non-color status requirements remain mandatory on desktop.
+
+## D-039 — Intake submissions use owner-scoped durable idempotency tokens
+
+**Status:** Accepted
+
+**Decision:** Each new Research validation or stored-evidence Discovery submission may carry a server-issued UUID. The UUID is persisted on the created run and is unique with its owner; a repeated valid request from that owner resolves to the original run instead of creating or queueing another attempt. Legacy and internal creation paths may omit the token, and retries remain separate immutable attempts under their existing lifecycle rules.
+
+**Reason:** Disabling a button prevents ordinary double clicks but cannot cover repeated HTTP delivery, slow redirects, or navigation retries. Durable owner-scoped uniqueness prevents duplicate queued work and quota exposure without making tokens global across local users or conflating an explicit failed-run retry with accidental resubmission.
+
+## D-040 — Discovery candidates use immutable evidence-quality versions and explicit weak signals
+
+**Status:** Accepted
+
+**Decision:** New Discovery runs freeze `candidate-evidence-v2`, its thresholds, reference time, and `discovery-phrase-normalization-v1`. Candidate evidence combines frequency, unique-channel/seed coverage, semantic coherence, typical and top-video-removed performance, small-channel proof, freshness, robust stability, seed relevance, and phrase quality. A candidate requires at least three videos and two channels and must satisfy every frozen quality threshold; all other output persists as `weak_phrase_signal` with exact reasons. The evidence payload and score cannot be updated after insertion, while organization status and a validation-run link remain mutable. Legacy rows remain identified as legacy and are never rewritten.
+
+**Reason:** Candidate generation must resist viral single-video artifacts and multilingual surface variation without hiding useful but insufficient observations. Freezing exact inputs, transformations, thresholds, and outputs makes the result reproducible and auditable, while a dedicated weak state prevents low-quality phrases from being presented as validated niches or Opportunity scores.
+
+## D-041 — Research evidence quality is versioned separately from Opportunity v1
+
+**Status:** Accepted
+
+**Decision:** `research-evidence-v1` is calculated once during a new Research run's scoring stage and stores immutable per-result relevance/source rows plus complete/strict, format-specific, outlier-resistant, and compatible-snapshot aggregates. Compatibility freezes normalized query, run kind, market mapping, requested depth, collection parameters, and evidence version. Unknown format/language/support signals remain explicit; Shorts and long-form are never compared directly. Historical runs without this profile remain unchanged and visibly unavailable. `niche-opportunity-v1` continues to use its released inputs and behavior until SCR-05 introduces a separate formula version.
+
+**Reason:** Persisting the evidence layer separately makes later scoring explainable and reproducible without silently changing released scores or backfilling claims into old snapshots. Exact source pins and conservative minimum/compatibility gates distinguish missing history from low stability and prevent viral or mixed-format samples from becoming unsupported decisions.
+
+## D-042 — Opportunity and confidence v2 freeze evidence-derived inputs
+
+**Status:** Accepted
+
+**Decision:** New scoring-stage Research runs persist `niche-opportunity-v2` and `confidence-v2` without altering existing v1 scores. The result freezes the v2 configuration, calculation time, full/strict sample counts, `research-evidence-v1` profile identity, and each video/channel snapshot pin. v2 adds channel concentration, repeat ownership, channel-size proof, subscriber visibility, relevance, format, outlier, and stability evidence to the existing robust stored metrics. Without a compatible earlier snapshot, demand is labelled `Observed activity`, not momentum; unavailable access/budget complexity remains explicitly unavailable. The UI shows full and strict sample counts and every confidence reduction as a stored warning.
+
+**Reason:** Reusing immutable evidence prevents provider work or hidden recalculation while giving later runs a more auditable decision aid. Separating unavailable signals from zero-valued claims avoids false precision, and preserving v1 allows historical results to remain interpretable.
+
+## D-043 — Four-channel comparison extends the bounded read model
+
+**Status:** Accepted
+
+**Decision:** XCMP-02 may compare two through four distinct completed owner-scoped Analyzer channel attempts. The comparison remains storage-free and provider-free: it reads only pinned Analyzer metrics and related immutable semantic, thumbnail, and observation evidence. Every metric retains its source version, observation time, sample/coverage state, and nullability; incompatible periods, versions, formats, or samples remain explicit rather than normalized or recalculated. Four columns are permitted only in the desktop comparison layout with non-color strongest-value indicators and no derived opportunity score, channel ranking, causal finding, or recommendation.
+
+**Reason:** The user accepted a four-channel peer group because direct side-by-side context is useful for local research. Retaining the XCMP-01 bounded read-model constraints preserves ownership, historical integrity, and honest comparability while preventing the wider layout from becoming a hidden scoring or recommendation system.

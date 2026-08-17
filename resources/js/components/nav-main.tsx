@@ -1,52 +1,74 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
-import { useCurrentUrl } from '@/hooks/use-current-url';
-import type { NavItem } from '@/types';
+import { toUrl } from '@/lib/utils';
+import type { NavGroup, NavItem } from '@/types';
 
-export function NavMain({ items = [] }: { items: NavItem[] }) {
-    const { isCurrentUrl } = useCurrentUrl();
+const pathMatches = (currentPath: string, candidate: string) =>
+    currentPath === candidate || currentPath.startsWith(`${candidate}/`);
+
+const isActive = (item: NavItem, currentPath: string) => {
+    if (item.excludedPaths?.some((path) => pathMatches(currentPath, path))) {
+        return false;
+    }
+
+    const paths = item.activePaths ?? [toUrl(item.href).split('?')[0]];
+
+    return paths.some((path) => pathMatches(currentPath, path));
+};
+
+export function NavMain({ groups }: { groups: NavGroup[] }) {
+    const { setOpenMobile } = useSidebar();
+    const currentPath = new URL(
+        usePage().url,
+        typeof window === 'undefined'
+            ? 'http://localhost'
+            : window.location.origin,
+    ).pathname;
 
     return (
-        <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
-            <SidebarMenu>
-                {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                        {item.disabled ? (
-                            <SidebarMenuButton
-                                disabled
-                                tooltip={{
-                                    children: `${item.title} — coming soon`,
-                                }}
-                                className="opacity-55"
-                            >
-                                {item.icon && <item.icon />}
-                                <span>{item.title}</span>
-                                <span className="ml-auto text-[10px] font-semibold tracking-wide uppercase group-data-[collapsible=icon]:hidden">
-                                    Soon
-                                </span>
-                            </SidebarMenuButton>
-                        ) : (
-                            <SidebarMenuButton
-                                asChild
-                                isActive={isCurrentUrl(item.href)}
-                                tooltip={{ children: item.title }}
-                            >
-                                <Link href={item.href} prefetch>
-                                    {item.icon && <item.icon />}
-                                    <span>{item.title}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        )}
-                    </SidebarMenuItem>
-                ))}
-            </SidebarMenu>
-        </SidebarGroup>
+        <nav aria-label="Primary navigation">
+            {groups.map((group) => (
+                <SidebarGroup className="px-2 py-1" key={group.label}>
+                    <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                    <SidebarMenu>
+                        {group.items.map((item) => {
+                            const active = isActive(item, currentPath);
+
+                            return (
+                                <SidebarMenuItem key={item.title}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={active}
+                                        tooltip={{ children: item.title }}
+                                        className="min-w-0"
+                                    >
+                                        <Link
+                                            href={item.href}
+                                            prefetch
+                                            aria-current={
+                                                active ? 'page' : undefined
+                                            }
+                                            onClick={() => setOpenMobile(false)}
+                                        >
+                                            {item.icon && <item.icon />}
+                                            <span title={item.title}>
+                                                {item.title}
+                                            </span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            );
+                        })}
+                    </SidebarMenu>
+                </SidebarGroup>
+            ))}
+        </nav>
     );
 }

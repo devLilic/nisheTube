@@ -13,19 +13,26 @@ import { Spinner } from '@/components/ui/spinner';
 import { CandidateList } from '@/features/discovery/candidate-list';
 import { DiscoveryProgress } from '@/features/discovery/discovery-progress';
 import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
-import type { DiscoveryRun, LibraryContext, QuotaSummary } from '@/types';
+import type {
+    DiscoveryCandidateTable,
+    DiscoveryRun,
+    LibraryContext,
+    QuotaSummary,
+} from '@/types';
 
 type PageProps = {
     run: DiscoveryRun;
     youtubeQuota: QuotaSummary | null;
     library: LibraryContext;
     workspaces: WorkspaceOption[];
+    candidate_table: DiscoveryCandidateTable;
 };
 
 export default function DiscoveryRunShow({
     run,
     library,
     workspaces,
+    candidate_table,
 }: PageProps) {
     const { youtubeQuota } = usePage<PageProps>().props;
     const { start, stop } = usePoll(
@@ -190,7 +197,7 @@ export default function DiscoveryRunShow({
                     </Card>
                 ) : run.status === 'completed' ? (
                     <CandidateList
-                        candidates={run.candidates}
+                        table={candidate_table}
                         validationBlocked={validationBlocked}
                         library={library}
                         workspaces={workspaces}

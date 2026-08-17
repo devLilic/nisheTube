@@ -8,6 +8,8 @@ final readonly class DiscoveryCluster
      * @param  list<string>  $memberPhrases
      * @param  list<string>  $videoIds
      * @param  list<string>  $seedQueries
+     * @param  list<string>  $languages
+     * @param  list<string>  $normalizationTransformations
      */
     public function __construct(
         public string $clusterKey,
@@ -16,5 +18,7 @@ final readonly class DiscoveryCluster
         public array $videoIds,
         public array $seedQueries,
         public float $strength,
+        public array $languages = [],
+        public array $normalizationTransformations = [],
     ) {}
 }

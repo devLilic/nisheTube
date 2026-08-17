@@ -191,3 +191,31 @@ See `12_UNIFIED_ANALYZER_MODEL.md` for the formulas, provenance, and cross-workf
 `audience-comment-terms-v1` deterministically derives repeated questions, topics, entities, suggestions, complaints, and confusion points only from a pinned stored top-level-comment collection. A signal requires recurrence in at least two comments and records exact comment evidence, comment/occurrence counts, language, and confidence. Overall confidence combines usable sample size, signal coverage, and dominant-language agreement.
 
 Fewer than three stored or safe meaningful comments returns `insufficient`; mixed-language or partially excluded input returns `partial`; a sample with no safe meaningful input returns `unsafe`. URLs, email addresses, phone-like identifiers, and explicitly unsafe phrases are excluded from labels. These values are inferred sample patterns, not authoritative sentiment, full-audience measurement, causal evidence, or opportunity-score inputs.
+
+## 11. Candidate evidence version `candidate-evidence-v2`
+
+Discovery candidate evidence is separate from Opportunity score. New Discovery runs freeze `candidate-evidence-v2` plus thresholds requiring at least three supporting videos, two unique channels, confidence of 50, semantic coherence of 55, seed relevance of 20, typical-performance evidence of 40, phrase quality of 60, and no top-video share above 70%. The score combines frequency, unique channels, seed coverage, semantic coherence, robust typical performance, performance after removing the top video, small-channel proof, freshness, robust stability, seed relevance, and phrase quality.
+
+One-video evidence is capped at 35 for both evidence score and confidence. Fewer than three videos or two channels cannot exceed 59 and is always a `Weak phrase signal`. Missing performance/subscriber evidence lowers component coverage and confidence rather than becoming zero-valued public facts. Every result persists exact inputs, thresholds, component values, medians, top-video dependency, insufficiency reasons, normalized/original phrases, language provenance, and the suggested validation query. Candidate evidence remains an observed decision aid and still requires a normal validation Search before an Opportunity score exists.
+
+`discovery-phrase-normalization-v1` deterministically removes English/Romanian/Russian stop words, reduces bounded inflections, and maps an allow-listed set of synonyms and common transliterations to canonical clustering tokens. Original title phrases and detected language evidence remain stored beside the normalized phrase. Mixed-language noise cannot erase the original evidence.
+
+## 12. Planned scoring evolution
+
+`SCR-04`, `SCR-05`, and `PROF-01` in `13_DECISION_WORKFLOW_REDESIGN.md` define planned relevance, format, outlier, stability, opportunity/confidence v2, and profitability-fit work. These tasks must introduce new immutable versions and must not change or overwrite released behavior. Profitability fit remains separate from Opportunity score and is explicitly estimated.
+
+## 13. Research evidence version `research-evidence-v1`
+
+`research-evidence-v1` is a frozen evidence-quality input for later scoring versions; it does not modify or reinterpret `niche-opportunity-v1`. Per-result relevance combines normalized query coverage in the title with optional stored semantic/category/topic support, explicit negative query terms, expected language, and the frozen content-format lens. Scores at least 75 with at least 75% title-term coverage are `strictly_relevant`; lower frozen boundaries produce `related`, `weakly_related`, or `off_topic`, with negative-term and known format mismatches guarded explicitly. Unknown signals remain stored as unavailable rather than false facts.
+
+Complete and strictly relevant samples each store views/day count, median, P25, P75, P90, and a 10% two-sided trimmed mean when at least five values exist. Robust claims require at least three values. Shorts, long-form, and unknown-format samples are calculated independently; no cross-format delta or winner is produced. Outlier evidence stores the top-video share and medians/means before and after removing the top one through three values, subject to at least two remaining values; dependency is High at 50% share, Medium at 30%, and Low otherwise.
+
+Compatible-snapshot stability requires the same owner, normalized query, run kind, market mapping, requested depth, frozen parameters, and evidence version. At least three overlapping videos are required. High stability requires at least 70% video/channel overlap, order coefficient at least 0.70, and median metric/aggregate variation no greater than 20%; Medium uses 40%, 0.30, and 50%; otherwise the compatible result is Low. Missing earlier history or insufficient positive metric pairs stays unavailable and never becomes Low by default.
+
+## 14. Opportunity and confidence version `niche-opportunity-v2`
+
+`niche-opportunity-v2` and `confidence-v2` are immutable, evidence-derived decision aids for new Research runs. Each persisted result freezes v2 configuration, calculation time, the `research-evidence-v1` profile, full/strict sample counts, and exact source snapshot pins. v1 rows remain unchanged.
+
+Competition combines channel HHI/concentration, repeated-channel ownership, large-channel share, and sub-10K/sub-100K proof. Reachability combines robust subscriber-normalized performance with visible-subscriber coverage, small/mid-channel proof, and ownership independence. Creator viability retains robust performance/cadence evidence and adds repeat-winner independence, format classification, and Shorts dependence; access/budget complexity remains unavailable unless a future approved source exists. Freshness remains distinct from demand.
+
+Demand with no compatible earlier snapshot is labelled `Observed activity`; it must not claim momentum. Confidence records reductions for insufficient sample, weak strict relevance, subscriber or format coverage, outlier dependence, stability, partial evidence, and missing history. The UI presents separate full and strictly relevant counts, versioned explanations, and exact warnings.

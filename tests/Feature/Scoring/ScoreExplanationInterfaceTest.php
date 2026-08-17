@@ -39,6 +39,16 @@ class ScoreExplanationInterfaceTest extends TestCase
     {
         $owner = User::factory()->create();
         $run = $this->completedRunWithScore($owner, 'owner scoring interface');
+        $run->profitabilityFitScores()->create([
+            'opportunity_score_id' => $run->opportunityScores()->sole()->id,
+            'formula_version' => 'profitability-fit-v1',
+            'fit_score' => '63.2500',
+            'confidence_score' => '58.5000',
+            'input_summary' => ['source' => ['formula_version' => 'niche-opportunity-v1']],
+            'explanations' => ['fit' => 'Stored estimate explanation.'],
+            'warnings' => [['code' => 'estimated_not_revenue', 'message' => 'This is not revenue.']],
+            'calculated_at' => now(),
+        ]);
 
         $this->actingAs($owner)
             ->get(route('research.runs.show', $run))
@@ -63,6 +73,9 @@ class ScoreExplanationInterfaceTest extends TestCase
                 ->has('run.score.warnings', 2)
                 ->where('run.score.warnings.0.code', 'missing_subscriber_counts')
                 ->where('run.score.warnings.1.code', 'no_comparable_history')
+                ->where('run.profitability_fit.fit_score', 63.25)
+                ->where('run.profitability_fit.source_formula_version', 'niche-opportunity-v1')
+                ->where('run.profitability_fit.warnings.0.code', 'estimated_not_revenue')
             );
     }
 
@@ -86,6 +99,7 @@ class ScoreExplanationInterfaceTest extends TestCase
             ->assertInertia(fn (Assert $page): Assert => $page
                 ->where('run.status', 'draft')
                 ->where('run.score', null)
+                ->where('run.profitability_fit', null)
             )
             ->assertDontSee('Foreign scoring warning')
             ->assertDontSee($foreignRun->public_id);

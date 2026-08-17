@@ -122,14 +122,20 @@ export function ExportWorkspace({
     builder,
     jobs,
     timezone,
+    selectedRunId,
 }: {
     builder: ExportBuilderData;
     jobs: ExportJobsData;
     timezone: string;
+    selectedRunId: string | null;
 }) {
     const form = useForm<FormData>({
         format: 'xlsx',
-        research_run_ids: [],
+        research_run_ids:
+            selectedRunId &&
+            builder.runs.some((run) => run.public_id === selectedRunId)
+                ? [selectedRunId]
+                : [],
         columns: builder.default_columns,
     });
     const [deleting, setDeleting] = useState<ExportJob | null>(null);

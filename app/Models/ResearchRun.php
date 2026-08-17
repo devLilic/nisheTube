@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $public_id
+ * @property string|null $submission_token
  * @property int $user_id
  * @property int $research_query_id
  * @property int|null $collection_run_id
@@ -44,6 +45,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'user_id',
+    'submission_token',
     'research_query_id',
     'collection_run_id',
     'kind',
@@ -72,6 +74,7 @@ class ResearchRun extends Model
 
     private const FROZEN_ATTRIBUTES = [
         'public_id',
+        'submission_token',
         'user_id',
         'research_query_id',
         'collection_run_id',
@@ -194,6 +197,18 @@ class ResearchRun extends Model
     public function opportunityScores(): HasMany
     {
         return $this->hasMany(OpportunityScore::class);
+    }
+
+    /** @return HasMany<ProfitabilityFitScore, $this> */
+    public function profitabilityFitScores(): HasMany
+    {
+        return $this->hasMany(ProfitabilityFitScore::class);
+    }
+
+    /** @return HasMany<ResearchEvidenceProfile, $this> */
+    public function evidenceProfiles(): HasMany
+    {
+        return $this->hasMany(ResearchEvidenceProfile::class);
     }
 
     /** @return HasMany<DiscoverySeed, $this> */

@@ -12,9 +12,11 @@ return [
     'quota_buckets' => [
         'search' => [
             'allowance' => (int) env('YOUTUBE_SEARCH_DAILY_ALLOWANCE', 100),
+            'measure' => 'requests',
         ],
         'general' => [
             'allowance' => (int) env('YOUTUBE_GENERAL_DAILY_ALLOWANCE', 10000),
+            'measure' => 'units',
         ],
     ],
 

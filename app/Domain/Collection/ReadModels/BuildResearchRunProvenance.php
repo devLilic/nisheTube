@@ -49,6 +49,20 @@ class BuildResearchRunProvenance
             ->where('collection_run_id', $collectionRun->id)
             ->selectRaw('COUNT(*) as attempt_count, COALESCE(SUM(estimated_cost), 0) as estimated_cost')
             ->first();
+        $endpoints = DB::table('api_usage_events')
+            ->where('collection_run_id', $collectionRun->id)
+            ->selectRaw('endpoint, quota_bucket, SUM(request_count) as request_count, SUM(estimated_cost) as estimated_cost')
+            ->groupBy('endpoint', 'quota_bucket')
+            ->orderBy('endpoint')
+            ->limit(20)
+            ->get()
+            ->map(fn (stdClass $event): array => [
+                'endpoint' => (string) $event->endpoint,
+                'quota_bucket' => (string) $event->quota_bucket,
+                'request_count' => (int) $event->request_count,
+                'estimated_cost' => (int) $event->estimated_cost,
+            ])
+            ->all();
 
         $videoCount = (int) ($sources->video_source_count ?? 0);
         $channelCount = (int) ($sources->channel_source_count ?? 0);
@@ -113,6 +127,7 @@ class BuildResearchRunProvenance
                 'pinned_channel_count' => $pinnedChannelCount,
                 'quota_attempt_count' => (int) $quota->attempt_count,
                 'quota_estimated_cost' => (int) $quota->estimated_cost,
+                'endpoints' => $endpoints,
                 'warnings' => $warnings,
                 'groups' => [
                     [

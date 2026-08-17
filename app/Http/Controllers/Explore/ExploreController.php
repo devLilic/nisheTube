@@ -14,7 +14,7 @@ class ExploreController extends Controller
     public function __invoke(IndexExploreRequest $request, BuildExploreIndex $index, LibraryViewModel $library): Response
     {
         return Inertia::render('explore/index', [
-            ...$index->handle($request->user(), $request->filters()),
+            ...$index->handle($request->user(), $request->filters(), $request->integer('page', 1)),
             'library' => $library->context($request->user()),
         ]);
     }

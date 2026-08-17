@@ -4,7 +4,7 @@ namespace App\Domain\Scoring\Actions;
 
 use App\Domain\Research\Actions\TransitionResearchRun;
 use App\Domain\Research\Enums\ResearchRunStatus;
-use App\Domain\Scoring\Services\NicheOpportunityV1;
+use App\Domain\Scoring\Services\NicheOpportunityV2;
 use App\Models\OpportunityScore;
 use App\Models\ResearchRun;
 use DomainException;
@@ -14,17 +14,20 @@ class CalculateOpportunityScore
 {
     public function __construct(
         private readonly BuildScoringInput $buildInput,
-        private readonly NicheOpportunityV1 $engine,
+        private readonly CalculateResearchEvidence $calculateEvidence,
+        private readonly NicheOpportunityV2 $engine,
+        private readonly CalculateProfitabilityFit $calculateProfitabilityFit,
         private readonly TransitionResearchRun $transition,
     ) {}
 
     public function handle(ResearchRun $run): OpportunityScore
     {
         $existing = $run->opportunityScores()
-            ->where('formula_version', NicheOpportunityV1::VERSION)
+            ->where('formula_version', NicheOpportunityV2::VERSION)
             ->first();
 
         if ($existing !== null) {
+            $this->calculateProfitabilityFit->handle($run, $existing);
             $this->completeIfNecessary($run);
 
             return $existing;
@@ -34,7 +37,12 @@ class CalculateOpportunityScore
             throw new DomainException('Only a research run in scoring may receive an opportunity score.');
         }
 
-        $result = $this->engine->calculate($this->buildInput->handle($run));
+        $evidence = $this->calculateEvidence->handle($run);
+
+        $result = $this->engine->calculate(
+            $this->buildInput->handle($run, NicheOpportunityV2::VERSION),
+            $evidence,
+        );
 
         $score = DB::transaction(function () use ($run, $result): OpportunityScore {
             $lockedRun = ResearchRun::query()->lockForUpdate()->findOrFail($run->id);
@@ -56,6 +64,7 @@ class CalculateOpportunityScore
             ]);
         });
 
+        $this->calculateProfitabilityFit->handle($run, $score);
         $this->completeIfNecessary($run->fresh() ?? $run);
 
         return $score;

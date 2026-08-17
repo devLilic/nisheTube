@@ -17,25 +17,71 @@ type PageProps = {
         result_depth: 25 | 50 | 100 | 200;
     };
     recent_runs: ResearchRun[];
+    submission_token: string;
+    validation_presets: ValidationPreset[];
+    preflight: ResearchPreflight;
+    repeat_source: ResearchRepeatSource | null;
+};
+
+export type ResearchRepeatSource = {
+    query_text: string;
+    market_key: MarketKey;
+    requested_result_count: number;
+    published_window: string;
+    published_after: string;
+    published_before: string;
+    search_order: string;
+    video_duration: string;
+    video_category_id: string;
+    content_format: string;
+    target_channel_size: string;
+};
+
+export type ValidationPreset = {
+    key: string;
+    label: string;
+    requested_result_count: number;
+    published_window: string;
+    search_order: string;
+    video_duration: string;
+    content_format: string;
+    target_channel_size: string;
+};
+
+export type ResearchPreflight = {
+    search_request_cost: number;
+    search_request_measure: string;
+    max_results_per_request: number;
 };
 
 export default function CreateResearch({
     markets,
     defaults,
     recent_runs: recentRuns,
+    submission_token: submissionToken,
+    validation_presets: validationPresets,
+    preflight,
+    repeat_source: repeatSource,
 }: PageProps) {
     return (
         <>
-            <Head title="Search" />
+            <Head title="Validate a niche" />
             <PageContainer>
                 <PageHeader
-                    eyebrow="Observed YouTube demand"
-                    title="Start a research run"
-                    description="Choose a market and sample depth, then watch NisheTube collect a durable snapshot in the background."
+                    eyebrow="Validate my idea"
+                    title="Validate a specific niche"
+                    description="Freeze one exact market sample, inspect its estimated cost, and measure observed demand without claiming search volume."
                 />
 
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-                    <SearchForm markets={markets} defaults={defaults} />
+                    <SearchForm
+                        markets={markets}
+                        defaults={defaults}
+                        submissionToken={submissionToken}
+                        validationPresets={validationPresets}
+                        preflight={preflight}
+                        repeatSource={repeatSource}
+                    />
 
                     <Card className="xl:sticky xl:top-6">
                         <CardHeader>
@@ -103,5 +149,5 @@ export default function CreateResearch({
 }
 
 CreateResearch.layout = {
-    breadcrumbs: [{ title: 'Search', href: create() }],
+    breadcrumbs: [{ title: 'Validate a niche', href: create() }],
 };
