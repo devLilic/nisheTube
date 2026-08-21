@@ -56,6 +56,12 @@ class BuildResearchRunComparison
             ),
             'videos' => $this->entityChanges($beforeVideos, $afterVideos, true),
             'channels' => $this->entityChanges($beforeChannels, $afterChannels, false),
+            'sample_overlap' => $this->sampleOverlap($beforeVideos, $afterVideos),
+            'stability' => $this->rankStability($beforeVideos, $afterVideos),
+            'new_breakout_channels' => [
+                'value' => null,
+                'reason' => 'No snapshot-specific breakout-channel classification was stored for this pair.',
+            ],
         ];
     }
 
@@ -298,6 +304,41 @@ class BuildResearchRunComparison
             })->values()->all(),
             'leading_before' => $this->leading($before, $videos),
             'leading_after' => $this->leading($after, $videos),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $before
+     * @param  Collection<int, array<string, mixed>>  $after
+     * @return array{shared_videos: int, union_videos: int, share_percent: float|null}
+     */
+    private function sampleOverlap(Collection $before, Collection $after): array
+    {
+        $shared = $before->keys()->intersect($after->keys())->count();
+        $union = $before->keys()->merge($after->keys())->unique()->count();
+
+        return [
+            'shared_videos' => $shared,
+            'union_videos' => $union,
+            'share_percent' => $union === 0 ? null : ($shared / $union) * 100,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $before
+     * @param  Collection<int, array<string, mixed>>  $after
+     * @return array{retained_videos: int, unchanged_rank_count: int, unchanged_rank_percent: float|null}
+     */
+    private function rankStability(Collection $before, Collection $after): array
+    {
+        $retained = $before->keys()->intersect($after->keys());
+        $unchanged = $retained->filter(fn (int $id): bool => $before->get($id)['result_rank'] === $after->get($id)['result_rank'])->count();
+        $count = $retained->count();
+
+        return [
+            'retained_videos' => $count,
+            'unchanged_rank_count' => $unchanged,
+            'unchanged_rank_percent' => $count === 0 ? null : ($unchanged / $count) * 100,
         ];
     }
 

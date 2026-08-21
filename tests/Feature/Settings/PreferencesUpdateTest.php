@@ -33,7 +33,7 @@ class PreferencesUpdateTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('preferences.edit'));
 
         $user->refresh();
 
@@ -41,7 +41,7 @@ class PreferencesUpdateTest extends TestCase
         $this->assertSame('ro_ro', $user->default_market_key);
         $this->assertSame(100, $user->default_result_depth);
 
-        $this->get(route('profile.edit'))
+        $this->get(route('preferences.edit'))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('auth.user.timezone', 'Europe/Bucharest')
                 ->where('auth.user.default_market_key', 'ro_ro')
@@ -53,7 +53,7 @@ class PreferencesUpdateTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)
-            ->from(route('profile.edit'))
+            ->from(route('preferences.edit'))
             ->put(route('preferences.update'), [
                 'timezone' => 'Moon/Sea_of_Tranquility',
                 'default_market_key' => 'unsupported_market',
@@ -61,7 +61,7 @@ class PreferencesUpdateTest extends TestCase
 
         $response
             ->assertSessionHasErrors(['timezone', 'default_market_key'])
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('preferences.edit'));
 
         $this->assertSame('Europe/Chisinau', $user->refresh()->timezone);
         $this->assertNull($user->default_market_key);
@@ -74,13 +74,13 @@ class PreferencesUpdateTest extends TestCase
         Market::query()->where('key', 'ru_ru')->update(['is_enabled' => false]);
 
         $this->actingAs($user)
-            ->from(route('profile.edit'))
+            ->from(route('preferences.edit'))
             ->put(route('preferences.update'), [
                 'timezone' => 'Europe/Chisinau',
                 'default_market_key' => 'ru_ru',
             ])
             ->assertSessionHasErrors('default_market_key')
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('preferences.edit'));
 
         $this->assertNull($user->refresh()->default_market_key);
     }
@@ -90,14 +90,14 @@ class PreferencesUpdateTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->from(route('profile.edit'))
+            ->from(route('preferences.edit'))
             ->put(route('preferences.update'), [
                 'timezone' => 'Europe/Chisinau',
                 'default_market_key' => 'global_en',
                 'default_result_depth' => 75,
             ])
             ->assertSessionHasErrors('default_result_depth')
-            ->assertRedirect(route('profile.edit'));
+            ->assertRedirect(route('preferences.edit'));
 
         $this->assertSame(50, $user->refresh()->default_result_depth);
     }
@@ -155,5 +155,33 @@ class PreferencesUpdateTest extends TestCase
         $this->assertFalse($policy->update($authenticatedUser, $otherUser));
         $this->assertFalse($policy->delete($authenticatedUser, $otherUser));
         $this->assertTrue($policy->update($authenticatedUser, $authenticatedUser));
+    }
+
+    public function test_preferences_page_is_authenticated_and_exposes_supported_options(): void
+    {
+        $user = User::factory()->create();
+
+        $this->get(route('preferences.edit'))->assertRedirect(route('login'));
+
+        $this->actingAs($user)->get(route('preferences.edit'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('settings/preferences')
+                ->has('preferenceOptions.markets', 3)
+                ->has('preferenceOptions.timezones')
+                ->where('auth.user.timezone', $user->timezone)
+                ->where('auth.user.default_result_depth', $user->default_result_depth));
+    }
+
+    public function test_preferences_page_lists_only_enabled_markets(): void
+    {
+        $user = User::factory()->create();
+        Market::query()->where('key', 'ro_ro')->update(['is_enabled' => false]);
+
+        $this->actingAs($user)->get(route('preferences.edit'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('preferenceOptions.markets', 2)
+                ->where('preferenceOptions.markets.0.value', 'global_en')
+                ->where('preferenceOptions.markets.1.value', 'ru_ru'));
     }
 }

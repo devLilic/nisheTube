@@ -136,6 +136,14 @@ class BuildResearchDecisionSummary
             ];
         }
 
+        if ($run->status === ResearchRunStatus::Cancelled) {
+            return [
+                'key' => 'cancelled',
+                'label' => 'Cancelled before collection',
+                'description' => 'This queued attempt was cancelled before a local worker started it. No YouTube request was made.',
+            ];
+        }
+
         $hasIncompleteField = collect($coverage)->contains(
             fn (array $field): bool => $field['state'] === 'partial',
         );
@@ -173,6 +181,7 @@ class BuildResearchDecisionSummary
             ResearchRunStatus::Scoring => 'Calculating decision summary',
             ResearchRunStatus::Completed => 'Complete',
             ResearchRunStatus::Failed => 'Failed',
+            ResearchRunStatus::Cancelled => 'Cancelled',
         };
     }
 
@@ -187,6 +196,10 @@ class BuildResearchDecisionSummary
             return $lifecycle === 'failed_with_partial'
                 ? 'No final verdict; partial evidence is preserved'
                 : 'No decision evidence yet';
+        }
+
+        if ($run->status === ResearchRunStatus::Cancelled) {
+            return 'No decision evidence yet';
         }
 
         return is_string($score['overall_label'] ?? null)
@@ -205,6 +218,10 @@ class BuildResearchDecisionSummary
             return $lifecycle === 'failed_with_partial'
                 ? 'Use the saved evidence as incomplete context only. Retry creates a new immutable attempt; it does not overwrite this one.'
                 : 'The run did not retain enough evidence for an opportunity decision. Retry when the blocking condition is resolved.';
+        }
+
+        if ($run->status === ResearchRunStatus::Cancelled) {
+            return 'This queued attempt was stopped before collection. Start a new immutable run when you are ready to collect evidence.';
         }
 
         if ($score === null) {
@@ -368,6 +385,14 @@ class BuildResearchDecisionSummary
                 'kind' => 'retry',
                 'label' => 'Retry as a new attempt',
                 'description' => 'Resolve the safe error guidance first. Retrying preserves this attempt and its partial results.',
+            ];
+        }
+
+        if ($run->status === ResearchRunStatus::Cancelled) {
+            return [
+                'kind' => 'new_search',
+                'label' => 'Start a new research run',
+                'description' => 'This cancelled attempt remains in history. Starting again creates a separate immutable attempt.',
             ];
         }
 

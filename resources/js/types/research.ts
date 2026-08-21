@@ -7,7 +7,8 @@ export type ResearchRunStatus =
     | 'enriching'
     | 'scoring'
     | 'completed'
-    | 'failed';
+    | 'failed'
+    | 'cancelled';
 
 export type ResearchMarket = {
     key: MarketKey;
@@ -339,7 +340,8 @@ export type ResearchDecisionSummary = {
             | 'partial_data'
             | 'reduced_confidence'
             | 'failed_with_partial'
-            | 'failed';
+            | 'failed'
+            | 'cancelled';
         label: string;
         description: string;
     };
@@ -410,6 +412,11 @@ export type ResearchRun = {
     failed_at: string | null;
     is_active: boolean;
     can_retry: boolean;
+    job_control: {
+        state: 'not_applicable' | 'waiting' | 'worker_unavailable';
+        description: string;
+        can_cancel: boolean;
+    };
     error: ResearchRunError | null;
     collection?: {
         pages_collected: number;

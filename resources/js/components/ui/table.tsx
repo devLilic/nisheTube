@@ -1,8 +1,28 @@
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
-export function Table({ className, ...props }: ComponentProps<'table'>) {
-    return <div className="relative w-full overflow-x-auto"><table className={cn('w-full caption-bottom text-sm', className)} {...props} /></div>;
+type TableProps = ComponentProps<'table'> & {
+    containerLabel?: string;
+};
+
+export function Table({
+    className,
+    containerLabel = 'Scrollable data table',
+    ...props
+}: TableProps) {
+    return (
+        <div
+            className="relative w-full overflow-x-auto rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+            tabIndex={0}
+            role="region"
+            aria-label={containerLabel}
+        >
+            <table
+                className={cn('w-full caption-bottom text-sm', className)}
+                {...props}
+            />
+        </div>
+    );
 }
 
 export function TableHeader({ className, ...props }: ComponentProps<'thead'>) {

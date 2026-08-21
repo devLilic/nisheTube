@@ -15,7 +15,14 @@ test('exports page provides deferred loading and active-job polling', () => {
 });
 
 test('export builder exposes run, format, column, summary, and partial-data states', () => {
+    assert.match(workspace, /Stored dataset/);
+    assert.match(workspace, /Shortlist/);
+    assert.match(workspace, /Topic Workspace/);
+    assert.match(workspace, /Comparison/);
     assert.match(workspace, /Research runs/);
+    assert.match(workspace, /Video rows/);
+    assert.match(workspace, /Include technical details/);
+    assert.match(workspace, /I confirm this exact stored dataset/);
     assert.match(workspace, /File format/);
     assert.match(workspace, /Columns/);
     assert.match(workspace, /Video rows/);

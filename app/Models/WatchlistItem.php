@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property WatchlistStatus $status
  * @property bool $is_active
  * @property string $refresh_mode
+ * @property bool $notify_on_refresh
  * @property string|null $note
  * @property Carbon|null $last_observed_at
  * @property Carbon|null $last_refreshed_at
@@ -35,7 +36,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'user_id', 'target_type', 'target_id', 'research_project_id', 'topic_workspace_id', 'status', 'is_active',
-    'refresh_mode', 'note', 'last_observed_at', 'last_refreshed_at', 'next_refresh_at', 'last_refresh_run_id',
+    'refresh_mode', 'notify_on_refresh', 'note', 'last_observed_at', 'last_refreshed_at', 'next_refresh_at', 'last_refresh_run_id',
 ])]
 class WatchlistItem extends Model
 {
@@ -93,6 +94,7 @@ class WatchlistItem extends Model
         return [
             'status' => WatchlistStatus::class,
             'is_active' => 'boolean',
+            'notify_on_refresh' => 'boolean',
             'last_observed_at' => 'immutable_datetime',
             'last_refreshed_at' => 'immutable_datetime',
             'next_refresh_at' => 'immutable_datetime',

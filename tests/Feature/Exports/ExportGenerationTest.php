@@ -4,6 +4,7 @@ namespace Tests\Feature\Exports;
 
 use App\Domain\Exports\Actions\CreateResearchExport;
 use App\Domain\Exports\Actions\DeleteResearchExport;
+use App\Domain\Exports\Data\ExportSelectionInput;
 use App\Domain\Exports\Enums\ExportFormat;
 use App\Domain\Exports\Enums\ExportStatus;
 use App\Domain\Exports\ReadModels\BuildResearchRunExportDataset;
@@ -56,16 +57,15 @@ class ExportGenerationTest extends TestCase
         $export = app(CreateResearchExport::class)->handle(
             $owner,
             ExportFormat::Csv,
-            [$run->public_id, $run->public_id],
+            $this->selection([$run->public_id, $run->public_id]),
         );
 
         $this->assertSame(ExportStatus::Queued, $export->status);
         $this->assertSame(ExportFormat::Csv, $export->format);
-        $this->assertSame([
-            'type' => 'research_runs',
-            'research_run_ids' => [$run->public_id],
-            'columns' => app(ResearchExportColumns::class)->all(),
-        ], $export->selection);
+        $this->assertSame([$run->public_id], $export->selection['research_run_ids']);
+        $this->assertSame('research_runs', $export->selection['source_manifest']['type']);
+        $this->assertSame(app(ResearchExportColumns::class)->all(), $export->selection['columns']);
+        $this->assertNotEmpty($export->selection['run_manifest']);
         $this->assertTrue(Gate::forUser($owner)->allows('view', $export));
         $this->assertTrue(Gate::forUser($owner)->allows('download', $export));
         Queue::assertPushed(
@@ -88,21 +88,21 @@ class ExportGenerationTest extends TestCase
         $active = $this->researchRun($owner, 'Still enriching', ResearchRunStatus::Enriching);
 
         try {
-            app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, [$foreign->public_id]);
+            app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, $this->selection([$foreign->public_id]));
             $this->fail('A foreign research run was accepted for export.');
         } catch (AuthorizationException) {
             $this->addToAssertionCount(1);
         }
 
         try {
-            app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, [$active->public_id]);
+            app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, $this->selection([$active->public_id]));
             $this->fail('An incomplete research run was accepted for export.');
         } catch (DomainException $exception) {
             $this->assertSame('Only completed research runs can be exported.', $exception->getMessage());
         }
 
         $this->expectException(DomainException::class);
-        app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, ['not-a-uuid']);
+        app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, $this->selection(['not-a-uuid']));
     }
 
     public function test_csv_job_exports_snapshot_metadata_safely_and_is_idempotent(): void
@@ -111,7 +111,7 @@ class ExportGenerationTest extends TestCase
         Date::setTestNow('2026-08-08 12:00:00');
         $owner = User::factory()->create();
         $run = $this->completedRun($owner, 'Case mici în România', '=SUM(1,1) Пример');
-        $export = app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, [$run->public_id]);
+        $export = app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, $this->selection([$run->public_id]));
         $job = new GenerateResearchExport($export->id);
 
         $job->handle(app(BuildResearchRunExportDataset::class), app(ExportWriterManager::class));
@@ -147,7 +147,7 @@ class ExportGenerationTest extends TestCase
         Queue::fake();
         $owner = User::factory()->create();
         $run = $this->completedRun($owner, 'Организация дома', 'Видео despre spații mici');
-        $export = app(CreateResearchExport::class)->handle($owner, ExportFormat::Xlsx, [$run->public_id]);
+        $export = app(CreateResearchExport::class)->handle($owner, ExportFormat::Xlsx, $this->selection([$run->public_id]));
 
         (new GenerateResearchExport($export->id))->handle(
             app(BuildResearchRunExportDataset::class),
@@ -178,6 +178,27 @@ class ExportGenerationTest extends TestCase
                 unlink($inspectionPath);
             }
         }
+    }
+
+    public function test_generation_uses_the_frozen_selected_video_rows_only(): void
+    {
+        Queue::fake();
+        $owner = User::factory()->create();
+        $included = $this->completedRun($owner, 'Included run', 'Included frozen video');
+        $excluded = $this->completedRun($owner, 'Excluded run', 'Excluded frozen video');
+        $videoId = $included->videoMemberships()->with('video')->firstOrFail()->video->provider_video_id;
+        $export = app(CreateResearchExport::class)->handle($owner, ExportFormat::Csv, new ExportSelectionInput(
+            'research_runs', [$included->public_id, $excluded->public_id], null, [$videoId], true, true,
+        ));
+
+        (new GenerateResearchExport($export->id))->handle(
+            app(BuildResearchRunExportDataset::class), app(ExportWriterManager::class),
+        );
+
+        $contents = Storage::disk('local')->get($export->fresh()->path);
+        $this->assertStringContainsString('Included frozen video', $contents);
+        $this->assertStringNotContainsString('Excluded frozen video', $contents);
+        $this->assertSame([$videoId], $export->fresh()->selection['filters']['video_ids']);
     }
 
     public function test_generation_rechecks_ownership_and_records_only_safe_failure_context(): void
@@ -332,5 +353,11 @@ class ExportGenerationTest extends TestCase
             'collection_warnings' => ['youtube_partial_data'],
             'completed_at' => $status === ResearchRunStatus::Completed ? '2026-08-08 10:00:00' : null,
         ]);
+    }
+
+    /** @param list<string> $runIds */
+    private function selection(array $runIds): ExportSelectionInput
+    {
+        return new ExportSelectionInput('research_runs', $runIds, null, [], true, true);
     }
 }

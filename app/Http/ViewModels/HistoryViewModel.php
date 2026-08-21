@@ -6,31 +6,36 @@ use App\Domain\History\ReadModels\ListComparableResearchRuns;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Settings\Enums\MarketKey;
 use App\Models\OpportunityScore;
+use App\Models\ResearchProject;
 use App\Models\ResearchRun;
+use App\Models\TopicWorkspace;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 class HistoryViewModel
 {
-    private const RUN_LIMIT = 100;
-
     public function __construct(private readonly ListComparableResearchRuns $comparableRuns) {}
 
     /** @return array<string, mixed> */
-    public function index(User $user, ?string $anchorPublicId): array
+    public function index(User $user, ?string $anchorPublicId, array $filters = []): array
     {
-        $runs = ResearchRun::query()
-            ->where('user_id', $user->id)
+        $filters = array_merge([
+            'q' => '', 'market' => null, 'status' => null, 'min_score' => null,
+            'min_confidence' => null, 'date_from' => null, 'date_to' => null,
+            'project' => null, 'workspace' => null, 'page' => 1, 'per_page' => 25,
+        ], $filters);
+        $runs = $this->filteredRuns($user, $filters)
             ->with(['opportunityScores' => fn ($query) => $query
                 ->latest('calculated_at')
                 ->latest('id')])
+            ->with('researchQuery.project')
             ->latest('created_at')
             ->latest('id')
-            ->limit(self::RUN_LIMIT)
-            ->get();
+            ->paginate((int) $filters['per_page'], ['*'], 'page', (int) $filters['page']);
 
         $anchor = $anchorPublicId === null
             ? null
-            : $runs->firstWhere('public_id', $anchorPublicId);
+            : $runs->getCollection()->firstWhere('public_id', $anchorPublicId);
 
         if ($anchorPublicId !== null && $anchor === null) {
             $anchor = ResearchRun::query()
@@ -39,14 +44,77 @@ class HistoryViewModel
                 ->firstOrFail();
         }
 
+        $candidates = $anchor === null || $anchor->status !== ResearchRunStatus::Completed
+            ? []
+            : $this->comparableRuns->handle($user, $anchor);
+
         return [
-            'runs' => $runs->map(fn (ResearchRun $run): array => $this->run($run))->values()->all(),
+            'runs' => $runs->getCollection()->map(fn (ResearchRun $run): array => $this->run($run))->values()->all(),
             'selected_anchor' => $anchor?->public_id,
-            'candidates' => $anchor === null || $anchor->status !== ResearchRunStatus::Completed
-                ? []
-                : $this->comparableRuns->handle($user, $anchor),
-            'truncated' => $runs->count() === self::RUN_LIMIT,
+            'candidates' => $candidates,
+            'repeat_source' => $anchor !== null && $anchor->status === ResearchRunStatus::Completed && $candidates === []
+                ? $this->run($anchor)
+                : null,
+            'filters' => $filters,
+            'pagination' => [
+                'current_page' => $runs->currentPage(),
+                'last_page' => $runs->lastPage(),
+                'per_page' => $runs->perPage(),
+                'total' => $runs->total(),
+            ],
+            'filter_options' => [
+                'markets' => $user->researchRuns()->distinct()->orderBy('market_key')->pluck('market_key')->values()->all(),
+                'projects' => $user->researchProjects()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name'])
+                    ->map(fn (ResearchProject $project): array => ['public_id' => $project->public_id, 'name' => $project->name])->all(),
+                'workspaces' => $user->topicWorkspaces()->whereNull('archived_at')->orderBy('name')->get(['public_id', 'name'])
+                    ->map(fn (TopicWorkspace $workspace): array => ['public_id' => $workspace->public_id, 'name' => $workspace->name])->all(),
+            ],
+            'truncated' => false,
         ];
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function filteredRuns(User $user, array $filters): Builder
+    {
+        /** @var Builder<ResearchRun> $query */
+        $query = ResearchRun::query()->where('user_id', $user->id);
+
+        if ($filters['q'] !== '') {
+            $query->where('query_text', 'like', '%'.addcslashes((string) $filters['q'], '%_\\').'%');
+        }
+        if ($filters['market'] !== null) {
+            $query->where('market_key', $filters['market']);
+        }
+        if ($filters['status'] !== null) {
+            $query->where('status', $filters['status']);
+        }
+        if ($filters['min_score'] !== null) {
+            $query->whereHas('opportunityScores', fn (Builder $scores) => $scores->where('overall_score', '>=', $filters['min_score']));
+        }
+        if ($filters['min_confidence'] !== null) {
+            $query->whereHas('opportunityScores', fn (Builder $scores) => $scores->where('confidence_score', '>=', $filters['min_confidence']));
+        }
+        if ($filters['date_from'] !== null) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+        if ($filters['date_to'] !== null) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+        if ($filters['project'] !== null) {
+            $query->whereHas('researchQuery', fn (Builder $researchQuery) => $researchQuery
+                ->where('research_project_id', ResearchProject::query()->where('user_id', $user->id)->where('public_id', $filters['project'])->value('id')));
+        }
+        if ($filters['workspace'] !== null) {
+            $workspaceId = TopicWorkspace::query()->where('user_id', $user->id)->where('public_id', $filters['workspace'])->value('id');
+            $query->whereExists(function ($workspaceRuns) use ($workspaceId): void {
+                $workspaceRuns->selectRaw('1')
+                    ->from('topic_workspace_launches')
+                    ->whereColumn('topic_workspace_launches.research_run_id', 'research_runs.id')
+                    ->where('topic_workspace_launches.topic_workspace_id', $workspaceId);
+            });
+        }
+
+        return $query;
     }
 
     /** @return array<string, mixed> */

@@ -32,6 +32,11 @@ class ResearchRunPolicy
         return $run->user_id === $user->id;
     }
 
+    public function cancel(User $user, ResearchRun $run): bool
+    {
+        return $run->user_id === $user->id;
+    }
+
     public function delete(User $user, ResearchRun $run): bool
     {
         return $run->user_id === $user->id;

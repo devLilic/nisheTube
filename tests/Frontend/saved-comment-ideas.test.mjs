@@ -36,7 +36,7 @@ test('Analyzer comments expose reversible heart controls with loading and error 
     assert.match(comments, /role="alert"/);
 });
 
-test('Ideas page lists exact saved messages with safe source-video links and reversible removal', () => {
+test('Ideas page lists exact saved messages with safe source-video links, decision context, and reversible removal', () => {
     assert.match(sidebar, /title: 'Ideas'/);
     assert.match(page, /Saved comment ideas/);
     assert.match(page, /No saved ideas yet/);
@@ -46,6 +46,11 @@ test('Ideas page lists exact saved messages with safe source-video links and rev
     assert.match(page, /Remove like/);
     assert.match(page, /Original collection cleaned up/);
     assert.match(page, /Saved ideas pagination/);
+    assert.match(page, /Decision context/);
+    assert.match(page, /Edit decision context/);
+    assert.match(page, /Save decision context/);
+    assert.match(page, /role="alert"/);
     assert.match(types, /source_comment_available: boolean/);
+    assert.match(types, /IdeaDecisionContextOptions/);
     assert.match(types, /youtube_url: string/);
 });

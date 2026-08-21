@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Research;
 
 use App\Domain\Analyzer\ValueObjects\AnalyzerNavigationContext;
+use App\Domain\Research\Actions\CancelQueuedResearchRun;
 use App\Domain\Research\Actions\RetryResearchRun;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Research\ResearchEvidenceRequest;
 use App\Http\ViewModels\LibraryViewModel;
 use App\Http\ViewModels\ResearchRunViewModel;
 use App\Models\ResearchRun;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -41,5 +43,25 @@ class ResearchRunController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Research run queued again.')]);
 
         return to_route('research.runs.show', $retry);
+    }
+
+    public function cancel(
+        Request $request,
+        ResearchRun $researchRun,
+        CancelQueuedResearchRun $cancelQueuedResearchRun,
+    ): RedirectResponse {
+        Gate::authorize('cancel', $researchRun);
+
+        try {
+            $cancelQueuedResearchRun->handle($request->user(), $researchRun);
+        } catch (DomainException) {
+            Inertia::flash('toast', ['type' => 'warning', 'message' => __('This research run has already started and can no longer be cancelled.')]);
+
+            return to_route('research.runs.show', $researchRun);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Queued research run cancelled before collection started.')]);
+
+        return to_route('research.runs.show', $researchRun);
     }
 }

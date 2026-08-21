@@ -203,6 +203,7 @@ function WatchCard({
     const form = useForm({
         status: item.status,
         is_active: item.is_active,
+        notify_on_refresh: item.notification.enabled,
         project: item.project?.public_id ?? '',
         workspace: item.workspace?.public_id ?? '',
         note: item.note ?? '',
@@ -339,6 +340,31 @@ function WatchCard({
                         quota-aware; loading this page never calls YouTube.
                     </p>
                 )}
+                <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-medium">Watchlist notifications</p>
+                    <p className="mt-1 text-muted-foreground">
+                        {item.notification.state === 'disabled'
+                            ? 'Disabled. This item will not appear in Notifications after a refresh.'
+                            : item.notification.state === 'pending'
+                              ? 'Enabled. A notification is created only after the stored refresh outcome is available.'
+                              : item.notification.state === 'ready'
+                                ? 'Enabled. This stored refresh outcome is available in Notifications.'
+                                : 'Enabled. Refresh this item when you are ready to create a new stored observation.'}
+                    </p>
+                    <label className="mt-3 flex items-center gap-2 font-medium">
+                        <input
+                            type="checkbox"
+                            checked={form.data.notify_on_refresh}
+                            onChange={(event) =>
+                                form.setData(
+                                    'notify_on_refresh',
+                                    event.target.checked,
+                                )
+                            }
+                        />
+                        Notify me about stored refresh outcomes
+                    </label>
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <label className="grid gap-1.5 text-sm font-medium">
                         Status

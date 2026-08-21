@@ -340,10 +340,10 @@ Detailed scope and traceability for Phases 19–22 are defined in `13_DECISION_W
 - [ ] **TOPIC-02 — Topic Workspace decision canvas**
       Add hypothesis/audience/market/opportunity/evidence-for-and-against/competitor/outlier/counterexample/angle/monetization/risk/decision/next-step fields, six decision statuses, grouped metric summaries, bulk evidence, notes/tags, and workflow history. Acceptance: owner policies, cross-market confirmation, immutable references without copied mutable metrics, bounded history, complete states, focused tests, and documentation pass.
 
-- [ ] **WATCH-02 — Watchlist alerts and monitoring controls**
+- [x] **WATCH-02 — Watchlist alerts and monitoring controls**
       Add compact change/refresh/workspace context, versioned alerts for performance/growth/breakout/score/competitor/topic/staleness, bulk refresh, pause, filters, largest-change sort, and notification-center integration. Acceptance: owner isolation, observation-only deltas, quota-confirmed idempotent refreshes, honest local-worker scheduling, complete states, focused tests, and documentation pass.
 
-- [ ] **LIB-04 — Project and idea decision context**
+- [x] **LIB-04 — Project and idea decision context**
       Extend Projects with purpose/market/themes/Shortlist/workspaces/status/activity/decisions and Ideas with optional topic/candidate/video/workspace/format/audience/status context while preserving saved-comment source semantics. Acceptance: owner-scoped optional relations, incompatible/foreign rejection, retention safety, bounded queries, complete UI states, focused tests, and documentation pass.
 
 ## Phase 21 — Operational productivity and presentation
@@ -354,24 +354,24 @@ Detailed scope and traceability for Phases 19–22 are defined in `13_DECISION_W
 - [ ] **SET-05 — Consolidated preferences and formatting**
       Regroup Settings and add default period, peer group, Shorts handling, numeric formatting, and notification preferences while keeping the interface English-only and adding no UI-language selector. Acceptance: validated owner preferences, backward-compatible defaults, UTC/timezone and exact-number behavior, no secret exposure, complete states, focused tests, and documentation pass.
 
-- [ ] **LAND-01 — NisheTube landing and authentication entry**
+- [x] **LAND-01 — NisheTube landing and authentication entry**
       Replace the default Laravel landing page with accurate NisheTube purpose/data/limits/privacy/local-install copy and Login/Register actions; redirect authenticated users to Dashboard. Acceptance: loopback registration rules, guest/auth redirects, no framework/deployment marketing or secret leakage, accessible responsive UI, focused tests, and documentation pass.
 
-- [ ] **JOB-01 — Controlled background jobs and notifications**
+- [x] **JOB-01 — Controlled background jobs and notifications**
       Add safe failure reasons, preserved partial data, explicitly estimated ETA, pre-start cancel, controlled retry, meaningful completion/failure notifications, and a worker-not-running indicator without accidental quota duplication. Acceptance: guarded idempotent state transitions, ownership rechecks, quota-ledger integrity, notification read state, complete UI/tests, and documentation pass.
 
-- [ ] **PERF-02 — Stored-interface performance and navigation continuity**
+- [x] **PERF-02 — Stored-interface performance and navigation continuity**
       Measure and apply server pagination, justified virtualization, lazy thumbnails, debounce, safe filter caching, skeletons, partial reloads, scroll restoration, prefetch, and sticky tables to redesigned surfaces. Acceptance: documented per-surface budgets, bounded payload/memory/query counts, no N+1/cache/accessibility regressions, focused performance/frontend tests, and documentation pass.
 
-- [ ] **BULK-01 — Cross-surface bulk actions**
+- [x] **BULK-01 — Cross-surface bulk actions**
       Add a bounded shared selection model and valid Workspace, Shortlist/Favorite, Dismiss, Export, Compare, and Watch actions with explicit confirmation for destructive or quota-consuming work. Acceptance: per-target owner authorization, bounds/idempotency, mixed/foreign/partial outcomes, quota preview, accessible keyboard selection, focused backend/frontend tests, and documentation pass.
 
-- [ ] **A11Y-02 — Terminology, accessibility, density, and desktop hardening**
+- [x] **A11Y-02 — Terminology, accessibility, density, and desktop hardening**
       Standardize English decision terminology, move jargon to progressive help, audit WCAG-oriented contrast/focus/keyboard/labels/status/chart/table/zoom behavior, and implement desktop density rules; tablet and mobile-specific work is excluded. Acceptance: 200% zoom, long EN/RO/RU evidence text, desktop QA at approximately 1440px, non-color/exact alternatives, focused tests, and documentation pass.
 
 ## Phase 22 — Decision workflow hardening
 
-- [ ] **QA-02 — Decision-workflow acceptance and regression suite**
+- [x] **QA-02 — Decision-workflow acceptance and regression suite**
       Add the focused calculation, Discover, UI, and cross-stack cases in `13_DECISION_WORKFLOW_REDESIGN.md`, then verify Discover -> select -> validate -> compare -> decide -> monitor. Acceptance: theme-to-verdict takes at most five meaningful steps; first-view decision hierarchy is complete; weak candidates cannot overclaim; opportunity and profitability remain distinct; v1 history remains immutable; quota vocabulary/configuration and production navigation are correct; focused cross-stack/accessibility/documentation checks pass.
 
 ## Suggested milestone releases

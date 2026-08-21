@@ -8,10 +8,12 @@ use App\Domain\Exports\Services\ResearchExportColumns;
 use App\Domain\Research\Enums\ResearchRunKind;
 use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Jobs\Exports\GenerateResearchExport;
+use App\Models\Favorite;
 use App\Models\Market;
 use App\Models\ResearchExport;
 use App\Models\ResearchQuery;
 use App\Models\ResearchRun;
+use App\Models\TopicWorkspace;
 use App\Models\User;
 use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,7 +70,11 @@ class ExportInterfaceTest extends TestCase
 
         $this->actingAs($owner)->post(route('exports.store'), [
             'format' => 'csv',
+            'source_type' => 'research_runs',
             'research_run_ids' => [$run->public_id],
+            'video_ids' => [],
+            'include_technical_details' => true,
+            'confirmed' => true,
             'columns' => $columns,
         ])->assertRedirect(route('exports.index'));
 
@@ -78,9 +84,69 @@ class ExportInterfaceTest extends TestCase
 
         $this->actingAs($owner)->from(route('exports.index'))->post(route('exports.store'), [
             'format' => 'xlsx',
+            'source_type' => 'research_runs',
             'research_run_ids' => [$run->public_id],
+            'video_ids' => [],
+            'include_technical_details' => true,
+            'confirmed' => true,
             'columns' => ['video_title'],
         ])->assertSessionHasErrors('columns');
+    }
+
+    public function test_store_requires_confirmation_and_freezes_shortlist_and_workspace_sources(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $run = $this->completedRun($owner, 'Saved shortlist run');
+        $foreignRun = $this->completedRun($other, 'Foreign workspace run');
+        Favorite::query()->create([
+            'user_id' => $owner->id,
+            'target_type' => 'research_run',
+            'target_id' => $run->id,
+        ]);
+        $market = Market::query()->where('key', 'global_en')->firstOrFail();
+        $workspace = TopicWorkspace::query()->create([
+            'user_id' => $owner->id, 'market_id' => $market->id, 'name' => 'Export evidence',
+            'name_key' => 'export evidence', 'market_key' => $market->key,
+            'region_code' => $market->region_code, 'relevance_language' => $market->relevance_language,
+        ]);
+        $workspace->items()->create([
+            'target_type' => 'research_run', 'target_id' => $run->id, 'evidence_role' => 'evidence',
+        ]);
+        $foreignWorkspace = TopicWorkspace::query()->create([
+            'user_id' => $other->id, 'market_id' => $market->id, 'name' => 'Private evidence',
+            'name_key' => 'private evidence', 'market_key' => $market->key,
+            'region_code' => $market->region_code, 'relevance_language' => $market->relevance_language,
+        ]);
+        $foreignWorkspace->items()->create([
+            'target_type' => 'research_run', 'target_id' => $foreignRun->id, 'evidence_role' => 'evidence',
+        ]);
+
+        $this->actingAs($owner)->from(route('exports.index'))->post(route('exports.store'), [
+            'format' => 'csv', 'source_type' => 'shortlist', 'include_technical_details' => false,
+            'confirmed' => false,
+        ])->assertSessionHasErrors('confirmed');
+
+        $this->actingAs($owner)->post(route('exports.store'), [
+            'format' => 'csv', 'source_type' => 'shortlist', 'include_technical_details' => false,
+            'confirmed' => true,
+        ])->assertRedirect(route('exports.index'));
+        $shortlistExport = ResearchExport::query()->latest('id')->firstOrFail();
+        $this->assertSame([$run->public_id], $shortlistExport->selection['research_run_ids']);
+        $this->assertSame('shortlist', $shortlistExport->selection['source_manifest']['type']);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $shortlistExport->selection['source_manifest']['version']);
+        $this->assertSame(app(ResearchExportColumns::class)->defaults(false), $shortlistExport->selection['columns']);
+
+        $this->actingAs($owner)->post(route('exports.store'), [
+            'format' => 'xlsx', 'source_type' => 'topic_workspace', 'source_id' => $workspace->public_id,
+            'include_technical_details' => true, 'confirmed' => true,
+        ])->assertRedirect(route('exports.index'));
+        $this->assertSame('topic_workspace', ResearchExport::query()->latest('id')->firstOrFail()->selection['source_manifest']['type']);
+
+        $this->actingAs($owner)->post(route('exports.store'), [
+            'format' => 'csv', 'source_type' => 'topic_workspace', 'source_id' => $foreignWorkspace->public_id,
+            'include_technical_details' => false, 'confirmed' => true,
+        ])->assertForbidden();
     }
 
     public function test_download_retry_and_delete_enforce_state_expiry_and_ownership(): void

@@ -98,7 +98,7 @@ final class GenerateResearchExport implements ShouldBeUniqueUntilProcessing, Sho
             $dataset = $this->selectionType($export) === 'semantic_performance'
                 ? ($semanticPerformanceDatasetBuilder ?? app(BuildSemanticPerformanceExportDataset::class))
                     ->handle($export->user, $this->semanticPerformanceProfileId($export), $this->columnKeys($export))
-                : $datasetBuilder->handle($export->user, $this->researchRunIds($export), $this->columnKeys($export));
+                : $datasetBuilder->handle($export->user, $this->researchRunIds($export), $this->columnKeys($export), $this->videoIds($export));
             $writers->for($export->format)->write($dataset, $temporaryPath);
             $size = filesize($temporaryPath);
             $checksum = hash_file('sha256', $temporaryPath);
@@ -210,6 +210,17 @@ final class GenerateResearchExport implements ShouldBeUniqueUntilProcessing, Sho
         }
 
         return $profileId;
+    }
+
+    /** @return list<string> */
+    private function videoIds(ResearchExport $export): array
+    {
+        $videoIds = $export->selection['video_ids'] ?? [];
+        if (! is_array($videoIds) || array_filter($videoIds, fn (mixed $id): bool => ! is_string($id)) !== []) {
+            throw new RuntimeException('The stored export video selection is invalid.');
+        }
+
+        return array_values($videoIds);
     }
 
     /** @return list<string>|null */

@@ -15,12 +15,17 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property string $name
  * @property string|null $description
+ * @property string|null $purpose
+ * @property string|null $market_key
+ * @property list<string>|null $themes
+ * @property string $decision_status
+ * @property string|null $decision_note
  * @property string|null $color
  * @property Carbon|null $archived_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['user_id', 'name', 'description', 'color', 'archived_at'])]
+#[Fillable(['user_id', 'name', 'description', 'purpose', 'market_key', 'themes', 'decision_status', 'decision_note', 'color', 'archived_at'])]
 class ResearchProject extends Model
 {
     use HasPublicId;
@@ -66,6 +71,7 @@ class ResearchProject extends Model
     {
         return [
             'archived_at' => 'immutable_datetime',
+            'themes' => 'array',
         ];
     }
 }

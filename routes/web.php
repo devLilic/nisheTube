@@ -20,6 +20,7 @@ use App\Http\Controllers\Explore\ExplorePresetController;
 use App\Http\Controllers\Exports\ExportController;
 use App\Http\Controllers\History\HistoryController;
 use App\Http\Controllers\Ideas\SavedCommentIdeaController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Library\FavoriteController;
 use App\Http\Controllers\Library\ProjectController;
 use App\Http\Controllers\Library\ShortlistController;
@@ -32,7 +33,7 @@ use App\Http\Controllers\Topics\TopicWorkspaceController;
 use App\Http\Controllers\Watchlist\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', LandingController::class)->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('search', [ResearchController::class, 'store'])->name('research.store');
     Route::get('research/runs/{researchRun}', [ResearchRunController::class, 'show'])->name('research.runs.show');
     Route::post('research/runs/{researchRun}/retry', [ResearchRunController::class, 'retry'])->name('research.runs.retry');
+    Route::post('research/runs/{researchRun}/cancel', [ResearchRunController::class, 'cancel'])->name('research.runs.cancel');
 
     Route::get('analyzer', [AnalyzerController::class, 'index'])->name('analyzer.index');
     Route::post('analyzer', [AnalyzerController::class, 'store'])->name('analyzer.store');
@@ -69,6 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('ideas', [SavedCommentIdeaController::class, 'index'])->name('ideas.index');
     Route::post('ideas/comments/{publicComment}', [SavedCommentIdeaController::class, 'store'])->name('ideas.comments.store');
+    Route::patch('ideas/{savedCommentIdea}', [SavedCommentIdeaController::class, 'update'])->name('ideas.update');
     Route::delete('ideas/{savedCommentIdea}', [SavedCommentIdeaController::class, 'destroy'])->name('ideas.destroy');
 
     Route::get('watchlist', [WatchlistController::class, 'index'])->name('watchlist.index');
@@ -93,6 +96,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('discover', [DiscoveryController::class, 'store'])->name('discovery.store');
     Route::get('discover/runs/{discoveryRun}', [DiscoveryRunController::class, 'show'])->name('discovery.runs.show');
     Route::post('discover/runs/{discoveryRun}/retry', [DiscoveryRunController::class, 'retry'])->name('discovery.runs.retry');
+    Route::post('discover/runs/{discoveryRun}/candidates/bulk-dismiss', [NicheCandidateController::class, 'bulkDismiss'])->name('discovery.candidates.bulk-dismiss');
     Route::patch('discover/candidates/{nicheCandidate}', [NicheCandidateController::class, 'update'])->name('discovery.candidates.update');
     Route::post('discover/candidates/{nicheCandidate}/validate', [NicheCandidateController::class, 'validateCandidate'])->name('discovery.candidates.validate');
 
@@ -101,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('favorites', [FavoriteController::class, 'index'])->name('library.favorites.index');
     Route::get('shortlist', ShortlistController::class)->name('shortlist.index');
     Route::get('history', [HistoryController::class, 'index'])->name('history.index');
+    Route::post('history/runs/{researchRun}/repeat', [HistoryController::class, 'repeat'])->name('history.runs.repeat');
     Route::get('history/compare/{beforeRun}/{afterRun}', [HistoryController::class, 'compare'])->name('history.compare');
     Route::get('exports', [ExportController::class, 'index'])->name('exports.index');
     Route::post('exports', [ExportController::class, 'store'])->name('exports.store');

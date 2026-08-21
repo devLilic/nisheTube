@@ -47,3 +47,17 @@ test('workspace detail links canonical evidence and displays workflow history wi
         assert.match(show, new RegExp(marker, 'i'));
     }
 });
+
+test('workspace detail provides an explicit decision canvas with stored coverage and safe next actions', () => {
+    for (const marker of [
+        'Decision canvas',
+        'Evidence coverage',
+        'Workspace note',
+        'Next action',
+        'Evidence needs review',
+        'recommendation',
+        'causal result',
+    ]) {
+        assert.match(show, new RegExp(marker, 'i'));
+    }
+});

@@ -19,6 +19,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('settings/profile', [ProfileController::class, 'update'])
         ->middleware('throttle:12,1')
         ->name('profile.update');
+    Route::get('settings/preferences', [PreferencesController::class, 'edit'])
+        ->name('preferences.edit');
     Route::put('settings/preferences', [PreferencesController::class, 'update'])
         ->middleware('throttle:12,1')
         ->name('preferences.update');

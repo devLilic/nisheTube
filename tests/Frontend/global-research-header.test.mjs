@@ -33,8 +33,8 @@ test('global search is debounced, bounded, accessible, and provider-free in its 
     assert.match(search, /AbortController/);
 });
 
-test('completed notifications expose empty, unread, and persistent read interactions', () => {
-    assert.match(notifications, /No completed runs yet/);
+test('notifications expose empty, unread, and persistent read interactions', () => {
+    assert.match(notifications, /No notifications yet/);
     assert.match(notifications, /unread_count/);
     assert.match(notifications, /Mark all read/);
     assert.match(notifications, /completed-run-notifications\/read/);

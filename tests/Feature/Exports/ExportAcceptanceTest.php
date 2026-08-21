@@ -59,7 +59,11 @@ class ExportAcceptanceTest extends TestCase
 
         $payload = [
             'format' => 'csv',
+            'source_type' => 'research_runs',
             'research_run_ids' => [$run->public_id],
+            'video_ids' => [],
+            'include_technical_details' => true,
+            'confirmed' => true,
             'columns' => app(ResearchExportColumns::class)->all(),
         ];
 

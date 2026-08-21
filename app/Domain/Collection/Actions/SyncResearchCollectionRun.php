@@ -53,6 +53,7 @@ class SyncResearchCollectionRun
             ResearchRunStatus::Failed => $run->error_code === 'research_scoring_failed'
                 ? CollectionRunStatus::Completed
                 : CollectionRunStatus::Failed,
+            ResearchRunStatus::Cancelled => CollectionRunStatus::Failed,
         };
     }
 }

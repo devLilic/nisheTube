@@ -33,6 +33,8 @@ const topicWorkspace = read('../../resources/js/pages/topics/show.tsx');
 const crossChannelComparison = read(
     '../../resources/js/features/analyzer/cross-channel-comparison.tsx',
 );
+const dataState = read('../../resources/js/components/data-state.tsx');
+const table = read('../../resources/js/components/ui/table.tsx');
 
 test('chart visuals expose labels and exact-value text alternatives', () => {
     assert.match(analysisCharts, /<ol aria-label=\{label\}/);
@@ -87,4 +89,18 @@ test('expanded interactive states remain named and keyboard visible', () => {
     assert.match(analyzerCohort, /aria-labelledby="channel-baseline-heading"/);
     assert.match(watchlist, /aria-valuenow=/);
     assert.match(topicWorkspace, /aria-label={`Remove \${item.label}`}/);
+});
+
+test('shared decision primitives announce states and support keyboard table scrolling', () => {
+    assert.match(dataState, /role=\{tone === 'danger' \? 'alert' : 'status'\}/);
+    assert.match(
+        dataState,
+        /aria-live=\{tone === 'danger' \? 'assertive' : 'polite'\}/,
+    );
+    assert.match(dataState, /aria-busy="true"/);
+    assert.match(dataState, /role="status"/);
+    assert.match(table, /tabIndex=\{0\}/);
+    assert.match(table, /role="region"/);
+    assert.match(table, /containerLabel = 'Scrollable data table'/);
+    assert.match(table, /focus-visible:ring-2/);
 });

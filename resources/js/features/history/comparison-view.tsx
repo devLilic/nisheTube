@@ -463,6 +463,55 @@ export function ComparisonView({
                 ))}
             </section>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>Sample overlap and stability</CardTitle>
+                    <CardDescription>
+                        Calculated only from stored membership and result-rank
+                        values.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-lg border p-4">
+                        <p className="text-sm font-medium">Sample overlap</p>
+                        <p className="mt-2 text-2xl font-semibold tabular-nums">
+                            {comparison.sample_overlap.share_percent === null
+                                ? 'Not available'
+                                : `${comparison.sample_overlap.share_percent.toFixed(1)}%`}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {comparison.sample_overlap.shared_videos} shared of{' '}
+                            {comparison.sample_overlap.union_videos} observed
+                            videos
+                        </p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                        <p className="text-sm font-medium">Rank stability</p>
+                        <p className="mt-2 text-2xl font-semibold tabular-nums">
+                            {comparison.stability.unchanged_rank_percent ===
+                            null
+                                ? 'Not available'
+                                : `${comparison.stability.unchanged_rank_percent.toFixed(1)}%`}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {comparison.stability.unchanged_rank_count}{' '}
+                            unchanged of {comparison.stability.retained_videos}{' '}
+                            retained ranks
+                        </p>
+                    </div>
+                    <div className="rounded-lg border border-dashed p-4">
+                        <p className="text-sm font-medium">
+                            New breakout channels
+                        </p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            {comparison.new_breakout_channels.value === null
+                                ? comparison.new_breakout_channels.reason
+                                : `${comparison.new_breakout_channels.value} stored breakout channels`}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
                 <ComponentChart comparison={comparison} />
                 <Card>

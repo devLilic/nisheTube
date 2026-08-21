@@ -1,5 +1,6 @@
 import { AlertCircle, Inbox, RefreshCw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,15 +24,22 @@ export function StatePanel({
     action,
     tone = 'neutral',
 }: StatePanelProps) {
+    const titleId = useId();
+
     return (
         <Card
             className={cn(
                 'border-dashed py-8 text-center shadow-none',
                 tone === 'danger' && 'border-destructive/35 bg-destructive/5',
             )}
+            aria-labelledby={titleId}
+            aria-live={tone === 'danger' ? 'assertive' : 'polite'}
+            aria-atomic="true"
+            role={tone === 'danger' ? 'alert' : 'status'}
         >
             <CardContent className="flex flex-col items-center px-6">
                 <span
+                    aria-hidden="true"
                     className={cn(
                         'mb-4 rounded-full bg-muted p-3 text-muted-foreground',
                         tone === 'danger' &&
@@ -40,7 +48,9 @@ export function StatePanel({
                 >
                     <Icon className="size-5" />
                 </span>
-                <h3 className="font-semibold">{title}</h3>
+                <h3 id={titleId} className="font-semibold">
+                    {title}
+                </h3>
                 <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
                     {description}
                 </p>
@@ -87,6 +97,8 @@ export function LoadingState() {
             className="gap-4 py-5"
             aria-label="Loading research data"
             aria-busy="true"
+            aria-live="polite"
+            role="status"
         >
             <CardContent className="space-y-4 px-5">
                 <div className="flex items-center gap-3">

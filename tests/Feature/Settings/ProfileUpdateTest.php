@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\Market;
 use App\Models\User;
 use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +19,7 @@ class ProfileUpdateTest extends TestCase
         $this->seed(MarketSeeder::class);
     }
 
-    public function test_profile_page_is_displayed()
+    public function test_profile_page_is_displayed(): void
     {
         $user = User::factory()->create();
 
@@ -30,31 +29,10 @@ class ProfileUpdateTest extends TestCase
 
         $response->assertInertia(fn (Assert $page) => $page
             ->component('settings/profile')
-            ->has('preferenceOptions.timezones')
-            ->where('preferenceOptions.resultDepths', [25, 50, 100, 200])
-            ->has('preferenceOptions.markets', 3)
-            ->where('preferenceOptions.markets.0.value', 'global_en')
-            ->where('preferenceOptions.markets.1.value', 'ro_ro')
-            ->where('preferenceOptions.markets.2.value', 'ru_ru'));
+            ->missing('preferenceOptions'));
     }
 
-    public function test_profile_page_only_lists_enabled_markets(): void
-    {
-        $user = User::factory()->create();
-
-        Market::query()
-            ->where('key', 'ro_ro')
-            ->update(['is_enabled' => false]);
-
-        $this->actingAs($user)
-            ->get(route('profile.edit'))
-            ->assertInertia(fn (Assert $page) => $page
-                ->has('preferenceOptions.markets', 2)
-                ->where('preferenceOptions.markets.0.value', 'global_en')
-                ->where('preferenceOptions.markets.1.value', 'ru_ru'));
-    }
-
-    public function test_profile_information_can_be_updated()
+    public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();
 
@@ -76,7 +54,7 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->email_verified_at);
     }
 
-    public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
+    public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
         $user = User::factory()->create();
 
@@ -109,7 +87,7 @@ class ProfileUpdateTest extends TestCase
         $this->assertSame('Other User', $otherUser->refresh()->name);
     }
 
-    public function test_user_can_delete_their_account()
+    public function test_user_can_delete_their_account(): void
     {
         $user = User::factory()->create();
 
@@ -130,7 +108,7 @@ class ProfileUpdateTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('login'));
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account()
+    public function test_correct_password_must_be_provided_to_delete_account(): void
     {
         $user = User::factory()->create();
 

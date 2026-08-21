@@ -18,7 +18,10 @@ use App\Models\WatchlistItem;
 
 final class BuildTopicWorkspaceDetail
 {
-    public function __construct(private readonly ResolveTopicEvidence $evidence) {}
+    public function __construct(
+        private readonly ResolveTopicEvidence $evidence,
+        private readonly BuildTopicWorkspaceDecisionCanvas $canvas,
+    ) {}
 
     /**
      * @param  array{role:string,type:string}  $filters
@@ -26,12 +29,13 @@ final class BuildTopicWorkspaceDetail
      */
     public function handle(User $user, TopicWorkspace $workspace, array $filters): array
     {
-        $items = $workspace->items()->with('target')->orderBy('sort_position');
+        $allItems = $workspace->items()->with('target')->orderBy('sort_position')->get();
+        $items = $allItems;
         if ($filters['role'] !== 'all') {
-            $items->where('evidence_role', $filters['role']);
+            $items = $items->filter(fn (TopicWorkspaceItem $item): bool => $item->evidence_role->value === $filters['role']);
         }
         if ($filters['type'] !== 'all') {
-            $items->where('target_type', $filters['type']);
+            $items = $items->filter(fn (TopicWorkspaceItem $item): bool => $item->target_type === $filters['type']);
         }
 
         $completedRuns = $workspace->items()->where('target_type', 'research_run')
@@ -52,7 +56,8 @@ final class BuildTopicWorkspaceDetail
                 'project' => $workspace->project ? ['public_id' => $workspace->project->public_id, 'name' => $workspace->project->name] : null,
             ],
             'filters' => $filters,
-            'items' => $items->get()->map(fn (TopicWorkspaceItem $item) => $this->item($workspace, $item))->values()->all(),
+            'items' => $items->map(fn (TopicWorkspaceItem $item) => $this->item($workspace, $item))->values()->all(),
+            'decision_canvas' => $this->canvas->handle($workspace, $allItems),
             'available_evidence' => $this->availableEvidence($user),
             'completed_research_runs' => $completedRuns,
             'launches' => $workspace->launches()->with(['researchRun', 'discoveryRun'])->latest()->limit(20)->get()->map(fn (TopicWorkspaceLaunch $launch) => $this->launch($launch))->all(),

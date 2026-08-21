@@ -21,4 +21,9 @@ class SavedCommentIdeaPolicy
     {
         return $idea->user_id === $user->id;
     }
+
+    public function update(User $user, SavedCommentIdea $idea): bool
+    {
+        return $idea->user_id === $user->id;
+    }
 }

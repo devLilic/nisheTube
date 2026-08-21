@@ -28,7 +28,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { FavoriteCard } from '@/features/library/favorite-card';
-import type { LibraryContext, LibraryFavorite, LibraryProject } from '@/types';
+import { formatDate } from '@/lib/formatters';
+import type {
+    Auth,
+    LibraryContext,
+    LibraryFavorite,
+    LibraryProject,
+} from '@/types';
 
 type ProjectDetail = LibraryProject & {
     queries: Array<{
@@ -50,17 +56,29 @@ type ProjectDetail = LibraryProject & {
         created_at: string | null;
     }>;
     favorites: LibraryFavorite[];
+    workspaces: Array<{
+        public_id: string;
+        name: string;
+        market_key: string;
+        archived: boolean;
+        updated_at: string | null;
+    }>;
+    shortlist: Array<{ public_id: string; label: string }>;
 };
 
 export default function ProjectShow({
     project,
     library,
+    markets,
+    auth,
 }: {
     project: ProjectDetail;
     library: LibraryContext;
+    markets: Array<{ key: string; name: string }>;
+    auth: Auth;
 }) {
     const [tab, setTab] = useState<
-        'queries' | 'favorites' | 'discoveries' | 'notes'
+        'queries' | 'favorites' | 'discoveries' | 'decision' | 'notes'
     >('queries');
     const [confirming, setConfirming] = useState<'archive' | 'delete' | null>(
         null,
@@ -69,6 +87,7 @@ export default function ProjectShow({
         ['queries', `Queries (${project.queries.length})`],
         ['favorites', `Favorites (${project.favorites.length})`],
         ['discoveries', `Discovery (${project.discovery_runs.length})`],
+        ['decision', 'Decision context'],
         ['notes', 'Project notes'],
     ] as const;
 
@@ -239,6 +258,263 @@ export default function ProjectShow({
                             ))}
                         </div>
                     ))}
+                {tab === 'decision' && (
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Project decision context
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Form
+                                    action={`/library/projects/${project.public_id}`}
+                                    method="patch"
+                                    disableWhileProcessing
+                                    className="space-y-4"
+                                >
+                                    {({ processing, errors }) => (
+                                        <>
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <label className="grid gap-1 text-sm font-medium">
+                                                    Decision status
+                                                    <select
+                                                        name="decision_status"
+                                                        defaultValue={
+                                                            project.decision_status
+                                                        }
+                                                        className="h-10 rounded-md border bg-background px-3 capitalize"
+                                                    >
+                                                        {[
+                                                            'exploring',
+                                                            'active',
+                                                            'decided',
+                                                            'paused',
+                                                        ].map((status) => (
+                                                            <option
+                                                                key={status}
+                                                                value={status}
+                                                            >
+                                                                {status}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                                <label className="grid gap-1 text-sm font-medium">
+                                                    Primary market
+                                                    <select
+                                                        name="market_key"
+                                                        defaultValue={
+                                                            project.market_key ??
+                                                            ''
+                                                        }
+                                                        className="h-10 rounded-md border bg-background px-3"
+                                                    >
+                                                        <option value="">
+                                                            No primary market
+                                                        </option>
+                                                        {markets.map(
+                                                            (market) => (
+                                                                <option
+                                                                    key={
+                                                                        market.key
+                                                                    }
+                                                                    value={
+                                                                        market.key
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        market.name
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </label>
+                                            </div>
+                                            <label className="grid gap-1 text-sm font-medium">
+                                                Purpose
+                                                <textarea
+                                                    name="purpose"
+                                                    defaultValue={
+                                                        project.purpose ?? ''
+                                                    }
+                                                    rows={3}
+                                                    maxLength={2000}
+                                                    className="rounded-md border bg-background p-2 font-normal"
+                                                />
+                                            </label>
+                                            <label className="grid gap-1 text-sm font-medium">
+                                                Themes
+                                                <textarea
+                                                    name="themes"
+                                                    defaultValue={project.themes.join(
+                                                        ', ',
+                                                    )}
+                                                    rows={2}
+                                                    maxLength={1000}
+                                                    placeholder="Comma-separated themes"
+                                                    className="rounded-md border bg-background p-2 font-normal"
+                                                />
+                                            </label>
+                                            <label className="grid gap-1 text-sm font-medium">
+                                                Decision note
+                                                <textarea
+                                                    name="decision_note"
+                                                    defaultValue={
+                                                        project.decision_note ??
+                                                        ''
+                                                    }
+                                                    rows={4}
+                                                    maxLength={4000}
+                                                    className="rounded-md border bg-background p-2 font-normal"
+                                                />
+                                            </label>
+                                            <input
+                                                type="hidden"
+                                                name="name"
+                                                value={project.name}
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="description"
+                                                value={
+                                                    project.description ?? ''
+                                                }
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="color"
+                                                value={project.color ?? ''}
+                                            />
+                                            {Object.keys(errors).length > 0 && (
+                                                <p
+                                                    className="text-sm text-destructive"
+                                                    role="alert"
+                                                >
+                                                    {errors.market_key ||
+                                                        errors.themes ||
+                                                        'The project context could not be updated.'}
+                                                </p>
+                                            )}
+                                            <Button disabled={processing}>
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <Save />
+                                                )}
+                                                Save decision context
+                                            </Button>
+                                        </>
+                                    )}
+                                </Form>
+                            </CardContent>
+                        </Card>
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">
+                                        Stored context
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-sm">
+                                    <div className="flex flex-wrap gap-2">
+                                        <Badge>{project.decision_status}</Badge>
+                                        {project.market_key && (
+                                            <Badge variant="outline">
+                                                {project.market_key}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {project.themes.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {project.themes.map((theme) => (
+                                                <Badge
+                                                    key={theme}
+                                                    variant="secondary"
+                                                >
+                                                    {theme}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground">
+                                            No themes recorded yet.
+                                        </p>
+                                    )}
+                                    {project.purpose && (
+                                        <p className="whitespace-pre-wrap">
+                                            {project.purpose}
+                                        </p>
+                                    )}
+                                    {project.decision_note && (
+                                        <p className="whitespace-pre-wrap text-muted-foreground">
+                                            {project.decision_note}
+                                        </p>
+                                    )}
+                                    {project.updated_at && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Last project activity:{' '}
+                                            {formatDate(
+                                                project.updated_at,
+                                                auth.user.timezone,
+                                            )}
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">
+                                        Linked workspaces
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 text-sm">
+                                    {project.workspaces.length === 0 ? (
+                                        <p className="text-muted-foreground">
+                                            No linked workspaces yet.
+                                        </p>
+                                    ) : (
+                                        project.workspaces.map((workspace) => (
+                                            <Link
+                                                key={workspace.public_id}
+                                                href={`/topics/${workspace.public_id}`}
+                                                className="block rounded-md border p-2 hover:bg-muted"
+                                            >
+                                                {workspace.name} ·{' '}
+                                                {workspace.market_key}
+                                                {workspace.archived
+                                                    ? ' · archived'
+                                                    : ''}
+                                            </Link>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">
+                                        Project Shortlist
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 text-sm">
+                                    {project.shortlist.length === 0 ? (
+                                        <p className="text-muted-foreground">
+                                            No saved research runs in this
+                                            project yet.
+                                        </p>
+                                    ) : (
+                                        project.shortlist.map((item) => (
+                                            <p key={item.public_id}>
+                                                {item.label}
+                                            </p>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                )}
                 {tab === 'notes' && (
                     <Card>
                         <CardHeader>

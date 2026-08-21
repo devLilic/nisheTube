@@ -36,6 +36,11 @@ test('candidate results use a compact paginated decision table with expanded exa
     assert.match(candidateSource, /Weak phrase signals/);
     assert.match(candidateSource, /PaginationControls/);
     assert.match(candidateSource, /SortableHead/);
+    assert.match(
+        candidateSource,
+        /containerLabel=\{`\$\{title\} decision table`\}/,
+    );
+    assert.match(candidateSource, /exact stored evidence values/);
     assert.match(candidateSource, /aria-expanded/);
     assert.match(candidateSource, /Expanded evidence/);
     assert.match(candidateSource, /Outlier-free median views\/day/);
@@ -52,6 +57,30 @@ test('candidate results use a compact paginated decision table with expanded exa
     assert.match(candidateSource, /Risks/);
     assert.match(candidateSource, /target="_blank"/);
     assert.match(candidateSource, /rel="noopener noreferrer"/);
+});
+
+test('candidate results provide bounded, keyboard-accessible bulk dismissal with explicit outcomes', () => {
+    assert.match(candidateSource, /MAX_BULK_SELECTION = 10/);
+    assert.match(candidateSource, /Selection limit reached/);
+    assert.match(candidateSource, /type="checkbox"/);
+    assert.match(
+        candidateSource,
+        /aria-label=\{`Select \$\{candidate\.phrase\}`\}/,
+    );
+    assert.match(candidateSource, /candidates\/bulk-dismiss/);
+    assert.match(candidateSource, /candidate_ids: selectedIds/);
+    assert.match(candidateSource, /Dismiss selected/);
+    assert.match(candidateSource, /Confirm dismissal/);
+    assert.match(candidateSource, /Select one to ten candidates/);
+    assert.match(
+        candidateSource,
+        /Validated\s+candidates are never reclassified/,
+    );
+    assert.match(
+        candidateSource,
+        /All selections must belong to this Discovery run/,
+    );
+    assert.match(candidateSource, /Selected candidates could not be updated/);
 });
 
 test('run detail provides polling progress, retry, failure, and completed result states', () => {

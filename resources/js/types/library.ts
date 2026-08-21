@@ -36,6 +36,11 @@ export type LibraryProject = {
     public_id: string;
     name: string;
     description: string | null;
+    purpose: string | null;
+    market_key: string | null;
+    themes: string[];
+    decision_status: 'exploring' | 'active' | 'decided' | 'paused';
+    decision_note: string | null;
     color: string | null;
     archived: boolean;
     updated_at: string | null;

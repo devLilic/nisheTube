@@ -7,6 +7,7 @@ use App\Domain\Library\Enums\LibraryTargetType;
 use App\Domain\Library\ReadModels\LibraryQueries;
 use App\Models\Channel;
 use App\Models\Favorite;
+use App\Models\Market;
 use App\Models\NicheCandidate;
 use App\Models\ResearchProject;
 use App\Models\ResearchQuery;
@@ -95,6 +96,11 @@ class LibraryViewModel
         return [
             'project' => array_merge($this->projectCard($project), [
                 'description' => $project->description,
+                'purpose' => $project->purpose,
+                'market_key' => $project->market_key,
+                'themes' => $project->themes ?? [],
+                'decision_status' => $project->decision_status,
+                'decision_note' => $project->decision_note,
                 'queries' => $project->queries->map(fn (ResearchQuery $query): array => [
                     'public_id' => $query->public_id,
                     'label' => $query->query_text,
@@ -110,8 +116,19 @@ class LibraryViewModel
                     'created_at' => $run->created_at?->toIso8601String(),
                 ])->values()->all(),
                 'favorites' => $project->favorites->map(fn (Favorite $favorite): array => $this->favoriteSummary($favorite))->values()->all(),
+                'workspaces' => $project->topicWorkspaces()->orderByDesc('updated_at')->limit(20)->get()->map(fn ($workspace): array => [
+                    'public_id' => $workspace->public_id,
+                    'name' => $workspace->name,
+                    'market_key' => $workspace->market_key,
+                    'archived' => $workspace->archived_at !== null,
+                    'updated_at' => $workspace->updated_at?->toIso8601String(),
+                ])->values()->all(),
+                'shortlist' => $project->favorites->filter(fn (Favorite $favorite): bool => $favorite->target_type === LibraryTargetType::ResearchRun->value)
+                    ->map(fn (Favorite $favorite): array => ['public_id' => $favorite->public_id, 'label' => $favorite->target instanceof ResearchRun ? $favorite->target->query_text : 'Unavailable saved research run'])
+                    ->values()->all(),
             ]),
             'library' => $this->context($user),
+            'markets' => Market::query()->where('is_enabled', true)->orderBy('sort_order')->get()->map(fn (Market $market): array => ['key' => $market->key, 'name' => $market->name])->values()->all(),
         ];
     }
 
@@ -174,6 +191,11 @@ class LibraryViewModel
             'public_id' => $project->public_id,
             'name' => $project->name,
             'description' => $project->description,
+            'purpose' => $project->purpose,
+            'market_key' => $project->market_key,
+            'themes' => $project->themes ?? [],
+            'decision_status' => $project->decision_status,
+            'decision_note' => $project->decision_note,
             'color' => $project->color,
             'archived' => $project->archived_at !== null,
             'updated_at' => $project->updated_at?->toIso8601String(),

@@ -42,6 +42,31 @@ export type HistoryIndexData = {
     runs: HistoryRun[];
     selected_anchor: string | null;
     candidates: HistoryCandidate[];
+    repeat_source: HistoryRun | null;
+    filters: {
+        q: string;
+        market: string | null;
+        status: ResearchRunStatus | null;
+        min_score: number | null;
+        min_confidence: number | null;
+        date_from: string | null;
+        date_to: string | null;
+        project: string | null;
+        workspace: string | null;
+        page: number;
+        per_page: 10 | 25 | 50;
+    };
+    pagination: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+    filter_options: {
+        markets: string[];
+        projects: { public_id: string; name: string }[];
+        workspaces: { public_id: string; name: string }[];
+    };
     truncated: boolean;
 };
 
@@ -143,6 +168,20 @@ export type HistoryComparison = {
     metric_deltas: Record<string, HistoryDelta>;
     videos: HistoryChangeSet<HistoryVideoEntity, HistoryRetainedVideo>;
     channels: HistoryChangeSet<HistoryChannelEntity, HistoryRetainedChannel>;
+    sample_overlap: {
+        shared_videos: number;
+        union_videos: number;
+        share_percent: number | null;
+    };
+    stability: {
+        retained_videos: number;
+        unchanged_rank_count: number;
+        unchanged_rank_percent: number | null;
+    };
+    new_breakout_channels: {
+        value: number | null;
+        reason: string;
+    };
 };
 
 export type HistoryPair = {

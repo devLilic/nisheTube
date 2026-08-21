@@ -15,6 +15,7 @@ class UpdateWatchlistItemRequest extends FormRequest
         return [
             'status' => ['required', Rule::enum(WatchlistStatus::class)],
             'is_active' => ['required', 'boolean'],
+            'notify_on_refresh' => ['sometimes', 'boolean'],
             'project' => ['nullable', 'string', 'uuid'],
             'workspace' => ['nullable', 'uuid', Rule::exists(TopicWorkspace::class, 'public_id')->where('user_id', $this->user()->id)->whereNull('archived_at')],
             'note' => ['nullable', 'string', 'max:10000'],

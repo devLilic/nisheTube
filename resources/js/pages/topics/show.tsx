@@ -59,6 +59,22 @@ type Props = {
         created_at: string | null;
     }[];
     projects: { public_id: string; name: string }[];
+    decision_canvas: {
+        workspace_note: string | null;
+        coverage: {
+            linked_count: number;
+            unavailable_count: number;
+            cross_market_count: number;
+            same_market_completed_run_count: number;
+            roles: Partial<Record<TopicEvidenceRole, number>>;
+        };
+        warnings: string[];
+        next_action: {
+            label: string;
+            description: string;
+            href: string | null;
+        };
+    };
 };
 
 const types: TopicEvidenceType[] = [
@@ -162,6 +178,115 @@ export default function TopicWorkspaceShow(props: Props) {
                         description="Evidence and launch history remain readable. Restore it before editing, adding evidence, or launching collection."
                     />
                 )}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Decision canvas</CardTitle>
+                        <CardDescription>
+                            A concise view of linked stored evidence and the
+                            safest next workflow step. It is not a
+                            recommendation or causal result.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-start">
+                        <div className="rounded-lg border p-4">
+                            <p className="text-sm font-medium">
+                                Workspace note
+                            </p>
+                            <p className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">
+                                {props.decision_canvas.workspace_note ??
+                                    'No workspace note has been recorded.'}
+                            </p>
+                        </div>
+                        <div className="rounded-lg border p-4">
+                            <p className="text-sm font-medium">
+                                Evidence coverage
+                            </p>
+                            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                <Coverage
+                                    label="Linked"
+                                    value={
+                                        props.decision_canvas.coverage
+                                            .linked_count
+                                    }
+                                />
+                                <Coverage
+                                    label="Same-market Searches"
+                                    value={
+                                        props.decision_canvas.coverage
+                                            .same_market_completed_run_count
+                                    }
+                                />
+                                <Coverage
+                                    label="Cross-market"
+                                    value={
+                                        props.decision_canvas.coverage
+                                            .cross_market_count
+                                    }
+                                />
+                                <Coverage
+                                    label="Unavailable"
+                                    value={
+                                        props.decision_canvas.coverage
+                                            .unavailable_count
+                                    }
+                                />
+                            </dl>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {Object.entries(
+                                    props.decision_canvas.coverage.roles,
+                                ).map(([role, count]) => (
+                                    <Badge key={role} variant="outline">
+                                        {role}: {count}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="rounded-lg border border-primary/25 bg-primary/5 p-4">
+                            <p className="text-sm font-medium">Next action</p>
+                            <p className="mt-2 font-semibold">
+                                {props.decision_canvas.next_action.label}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {props.decision_canvas.next_action.description}
+                            </p>
+                            {props.decision_canvas.next_action.href &&
+                                !archived && (
+                                    <Button asChild className="mt-4" size="sm">
+                                        <a
+                                            href={
+                                                props.decision_canvas
+                                                    .next_action.href
+                                            }
+                                        >
+                                            {
+                                                props.decision_canvas
+                                                    .next_action.label
+                                            }
+                                        </a>
+                                    </Button>
+                                )}
+                        </div>
+                    </CardContent>
+                    {props.decision_canvas.warnings.length > 0 && (
+                        <CardContent className="pt-0">
+                            <div
+                                className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4"
+                                role="status"
+                            >
+                                <p className="font-medium">
+                                    Evidence needs review
+                                </p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                    {props.decision_canvas.warnings.map(
+                                        (warning) => (
+                                            <li key={warning}>{warning}</li>
+                                        ),
+                                    )}
+                                </ul>
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.65fr)]">
                     <div className="space-y-4">
                         <Card>
@@ -328,7 +453,7 @@ export default function TopicWorkspaceShow(props: Props) {
                     </div>
                     <div className="space-y-4">
                         {!archived && (
-                            <Card>
+                            <Card id="link-evidence">
                                 <CardHeader>
                                     <CardTitle>
                                         Link existing evidence
@@ -469,7 +594,7 @@ export default function TopicWorkspaceShow(props: Props) {
                             </Card>
                         )}
                         {!archived && (
-                            <Card>
+                            <Card id="launch-search">
                                 <CardHeader>
                                     <CardTitle>Launch research</CardTitle>
                                     <CardDescription>
@@ -486,6 +611,7 @@ export default function TopicWorkspaceShow(props: Props) {
                                         Search this topic
                                     </Button>
                                     <Button
+                                        id="launch-discovery"
                                         variant="outline"
                                         onClick={() => setDiscoverOpen(true)}
                                         disabled={
@@ -817,6 +943,15 @@ function DiscoverDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function Coverage({ label, value }: { label: string; value: number }) {
+    return (
+        <div>
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="font-semibold tabular-nums">{value}</dd>
+        </div>
     );
 }
 

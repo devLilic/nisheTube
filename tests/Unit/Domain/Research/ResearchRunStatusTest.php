@@ -15,6 +15,7 @@ class ResearchRunStatusTest extends TestCase
                 ResearchRunStatus::Queued,
                 ResearchRunStatus::Searching,
                 ResearchRunStatus::Failed,
+                ResearchRunStatus::Cancelled,
             ],
             ResearchRunStatus::Searching->value => [
                 ResearchRunStatus::Searching,
@@ -33,6 +34,7 @@ class ResearchRunStatusTest extends TestCase
             ],
             ResearchRunStatus::Completed->value => [ResearchRunStatus::Completed],
             ResearchRunStatus::Failed->value => [ResearchRunStatus::Failed],
+            ResearchRunStatus::Cancelled->value => [ResearchRunStatus::Cancelled],
         ];
 
         foreach (ResearchRunStatus::cases() as $current) {
@@ -49,5 +51,6 @@ class ResearchRunStatusTest extends TestCase
         $this->assertFalse(ResearchRunStatus::Scoring->isTerminal());
         $this->assertTrue(ResearchRunStatus::Completed->isTerminal());
         $this->assertTrue(ResearchRunStatus::Failed->isTerminal());
+        $this->assertTrue(ResearchRunStatus::Cancelled->isTerminal());
     }
 }

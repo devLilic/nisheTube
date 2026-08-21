@@ -25,9 +25,20 @@ test('project library exposes grid/list, filters, sorting, empty state, tabs, an
     assert.match(projects, /Recently updated/);
     assert.match(projects, /No projects found/);
     assert.match(projects, /PaginationControls/);
+    assert.match(projects, /SEARCH_DEBOUNCE_MS = 300/);
+    assert.match(projects, /only: \['projects', 'pagination', 'filters'\]/);
+    assert.match(projects, /preserveScroll: true/);
+    assert.match(projects, /aria-live="polite"/);
+    assert.match(projects, /Projects could not be updated/);
     assert.match(project, /role="tablist"/);
     assert.match(project, /Delete project\?/);
     assert.match(project, /Archive project\?/);
+    assert.match(project, /Decision context/);
+    assert.match(project, /Save decision context/);
+    assert.match(project, /Linked workspaces/);
+    assert.match(project, /Project Shortlist/);
+    assert.match(project, /No linked workspaces yet/);
+    assert.match(project, /Last project activity/);
 });
 
 test('favorites expose type, project, tag and note controls with explicit removal confirmation', () => {

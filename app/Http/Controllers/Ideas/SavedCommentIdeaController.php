@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Ideas;
 
 use App\Domain\Comments\Actions\RemoveCommentIdea;
 use App\Domain\Comments\Actions\SaveCommentIdea;
+use App\Domain\Comments\Actions\UpdateSavedCommentIdea;
 use App\Domain\Comments\ReadModels\BuildSavedCommentIdeasIndex;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ideas\UpdateSavedCommentIdeaRequest;
 use App\Models\PublicComment;
 use App\Models\SavedCommentIdea;
 use Illuminate\Http\RedirectResponse;
@@ -43,5 +45,28 @@ final class SavedCommentIdeaController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comment removed from Ideas.')]);
 
         return back();
+    }
+
+    public function update(UpdateSavedCommentIdeaRequest $request, SavedCommentIdea $savedCommentIdea, UpdateSavedCommentIdea $update): RedirectResponse
+    {
+        Gate::authorize('update', $savedCommentIdea);
+        $update->handle(
+            $request->user(),
+            $savedCommentIdea,
+            $request->workspace(),
+            $request->candidate(),
+            (string) $request->validated('decision_status'),
+            $this->optionalString($request->validated('format')),
+            $this->optionalString($request->validated('audience')),
+            $this->optionalString($request->validated('decision_note')),
+        );
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Idea decision context updated.')]);
+
+        return back();
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

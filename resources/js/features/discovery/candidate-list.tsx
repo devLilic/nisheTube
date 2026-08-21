@@ -2,6 +2,7 @@ import { Form, Link, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     Bookmark,
+    CheckSquare,
     ChevronDown,
     ChevronRight,
     EyeOff,
@@ -18,6 +19,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -37,6 +47,8 @@ import type {
     NicheCandidate,
     NicheCandidateStatus,
 } from '@/types';
+
+const MAX_BULK_SELECTION = 10;
 
 function confidenceLabel(score: number) {
     if (score >= 80) {
@@ -78,8 +90,54 @@ export function CandidateList({
     discoveryRunPublicId: string;
 }) {
     const [validationDepth, setValidationDepth] = useState(50);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [dismissOpen, setDismissOpen] = useState(false);
+    const [bulkState, setBulkState] = useState<
+        'idle' | 'loading' | 'success' | 'error'
+    >('idle');
+    const [bulkError, setBulkError] = useState<string | null>(null);
     const total =
         table.candidate_niches.total + table.weak_phrase_signals.total;
+
+    const toggleSelection = (publicId: string) => {
+        setBulkState('idle');
+        setBulkError(null);
+        setSelectedIds((current) => {
+            if (current.includes(publicId)) {
+                return current.filter((id) => id !== publicId);
+            }
+
+            return current.length >= MAX_BULK_SELECTION
+                ? current
+                : [...current, publicId];
+        });
+    };
+
+    const dismissSelected = () => {
+        setBulkState('loading');
+
+        router.post(
+            `/discover/runs/${discoveryRunPublicId}/candidates/bulk-dismiss`,
+            { candidate_ids: selectedIds },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    setDismissOpen(false);
+                    setBulkError(null);
+                    setBulkState('success');
+                },
+                onError: (errors) => {
+                    setBulkError(
+                        errors.candidate_ids ??
+                            'Selected candidates could not be updated. All selections must belong to this Discovery run.',
+                    );
+                    setBulkState('error');
+                },
+                onCancel: () => setBulkState('idle'),
+            },
+        );
+    };
 
     const navigate = (changes: Record<string, string | number>) => {
         const params = new URLSearchParams(window.location.search);
@@ -197,6 +255,20 @@ export function CandidateList({
                 </CardContent>
             </Card>
 
+            <BulkDismissControls
+                selectedCount={selectedIds.length}
+                state={bulkState}
+                open={dismissOpen}
+                onOpenChange={setDismissOpen}
+                onClear={() => {
+                    setSelectedIds([]);
+                    setBulkError(null);
+                    setBulkState('idle');
+                }}
+                onDismiss={dismissSelected}
+                error={bulkError}
+            />
+
             {validationBlocked && (
                 <Alert className="border-warning/40 bg-warning/10">
                     <SearchCheck aria-hidden="true" />
@@ -225,6 +297,8 @@ export function CandidateList({
                     library,
                     workspaces,
                     discoveryRunPublicId,
+                    selectedIds,
+                    toggleSelection,
                 }}
             />
             <CandidateSection
@@ -243,9 +317,127 @@ export function CandidateList({
                     library,
                     workspaces,
                     discoveryRunPublicId,
+                    selectedIds,
+                    toggleSelection,
                 }}
             />
         </div>
+    );
+}
+
+function BulkDismissControls({
+    selectedCount,
+    state,
+    open,
+    onOpenChange,
+    onClear,
+    onDismiss,
+    error,
+}: {
+    selectedCount: number;
+    state: 'idle' | 'loading' | 'success' | 'error';
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onClear: () => void;
+    onDismiss: () => void;
+    error: string | null;
+}) {
+    const canDismiss = selectedCount > 0 && state !== 'loading';
+
+    return (
+        <Card aria-live="polite">
+            <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+                <CheckSquare className="size-5 text-muted-foreground" />
+                <div className="min-w-52 flex-1">
+                    <p className="font-medium">
+                        {selectedCount} of {MAX_BULK_SELECTION} candidates
+                        selected
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Selection stays within this Discovery run. Validated
+                        candidates are never reclassified.
+                    </p>
+                    {selectedCount === 0 && state === 'idle' && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Select one to ten candidates to enable bulk
+                            dismissal.
+                        </p>
+                    )}
+                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={selectedCount === 0 || state === 'loading'}
+                    onClick={onClear}
+                >
+                    Clear selection
+                </Button>
+                <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={!canDismiss}
+                    onClick={() => onOpenChange(true)}
+                >
+                    <EyeOff /> Dismiss selected
+                </Button>
+                {state === 'loading' && (
+                    <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner /> Updating selected candidates…
+                    </span>
+                )}
+                {state === 'success' && (
+                    <span className="text-sm text-muted-foreground">
+                        Selection processed. Already dismissed and validated
+                        candidates were left unchanged.
+                    </span>
+                )}
+                {state === 'error' && (
+                    <span className="text-sm text-destructive" role="alert">
+                        {error ??
+                            'Selected candidates could not be updated. Review the selection and try again.'}
+                    </span>
+                )}
+                {selectedCount === MAX_BULK_SELECTION && state === 'idle' && (
+                    <span className="text-sm text-muted-foreground">
+                        Selection limit reached. Clear an item before adding
+                        another.
+                    </span>
+                )}
+            </CardContent>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            Dismiss {selectedCount} selected candidate(s)?
+                        </DialogTitle>
+                        <DialogDescription>
+                            This changes only the decision status. Frozen
+                            candidate evidence and validated candidates remain
+                            unchanged.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button
+                                variant="outline"
+                                disabled={state === 'loading'}
+                            >
+                                Cancel
+                            </Button>
+                        </DialogClose>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={!canDismiss}
+                            onClick={onDismiss}
+                        >
+                            {state === 'loading' ? <Spinner /> : <EyeOff />}
+                            Confirm dismissal
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card>
     );
 }
 
@@ -300,6 +492,8 @@ function CandidateSection({
     library,
     workspaces,
     discoveryRunPublicId,
+    selectedIds,
+    toggleSelection,
 }: {
     title: string;
     description: string;
@@ -315,6 +509,8 @@ function CandidateSection({
     library: LibraryContext;
     workspaces: WorkspaceOption[];
     discoveryRunPublicId: string;
+    selectedIds: string[];
+    toggleSelection: (publicId: string) => void;
 }) {
     const [expanded, setExpanded] = useState<string[]>([]);
     const toggle = (id: string) =>
@@ -380,9 +576,17 @@ function CandidateSection({
                 />
             ) : (
                 <>
-                    <Table className="min-w-[1040px] table-fixed">
+                    <Table
+                        containerLabel={`${title} decision table`}
+                        className="min-w-[1040px] table-fixed"
+                    >
+                        <caption className="sr-only">
+                            {title} with exact stored evidence values. Scroll
+                            horizontally to inspect all columns.
+                        </caption>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-16">Select</TableHead>
                                 <SortableHead
                                     label="Theme"
                                     value="theme"
@@ -450,6 +654,16 @@ function CandidateSection({
                                                 validationDepth,
                                                 validationBlocked,
                                                 discoveryRunPublicId,
+                                                selected: selectedIds.includes(
+                                                    candidate.public_id,
+                                                ),
+                                                selectionFull:
+                                                    selectedIds.length >=
+                                                    MAX_BULK_SELECTION,
+                                                onToggleSelection: () =>
+                                                    toggleSelection(
+                                                        candidate.public_id,
+                                                    ),
                                             }}
                                         />
                                         {isExpanded && (
@@ -522,6 +736,9 @@ function CandidateRow({
     validationDepth,
     validationBlocked,
     discoveryRunPublicId,
+    selected,
+    selectionFull,
+    onToggleSelection,
 }: {
     candidate: NicheCandidate;
     expanded: boolean;
@@ -529,6 +746,9 @@ function CandidateRow({
     validationDepth: number;
     validationBlocked: boolean;
     discoveryRunPublicId: string;
+    selected: boolean;
+    selectionFull: boolean;
+    onToggleSelection: () => void;
 }) {
     const evidence = candidate.evidence;
     const returnTo = `/discover/runs/${discoveryRunPublicId}`;
@@ -541,6 +761,16 @@ function CandidateRow({
                     : undefined
             }
         >
+            <TableCell className="align-top">
+                <input
+                    type="checkbox"
+                    checked={selected}
+                    disabled={!selected && selectionFull}
+                    onChange={onToggleSelection}
+                    aria-label={`Select ${candidate.phrase}`}
+                    className="mt-1 size-4 rounded border-input accent-primary focus-visible:ring-2 focus-visible:ring-ring"
+                />
+            </TableCell>
             <TableCell className="align-top">
                 <button
                     type="button"
@@ -650,7 +880,7 @@ function EvidenceRow({
             id={`evidence-${candidate.public_id}`}
             className="bg-muted/20 hover:bg-muted/20"
         >
-            <TableCell colSpan={10} className="p-5">
+            <TableCell colSpan={11} className="p-5">
                 <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.7fr)]">
                     <div className="space-y-4">
                         <div>

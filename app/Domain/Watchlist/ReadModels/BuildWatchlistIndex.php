@@ -103,6 +103,10 @@ final class BuildWatchlistIndex
             'status' => $item->status->value,
             'is_active' => $item->is_active,
             'refresh_mode' => $item->refresh_mode,
+            'notification' => [
+                'enabled' => $item->notify_on_refresh,
+                'state' => $this->notificationState($item, $displayRefresh, $activeRefresh),
+            ],
             'note' => $item->note,
             'project' => $project === null ? null : ['public_id' => $project->public_id, 'name' => $project->name],
             'workspace' => $item->workspace === null ? null : ['public_id' => $item->workspace->public_id, 'name' => $item->workspace->name],
@@ -143,5 +147,18 @@ final class BuildWatchlistIndex
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private function notificationState(WatchlistItem $item, ?WatchlistRefreshRun $refresh, ?WatchlistRefreshRun $activeRefresh): string
+    {
+        if (! $item->notify_on_refresh) {
+            return 'disabled';
+        }
+
+        if ($activeRefresh !== null) {
+            return 'pending';
+        }
+
+        return $refresh?->status->isTerminal() ? 'ready' : 'waiting';
     }
 }

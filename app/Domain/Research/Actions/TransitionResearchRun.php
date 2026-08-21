@@ -31,12 +31,12 @@ class TransitionResearchRun
                 throw InvalidResearchRunTransition::between($currentStatus, $nextStatus);
             }
 
-            if ($nextStatus === ResearchRunStatus::Failed && $failure === null) {
-                throw new InvalidArgumentException('A safe failure is required when a research run fails.');
+            if (in_array($nextStatus, [ResearchRunStatus::Failed, ResearchRunStatus::Cancelled], true) && $failure === null) {
+                throw new InvalidArgumentException('A safe terminal reason is required when a research run stops.');
             }
 
-            if ($nextStatus !== ResearchRunStatus::Failed && $failure !== null) {
-                throw new InvalidArgumentException('Failure details may only be stored on a failed research run.');
+            if (! in_array($nextStatus, [ResearchRunStatus::Failed, ResearchRunStatus::Cancelled], true) && $failure !== null) {
+                throw new InvalidArgumentException('Terminal details may only be stored on a failed or cancelled research run.');
             }
 
             $attributes = ['status' => $nextStatus];
@@ -58,7 +58,7 @@ class TransitionResearchRun
                 $attributes['progress_percent'] = max(90, $lockedRun->progress_percent);
             }
 
-            if ($nextStatus === ResearchRunStatus::Failed) {
+            if (in_array($nextStatus, [ResearchRunStatus::Failed, ResearchRunStatus::Cancelled], true)) {
                 $attributes['failed_at'] = now();
                 $attributes['error_code'] = $failure->code;
                 $attributes['error_message'] = $failure->message;

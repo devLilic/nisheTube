@@ -20,11 +20,12 @@ final class BuildResearchRunExportDataset
     /**
      * @param  list<string>  $publicIds
      * @param  list<string>|null  $columnKeys
+     * @param  list<string>  $videoIds
      *
      * @throws AuthorizationException
      * @throws DomainException
      */
-    public function handle(User $user, array $publicIds, ?array $columnKeys = null): ExportDataset
+    public function handle(User $user, array $publicIds, ?array $columnKeys = null, array $videoIds = []): ExportDataset
     {
         $selectedColumns = $this->columns->validate($columnKeys ?? $this->columns->all());
         $runs = ResearchRun::query()
@@ -65,6 +66,9 @@ final class BuildResearchRunExportDataset
             }
 
             foreach ($run->videoMemberships as $membership) {
+                if ($videoIds !== [] && ! in_array($membership->video->provider_video_id, $videoIds, true)) {
+                    continue;
+                }
                 $rows[] = $this->project($this->row(
                     $run,
                     $score,

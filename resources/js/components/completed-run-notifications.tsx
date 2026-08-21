@@ -26,7 +26,7 @@ export function CompletedRunNotifications() {
                     variant="ghost"
                     size="icon"
                     className="relative"
-                    aria-label={`Completed-run notifications${notifications.unread_count ? `, ${notifications.unread_count} unread` : ''}`}
+                    aria-label={`Notifications${notifications.unread_count ? `, ${notifications.unread_count} unread` : ''}`}
                 >
                     <Icon className="size-4" />
                     {notifications.unread_count > 0 && (
@@ -38,7 +38,7 @@ export function CompletedRunNotifications() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel className="flex items-center justify-between gap-3">
-                    <span>Completed runs</span>
+                    <span>Notifications</span>
                     {notifications.unread_count > 0 && (
                         <Button
                             variant="ghost"
@@ -59,7 +59,7 @@ export function CompletedRunNotifications() {
                 <DropdownMenuSeparator />
                 {notifications.items.length === 0 ? (
                     <p className="px-3 py-5 text-center text-sm text-muted-foreground">
-                        No completed runs yet.
+                        No notifications yet.
                     </p>
                 ) : (
                     notifications.items.map((item) => (

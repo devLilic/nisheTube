@@ -56,6 +56,21 @@ final class ResearchExportColumns
         return ['run_id', 'query', 'market', 'run_completed_at'];
     }
 
+    /** @return list<string> */
+    public function defaults(bool $includeTechnicalDetails): array
+    {
+        if ($includeTechnicalDetails) {
+            return $this->all();
+        }
+
+        return [
+            'run_id', 'query', 'market', 'run_completed_at', 'opportunity_score', 'confidence_score',
+            'video_title', 'video_published_at', 'result_rank', 'views', 'likes', 'comments',
+            'views_per_day', 'views_to_subscribers_ratio', 'channel_title', 'subscribers',
+            'channel_views', 'channel_videos',
+        ];
+    }
+
     /** @return array<string, list<array{key: string, label: string, required: bool}>> */
     public function grouped(): array
     {

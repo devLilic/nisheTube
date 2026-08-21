@@ -1,13 +1,15 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
 import {
     Archive,
+    CircleAlert,
     FolderKanban,
     Grid2X2,
     List,
+    LoaderCircle,
     Plus,
     Search,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StatePanel } from '@/components/data-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -19,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import type { LibraryProject } from '@/types';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 type Props = {
     projects: LibraryProject[];
@@ -37,12 +41,49 @@ export default function ProjectsIndex({
     filters,
 }: Props) {
     const [creating, setCreating] = useState(false);
-    const updateFilter = (key: string, value: string) =>
-        router.get(
-            '/projects',
-            { ...filters, [key]: value },
-            { preserveState: true, replace: true },
+    const [pendingSearch, setPendingSearch] = useState<string | null>(null);
+    const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
+    const search = pendingSearch ?? filters.search;
+
+    const updateFilter = useCallback(
+        (key: string, value: string) => {
+            setState('loading');
+
+            router.get(
+                '/projects',
+                { ...filters, search, [key]: value, page: 1 },
+                {
+                    only: ['projects', 'pagination', 'filters'],
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                    onSuccess: () => {
+                        setState('idle');
+
+                        if (key === 'search') {
+                            setPendingSearch(null);
+                        }
+                    },
+                    onError: () => setState('error'),
+                    onCancel: () => setState('idle'),
+                },
+            );
+        },
+        [filters, search],
+    );
+
+    useEffect(() => {
+        if (search === filters.search) {
+            return;
+        }
+
+        const timeout = window.setTimeout(
+            () => updateFilter('search', search),
+            SEARCH_DEBOUNCE_MS,
         );
+
+        return () => window.clearTimeout(timeout);
+    }, [filters.search, search, updateFilter]);
 
     return (
         <>
@@ -119,17 +160,13 @@ export default function ProjectsIndex({
                             <span className="sr-only">Search projects</span>
                             <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
                             <Input
-                                defaultValue={filters.search}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                        updateFilter(
-                                            'search',
-                                            event.currentTarget.value,
-                                        );
-                                    }
-                                }}
+                                value={search}
+                                onChange={(event) =>
+                                    setPendingSearch(event.currentTarget.value)
+                                }
                                 placeholder="Search name or description…"
                                 className="pl-9"
+                                aria-describedby="projects-update-status"
                             />
                         </label>
                         <select
@@ -184,6 +221,39 @@ export default function ProjectsIndex({
                         </div>
                     </CardContent>
                 </Card>
+
+                <p
+                    id="projects-update-status"
+                    className="sr-only"
+                    role="status"
+                    aria-live="polite"
+                >
+                    {state === 'loading'
+                        ? 'Updating projects.'
+                        : state === 'error'
+                          ? 'Projects could not be updated. Try again.'
+                          : `${pagination.total} projects available.`}
+                </p>
+
+                {state === 'loading' && (
+                    <div
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                        aria-busy="true"
+                    >
+                        <LoaderCircle className="size-4 animate-spin" />
+                        Updating projects…
+                    </div>
+                )}
+
+                {state === 'error' && (
+                    <div
+                        className="flex items-center gap-2 text-sm text-destructive"
+                        role="alert"
+                    >
+                        <CircleAlert className="size-4" />
+                        Projects could not be updated. Try again.
+                    </div>
+                )}
 
                 {projects.length === 0 ? (
                     <StatePanel
@@ -266,7 +336,15 @@ export default function ProjectsIndex({
                         router.get(
                             '/projects',
                             { ...filters, page },
-                            { preserveState: true, preserveScroll: true },
+                            {
+                                only: ['projects', 'pagination', 'filters'],
+                                preserveState: true,
+                                preserveScroll: true,
+                                onStart: () => setState('loading'),
+                                onSuccess: () => setState('idle'),
+                                onError: () => setState('error'),
+                                onCancel: () => setState('idle'),
+                            },
                         )
                     }
                 />

@@ -6,15 +6,21 @@ use App\Domain\Analyzer\Actions\CreateAnalyzerRun;
 use App\Domain\Analyzer\Enums\AnalyzerRunStatus;
 use App\Domain\Collection\Enums\CollectionCachePolicy;
 use App\Domain\Comments\Actions\SaveCommentIdea;
+use App\Domain\Discovery\Actions\CreateDiscoveryRun;
+use App\Domain\Discovery\Enums\NicheCandidateStatus;
 use App\Models\AnalyzerRun;
 use App\Models\AnalyzerRunVideo;
 use App\Models\Channel;
 use App\Models\CommentCollectionRun;
+use App\Models\Market;
+use App\Models\NicheCandidate;
 use App\Models\PublicComment;
 use App\Models\SavedCommentIdea;
+use App\Models\TopicWorkspace;
 use App\Models\User;
 use App\Models\Video;
 use App\Models\VideoSnapshot;
+use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -23,6 +29,12 @@ use Tests\TestCase;
 final class SavedCommentIdeasTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(MarketSeeder::class);
+    }
 
     public function test_owner_can_idempotently_save_comment_and_see_video_link_in_analyzer_and_ideas(): void
     {
@@ -129,6 +141,57 @@ final class SavedCommentIdeasTest extends TestCase
                 ->where('pagination.to', 21));
     }
 
+    public function test_owner_can_add_compatible_decision_context_without_mutating_the_saved_comment_source(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        [$run, $video] = $this->completedVideoRun($owner);
+        [$collection, $comment] = $this->comment($owner, $run, $video);
+        $this->actingAs($owner)->post(route('ideas.comments.store', $comment));
+        $idea = SavedCommentIdea::query()->sole();
+        [$workspace, $candidate] = $this->decisionContext($owner, 'global_en');
+        [, $foreignCandidate] = $this->decisionContext($other, 'global_en');
+        [, $incompatibleCandidate] = $this->decisionContext($owner, 'ro_ro');
+
+        $payload = [
+            'workspace' => $workspace->public_id,
+            'candidate' => $candidate->public_id,
+            'decision_status' => 'selected',
+            'format' => 'Tutorial',
+            'audience' => 'New creators',
+            'decision_note' => 'Keep the original audience wording.',
+        ];
+        $this->actingAs($other)->patch(route('ideas.update', $idea), ['decision_status' => 'new'])->assertForbidden();
+        $this->actingAs($other)->patch(route('ideas.update', $idea), $payload)->assertSessionHasErrors(['workspace', 'candidate']);
+        $this->actingAs($owner)->patch(route('ideas.update', $idea), [
+            ...$payload, 'candidate' => $foreignCandidate->public_id,
+        ])->assertSessionHasErrors('candidate');
+        $this->actingAs($owner)->patch(route('ideas.update', $idea), [
+            ...$payload, 'candidate' => $incompatibleCandidate->public_id,
+        ])->assertSessionHasErrors('candidate');
+        $this->actingAs($owner)->patch(route('ideas.update', $idea), $payload)->assertRedirect();
+
+        $this->assertDatabaseHas('saved_comment_ideas', [
+            'id' => $idea->id,
+            'topic_workspace_id' => $workspace->id,
+            'niche_candidate_id' => $candidate->id,
+            'decision_status' => 'selected',
+            'format' => 'Tutorial',
+            'audience' => 'New creators',
+        ]);
+        $this->assertSame($comment->id, $idea->fresh()->public_comment_id);
+        $this->assertSame($comment->text, $idea->fresh()->comment_text);
+
+        $collection->delete();
+        $this->actingAs($owner)->get(route('ideas.index'))->assertInertia(fn (Assert $page): Assert => $page
+            ->where('items.0.source_comment_available', false)
+            ->where('items.0.context.workspace.public_id', $workspace->public_id)
+            ->where('items.0.context.candidate.public_id', $candidate->public_id)
+            ->where('items.0.context.decision_status', 'selected')
+            ->has('context_options.workspaces', 2)
+            ->has('context_options.candidates', 2));
+    }
+
     /** @return array{AnalyzerRun, Video} */
     private function completedVideoRun(User $user): array
     {
@@ -199,5 +262,30 @@ final class SavedCommentIdeasTest extends TestCase
         ]);
 
         return [$collection, $comment];
+    }
+
+    /** @return array{TopicWorkspace, NicheCandidate} */
+    private function decisionContext(User $user, string $marketKey): array
+    {
+        $market = Market::query()->where('key', $marketKey)->firstOrFail();
+        $workspace = TopicWorkspace::query()->create([
+            'user_id' => $user->id,
+            'market_id' => $market->id,
+            'name' => "{$market->name} workspace {$user->id}",
+            'name_key' => "{$marketKey}-workspace-{$user->id}",
+            'market_key' => $market->key,
+            'region_code' => $market->region_code,
+            'relevance_language' => $market->relevance_language,
+        ]);
+        $discovery = app(CreateDiscoveryRun::class)->handle($user, $market, ['decision context']);
+        $candidate = $discovery->candidates()->create([
+            'phrase' => "{$market->name} candidate {$user->id}",
+            'cluster_key' => "{$marketKey}-candidate-{$user->id}",
+            'summary' => 'Stored discovery evidence.',
+            'evidence' => ['observed_signal' => 'returned_video_breakout'],
+            'status' => NicheCandidateStatus::New,
+        ]);
+
+        return [$workspace, $candidate];
     }
 }

@@ -38,6 +38,7 @@ const lifecycleTone: Record<DecisionSummary['lifecycle']['key'], string> = {
     failed_with_partial:
         'border-destructive/35 bg-destructive/10 text-destructive',
     failed: 'border-destructive/35 bg-destructive/10 text-destructive',
+    cancelled: 'border-muted bg-muted/50 text-muted-foreground',
 };
 
 function formatTimestamp(value: string | null, timezone: string) {

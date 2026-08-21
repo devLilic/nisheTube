@@ -8,6 +8,7 @@ use App\Domain\Research\Enums\ResearchRunStatus;
 use App\Domain\Research\ReadModels\BuildResearchDecisionSummary;
 use App\Domain\Research\ReadModels\BuildResearchEvidenceInspection;
 use App\Domain\Research\ReadModels\BuildResearchEvidenceProfile;
+use App\Domain\Research\ReadModels\BuildResearchJobControl;
 use App\Domain\Settings\Enums\MarketKey;
 use App\Models\OpportunityScore;
 use App\Models\ResearchRun;
@@ -20,6 +21,7 @@ class ResearchRunViewModel
         private readonly BuildResearchDecisionSummary $buildDecisionSummary,
         private readonly BuildResearchEvidenceInspection $buildEvidenceInspection,
         private readonly BuildResearchEvidenceProfile $buildEvidenceProfile,
+        private readonly BuildResearchJobControl $buildJobControl,
     ) {}
 
     /**
@@ -61,6 +63,7 @@ class ResearchRunViewModel
             'failed_at' => $run->failed_at?->toIso8601String(),
             'is_active' => ! $run->status->isTerminal(),
             'can_retry' => $run->status === ResearchRunStatus::Failed,
+            'job_control' => $this->buildJobControl->handle($run),
             'error' => $this->errorGuidance($run),
         ];
 

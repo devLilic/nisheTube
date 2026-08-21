@@ -46,7 +46,7 @@ final class ExportController extends Controller
         Gate::authorize('create', ResearchExport::class);
 
         try {
-            $create->handle($request->user(), $request->exportFormat(), $request->researchRunIds(), $request->columns());
+            $create->handle($request->user(), $request->exportFormat(), $request->selection());
         } catch (DomainException $exception) {
             throw ValidationException::withMessages(['research_run_ids' => $exception->getMessage()]);
         }

@@ -149,6 +149,46 @@ final class WatchlistWorkflowTest extends TestCase
             ->has('workspaces', 0));
     }
 
+    public function test_owner_controls_refresh_notifications_and_only_sees_their_stored_watchlist_alerts(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $video = $this->ownedVideo($owner);
+        $otherVideo = $this->ownedVideo($other);
+
+        $this->actingAs($owner)->post(route('watchlist.store'), [
+            'target_type' => 'video', 'target_reference' => $video->provider_video_id,
+        ]);
+        $this->actingAs($other)->post(route('watchlist.store'), [
+            'target_type' => 'video', 'target_reference' => $otherVideo->provider_video_id,
+        ]);
+        $item = WatchlistItem::query()->where('user_id', $owner->id)->sole();
+        $otherItem = WatchlistItem::query()->where('user_id', $other->id)->sole();
+
+        $payload = ['status' => 'monitoring', 'is_active' => true, 'notify_on_refresh' => false];
+        $this->actingAs($other)->patch(route('watchlist.update', $item), $payload)->assertForbidden();
+        $this->actingAs($owner)->patch(route('watchlist.update', $item), [
+            ...$payload, 'notify_on_refresh' => 'not-a-boolean',
+        ])->assertSessionHasErrors('notify_on_refresh');
+        $this->actingAs($owner)->patch(route('watchlist.update', $item), $payload)->assertRedirect();
+        $this->assertDatabaseHas('watchlist_items', ['id' => $item->id, 'notify_on_refresh' => false]);
+
+        $this->completedRefresh($item, $owner, 'completed');
+        $this->completedRefresh($otherItem, $other, 'failed');
+        $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page): Assert => $page
+            ->where('completedRunNotifications.unread_count', 0)
+            ->has('completedRunNotifications.items', 0));
+
+        $this->actingAs($owner)->patch(route('watchlist.update', $item), [
+            ...$payload, 'notify_on_refresh' => true,
+        ])->assertRedirect();
+        $this->actingAs($owner)->get(route('dashboard'))->assertInertia(fn (Assert $page): Assert => $page
+            ->where('completedRunNotifications.unread_count', 1)
+            ->where('completedRunNotifications.items.0.title', 'Watchlist observation ready')
+            ->where('completedRunNotifications.items.0.description', 'Owned video')
+            ->where('completedRunNotifications.items.0.href', '/watchlist'));
+    }
+
     private function ownedVideo(User $user): Video
     {
         $channel = Channel::query()->create([
@@ -177,6 +217,23 @@ final class WatchlistWorkflowTest extends TestCase
             'provider' => 'youtube', 'kind' => $kind, 'status' => CollectionRunStatus::Queued,
             'attempt_number' => 1, 'frozen_request' => [], 'cache_policy' => CollectionCachePolicy::ForceRefresh,
             'requested_count' => 1, 'processed_count' => 0, 'progress_percent' => 0,
+        ]);
+    }
+
+    private function completedRefresh(WatchlistItem $item, User $user, string $status): WatchlistRefreshRun
+    {
+        $analyzer = $user->analyzerRuns()->latest('id')->firstOrFail();
+
+        return $item->refreshRuns()->create([
+            'user_id' => $user->id,
+            'analyzer_run_id' => $analyzer->id,
+            'collection_run_id' => $analyzer->collection_run_id,
+            'status' => $status,
+            'attempt_number' => 1,
+            'progress_percent' => 100,
+            'error_message' => $status === 'failed' ? 'The foreign refresh failed.' : null,
+            'completed_at' => $status === 'failed' ? null : now(),
+            'failed_at' => $status === 'failed' ? now() : null,
         ]);
     }
 

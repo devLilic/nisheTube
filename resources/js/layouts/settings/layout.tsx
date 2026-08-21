@@ -3,6 +3,7 @@ import {
     Database,
     Palette,
     ShieldCheck,
+    SlidersHorizontal,
     UserRound,
     Youtube,
 } from 'lucide-react';
@@ -23,6 +24,11 @@ const sidebarNavItems: NavItem[] = [
         title: 'Profile',
         href: edit(),
         icon: UserRound,
+    },
+    {
+        title: 'Preferences',
+        href: '/settings/preferences',
+        icon: SlidersHorizontal,
     },
     {
         title: 'Security',

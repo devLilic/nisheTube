@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Exports;
 
+use App\Domain\Exports\Data\ExportSelectionInput;
 use App\Domain\Exports\Enums\ExportFormat;
 use App\Domain\Exports\Services\ResearchExportColumns;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -18,9 +19,15 @@ class StoreResearchExportRequest extends FormRequest
 
         return [
             'format' => ['required', Rule::enum(ExportFormat::class)],
-            'research_run_ids' => ['required', 'array', 'min:1', "max:{$max}"],
+            'source_type' => ['required', Rule::in(['research_runs', 'shortlist', 'comparison', 'topic_workspace'])],
+            'source_id' => ['nullable', 'uuid', 'required_if:source_type,topic_workspace'],
+            'research_run_ids' => ['nullable', 'array', "max:{$max}", 'required_if:source_type,research_runs,comparison'],
             'research_run_ids.*' => ['required', 'uuid', 'distinct'],
-            'columns' => ['required', 'array', 'min:4'],
+            'video_ids' => ['nullable', 'array', 'max:500'],
+            'video_ids.*' => ['required', 'string', 'max:128', 'distinct'],
+            'include_technical_details' => ['required', 'boolean'],
+            'confirmed' => ['accepted'],
+            'columns' => ['nullable', 'array', 'min:4'],
             'columns.*' => ['required', 'string', 'distinct', Rule::in(app(ResearchExportColumns::class)->all())],
         ];
     }
@@ -30,6 +37,10 @@ class StoreResearchExportRequest extends FormRequest
     {
         return [function (Validator $validator): void {
             $columns = $this->input('columns');
+
+            if ($columns === null) {
+                return;
+            }
 
             if (! is_array($columns)) {
                 return;
@@ -48,21 +59,20 @@ class StoreResearchExportRequest extends FormRequest
         return ExportFormat::from((string) $this->validated('format'));
     }
 
-    /** @return list<string> */
-    public function researchRunIds(): array
+    public function selection(): ExportSelectionInput
     {
-        /** @var list<string> $ids */
-        $ids = $this->validated('research_run_ids');
-
-        return $ids;
-    }
-
-    /** @return list<string> */
-    public function columns(): array
-    {
-        /** @var list<string> $columns */
+        /** @var list<string> $runIds */
+        $runIds = $this->validated('research_run_ids', []);
+        /** @var list<string> $videoIds */
+        $videoIds = $this->validated('video_ids', []);
+        /** @var list<string>|null $columns */
         $columns = $this->validated('columns');
 
-        return $columns;
+        return new ExportSelectionInput(
+            (string) $this->validated('source_type'), $runIds,
+            $this->validated('source_id'), $videoIds,
+            (bool) $this->validated('include_technical_details'),
+            (bool) $this->validated('confirmed'), $columns,
+        );
     }
 }

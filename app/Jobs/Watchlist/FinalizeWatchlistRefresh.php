@@ -55,6 +55,7 @@ class FinalizeWatchlistRefresh implements ShouldBeUniqueUntilProcessing, ShouldQ
                     'error_message' => 'The watched subject is no longer available to this account.',
                     'failed_at' => now(),
                 ]);
+                $item->update(['last_refresh_run_id' => $refresh->id]);
 
                 return;
             }
@@ -68,6 +69,7 @@ class FinalizeWatchlistRefresh implements ShouldBeUniqueUntilProcessing, ShouldQ
                     'error_message' => $analyzer->error_message ?? 'The observation refresh could not be completed.',
                     'failed_at' => $analyzer->failed_at ?? now(),
                 ]);
+                $item->update(['last_refresh_run_id' => $refresh->id]);
 
                 return;
             }
@@ -84,7 +86,7 @@ class FinalizeWatchlistRefresh implements ShouldBeUniqueUntilProcessing, ShouldQ
             $previousChannel = $previous?->current_channel_snapshot_id;
             $deltas = $this->deltas($previousVideo, $currentVideo, $previousChannel, $currentChannel);
             $warnings = $analyzer->warnings ?? [];
-            $partial = $currentVideo === null && $currentChannel === null;
+            $partial = ($currentVideo === null && $currentChannel === null) || $warnings !== [];
 
             $refresh->update([
                 'status' => $partial ? WatchlistRefreshStatus::Partial : WatchlistRefreshStatus::Completed,

@@ -132,6 +132,12 @@ class HistoryComparisonServicesTest extends TestCase
         $this->assertSame(['channel-b'], array_column($comparison['channels']['retained'], 'provider_channel_id'));
         $this->assertSame(500.0, $comparison['channels']['retained'][0]['subscriber_count']['delta']);
         $this->assertSame('video-c', $comparison['videos']['leading_after'][0]['provider_video_id']);
+        $this->assertSame(1, $comparison['sample_overlap']['shared_videos']);
+        $this->assertSame(3, $comparison['sample_overlap']['union_videos']);
+        $this->assertSame(33.33333333333333, $comparison['sample_overlap']['share_percent']);
+        $this->assertSame(1, $comparison['stability']['retained_videos']);
+        $this->assertSame(0, $comparison['stability']['unchanged_rank_percent']);
+        $this->assertNull($comparison['new_breakout_channels']['value']);
     }
 
     public function test_parameter_formula_partial_and_missing_value_boundaries_are_explicit(): void

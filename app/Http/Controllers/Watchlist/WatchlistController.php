@@ -50,7 +50,16 @@ class WatchlistController extends Controller
     public function update(UpdateWatchlistItemRequest $request, WatchlistItem $watchlistItem, UpdateWatchlistItem $update): RedirectResponse
     {
         Gate::authorize('update', $watchlistItem);
-        $update->handle($request->user(), $watchlistItem, WatchlistStatus::from((string) $request->validated('status')), (bool) $request->validated('is_active'), $this->project($request->user()->id, $request->validated('project')), $request->note(), $this->workspace($request->user()->id, $request->validated('workspace')));
+        $update->handle(
+            $request->user(),
+            $watchlistItem,
+            WatchlistStatus::from((string) $request->validated('status')),
+            (bool) $request->validated('is_active'),
+            $this->project($request->user()->id, $request->validated('project')),
+            $request->note(),
+            $this->workspace($request->user()->id, $request->validated('workspace')),
+            $request->has('notify_on_refresh') ? $request->boolean('notify_on_refresh') : $watchlistItem->notify_on_refresh,
+        );
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Watchlist item updated.')]);
 
         return back();

@@ -14,17 +14,25 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property int|null $public_comment_id
  * @property int $video_id
+ * @property int|null $topic_workspace_id
+ * @property int|null $niche_candidate_id
  * @property string $provider_comment_id
  * @property string $comment_text
  * @property Carbon|null $source_published_at
+ * @property string $decision_status
+ * @property string|null $format
+ * @property string|null $audience
+ * @property string|null $decision_note
  * @property Carbon|null $created_at
  * @property User $user
  * @property PublicComment|null $publicComment
  * @property Video $video
+ * @property TopicWorkspace|null $workspace
+ * @property NicheCandidate|null $candidate
  */
 #[Fillable([
     'user_id', 'public_comment_id', 'video_id', 'provider_comment_id', 'comment_text',
-    'source_published_at',
+    'source_published_at', 'topic_workspace_id', 'niche_candidate_id', 'decision_status', 'format', 'audience', 'decision_note',
 ])]
 class SavedCommentIdea extends Model
 {
@@ -46,6 +54,18 @@ class SavedCommentIdea extends Model
     public function video(): BelongsTo
     {
         return $this->belongsTo(Video::class);
+    }
+
+    /** @return BelongsTo<TopicWorkspace, $this> */
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(TopicWorkspace::class, 'topic_workspace_id');
+    }
+
+    /** @return BelongsTo<NicheCandidate, $this> */
+    public function candidate(): BelongsTo
+    {
+        return $this->belongsTo(NicheCandidate::class, 'niche_candidate_id');
     }
 
     protected function casts(): array

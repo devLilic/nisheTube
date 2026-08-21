@@ -11,6 +11,7 @@ enum ResearchRunStatus: string
     case Scoring = 'scoring';
     case Completed = 'completed';
     case Failed = 'failed';
+    case Cancelled = 'cancelled';
 
     public function canTransitionTo(self $next): bool
     {
@@ -20,16 +21,16 @@ enum ResearchRunStatus: string
 
         return match ($this) {
             self::Draft => $next === self::Queued,
-            self::Queued => in_array($next, [self::Searching, self::Failed], true),
+            self::Queued => in_array($next, [self::Searching, self::Failed, self::Cancelled], true),
             self::Searching => in_array($next, [self::Enriching, self::Failed], true),
             self::Enriching => in_array($next, [self::Scoring, self::Failed], true),
             self::Scoring => in_array($next, [self::Completed, self::Failed], true),
-            self::Completed, self::Failed => false,
+            self::Completed, self::Failed, self::Cancelled => false,
         };
     }
 
     public function isTerminal(): bool
     {
-        return in_array($this, [self::Completed, self::Failed], true);
+        return in_array($this, [self::Completed, self::Failed, self::Cancelled], true);
     }
 }

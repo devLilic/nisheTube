@@ -4,6 +4,7 @@ namespace Tests\Feature\History;
 
 use App\Domain\Research\Enums\ResearchRunKind;
 use App\Domain\Research\Enums\ResearchRunStatus;
+use App\Jobs\Research\CollectResearchRunSearch;
 use App\Models\Market;
 use App\Models\OpportunityScore;
 use App\Models\ResearchQuery;
@@ -11,6 +12,8 @@ use App\Models\ResearchRun;
 use App\Models\User;
 use Database\Seeders\MarketSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -95,6 +98,56 @@ class HistoryInterfaceTest extends TestCase
         $this->actingAs($owner)
             ->get(route('history.compare', [$before, $different]))
             ->assertUnprocessable();
+    }
+
+    public function test_history_filters_are_bounded_deterministic_and_owner_scoped(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $matching = $this->researchRun($owner, 'Compact homes', ResearchRunStatus::Completed, '2026-08-08 10:00:00');
+        $this->researchRun($owner, 'Compact homes', ResearchRunStatus::Searching, null);
+        $this->researchRun($otherUser, 'Compact homes', ResearchRunStatus::Completed, '2026-08-09 10:00:00');
+        $this->score($matching, 70, 80);
+
+        $this->actingAs($owner)
+            ->get(route('history.index', [
+                'q' => 'compact',
+                'status' => 'completed',
+                'min_score' => 65,
+                'per_page' => 10,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->loadDeferredProps('default', fn (Assert $deferred): Assert => $deferred
+                    ->has('history.runs', 1)
+                    ->where('history.runs.0.public_id', $matching->public_id)
+                    ->where('history.filters.per_page', 10)
+                    ->where('history.pagination.total', 1)));
+    }
+
+    public function test_repeat_requires_confirmation_and_is_idempotent_per_submission_token(): void
+    {
+        Bus::fake();
+        $owner = User::factory()->create();
+        $source = $this->researchRun($owner, 'Compact homes', ResearchRunStatus::Completed, '2026-08-08 10:00:00');
+        $token = (string) Str::uuid();
+
+        $this->actingAs($owner)
+            ->post(route('history.runs.repeat', $source), ['submission_token' => $token])
+            ->assertSessionHasErrors('confirmation');
+        Bus::assertNothingDispatched();
+
+        $this->actingAs($owner)
+            ->post(route('history.runs.repeat', $source), ['confirmation' => true, 'submission_token' => $token])
+            ->assertRedirect();
+        $this->assertSame(2, $owner->researchRuns()->count());
+        Bus::assertDispatched(CollectResearchRunSearch::class, 1);
+
+        $this->actingAs($owner)
+            ->post(route('history.runs.repeat', $source), ['confirmation' => true, 'submission_token' => $token])
+            ->assertRedirect();
+        $this->assertSame(2, $owner->researchRuns()->count());
+        Bus::assertDispatched(CollectResearchRunSearch::class, 1);
     }
 
     private function researchRun(

@@ -50,7 +50,13 @@ import type {
 
 type FormData = {
     format: ExportFormat;
+    source_type:
+        'research_runs' | 'shortlist' | 'comparison' | 'topic_workspace';
+    source_id: string | null;
     research_run_ids: string[];
+    video_ids: string[];
+    include_technical_details: boolean;
+    confirmed: boolean;
     columns: string[];
 };
 
@@ -131,26 +137,53 @@ export function ExportWorkspace({
 }) {
     const form = useForm<FormData>({
         format: 'xlsx',
+        source_type: 'research_runs',
+        source_id: null,
         research_run_ids:
             selectedRunId &&
             builder.runs.some((run) => run.public_id === selectedRunId)
                 ? [selectedRunId]
                 : [],
-        columns: builder.default_columns,
+        video_ids: [],
+        include_technical_details: false,
+        confirmed: false,
+        columns: builder.standard_columns,
     });
     const [deleting, setDeleting] = useState<ExportJob | null>(null);
+    const selectedWorkspace = useMemo(
+        () =>
+            builder.topic_workspaces.find(
+                (workspace) => workspace.public_id === form.data.source_id,
+            ),
+        [builder.topic_workspaces, form.data.source_id],
+    );
+    const effectiveRunIds = useMemo(
+        () =>
+            form.data.source_type === 'shortlist'
+                ? builder.shortlist_run_ids
+                : form.data.source_type === 'topic_workspace'
+                  ? (selectedWorkspace?.run_ids ?? [])
+                  : form.data.research_run_ids,
+        [
+            builder.shortlist_run_ids,
+            form.data.research_run_ids,
+            form.data.source_type,
+            selectedWorkspace?.run_ids,
+        ],
+    );
     const selectedRuns = useMemo(
         () =>
             builder.runs.filter((run) =>
-                form.data.research_run_ids.includes(run.public_id),
+                effectiveRunIds.includes(run.public_id),
             ),
-        [builder.runs, form.data.research_run_ids],
+        [builder.runs, effectiveRunIds],
     );
+    const selectableVideos = selectedRuns.flatMap((run) => run.videos);
     const selectedWarnings = selectedRuns.reduce(
         (sum, run) => sum + run.warning_count,
         0,
     );
-    const selectedVideos = selectedRuns.reduce(
+    const selectedVideoRows = selectedRuns.reduce(
         (sum, run) => sum + run.video_count,
         0,
     );
@@ -173,6 +206,15 @@ export function ExportWorkspace({
         );
     }
 
+    function toggleVideo(id: string, checked: boolean) {
+        form.setData(
+            'video_ids',
+            checked
+                ? [...form.data.video_ids, id]
+                : form.data.video_ids.filter((value) => value !== id),
+        );
+    }
+
     return (
         <div className="space-y-8">
             <form
@@ -191,6 +233,119 @@ export function ExportWorkspace({
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-7 pt-1">
+                        <fieldset className="space-y-3">
+                            <legend className="font-medium">
+                                Stored dataset
+                            </legend>
+                            <p className="text-sm text-muted-foreground">
+                                Export frozen local evidence only. The selected
+                                source is captured before generation; no
+                                provider collection runs.
+                            </p>
+                            <div className="grid gap-3 lg:grid-cols-2">
+                                {(
+                                    [
+                                        [
+                                            'research_runs',
+                                            'Research runs',
+                                            'Choose completed runs directly.',
+                                        ],
+                                        [
+                                            'shortlist',
+                                            'Shortlist',
+                                            `${builder.shortlist_run_ids.length} saved run(s) available.`,
+                                        ],
+                                        [
+                                            'comparison',
+                                            'Comparison',
+                                            'Choose two to five completed runs.',
+                                        ],
+                                    ] as const
+                                ).map(([value, label, description]) => (
+                                    <label
+                                        key={value}
+                                        className="cursor-pointer rounded-xl border p-4 has-checked:border-primary has-checked:bg-primary/5"
+                                    >
+                                        <input
+                                            className="sr-only"
+                                            type="radio"
+                                            name="source_type"
+                                            checked={
+                                                form.data.source_type === value
+                                            }
+                                            onChange={() =>
+                                                form.setData({
+                                                    source_type: value,
+                                                    source_id: null,
+                                                    confirmed: false,
+                                                })
+                                            }
+                                        />
+                                        <span className="block font-semibold">
+                                            {label}
+                                        </span>
+                                        <span className="mt-1 block text-xs text-muted-foreground">
+                                            {description}
+                                        </span>
+                                    </label>
+                                ))}
+                                <label className="cursor-pointer rounded-xl border p-4 has-checked:border-primary has-checked:bg-primary/5">
+                                    <input
+                                        className="sr-only"
+                                        type="radio"
+                                        name="source_type"
+                                        checked={
+                                            form.data.source_type ===
+                                            'topic_workspace'
+                                        }
+                                        onChange={() =>
+                                            form.setData({
+                                                source_type: 'topic_workspace',
+                                                confirmed: false,
+                                            })
+                                        }
+                                    />
+                                    <span className="block font-semibold">
+                                        Topic Workspace
+                                    </span>
+                                    <select
+                                        aria-label="Topic Workspace to export"
+                                        className="mt-2 h-9 w-full rounded-md border bg-background px-2 text-sm"
+                                        value={form.data.source_id ?? ''}
+                                        onChange={(event) =>
+                                            form.setData({
+                                                source_type: 'topic_workspace',
+                                                source_id:
+                                                    event.target.value || null,
+                                                confirmed: false,
+                                            })
+                                        }
+                                    >
+                                        <option value="">
+                                            Select a workspace
+                                        </option>
+                                        {builder.topic_workspaces.map(
+                                            (workspace) => (
+                                                <option
+                                                    key={workspace.public_id}
+                                                    value={workspace.public_id}
+                                                >
+                                                    {workspace.name} (
+                                                    {workspace.run_ids.length}{' '}
+                                                    linked run(s))
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </label>
+                            </div>
+                            <InputError
+                                message={
+                                    form.errors.source_type ??
+                                    form.errors.source_id
+                                }
+                            />
+                        </fieldset>
                         {builder.runs.length === 0 ? (
                             <Alert>
                                 <FileDown />
@@ -220,14 +375,26 @@ export function ExportWorkspace({
                                             Research runs
                                         </legend>
                                         <p className="text-sm text-muted-foreground">
-                                            Choose up to {builder.max_runs}{' '}
-                                            completed snapshots.
+                                            {form.data.source_type ===
+                                            'shortlist'
+                                                ? 'Your saved shortlist is used as the frozen source.'
+                                                : form.data.source_type ===
+                                                    'topic_workspace'
+                                                  ? 'Completed runs linked to the selected workspace are used.'
+                                                  : form.data.source_type ===
+                                                      'comparison'
+                                                    ? 'Choose two to five completed snapshots for a comparison export.'
+                                                    : `Choose up to ${builder.max_runs} completed snapshots.`}
                                         </p>
                                     </div>
                                     <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
+                                        disabled={[
+                                            'shortlist',
+                                            'topic_workspace',
+                                        ].includes(form.data.source_type)}
                                         onClick={() =>
                                             form.setData(
                                                 'research_run_ids',
@@ -255,8 +422,14 @@ export function ExportWorkspace({
                                             className="grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border p-3 has-checked:border-primary has-checked:bg-primary/5"
                                         >
                                             <Checkbox
-                                                checked={form.data.research_run_ids.includes(
+                                                checked={effectiveRunIds.includes(
                                                     run.public_id,
+                                                )}
+                                                disabled={[
+                                                    'shortlist',
+                                                    'topic_workspace',
+                                                ].includes(
+                                                    form.data.source_type,
                                                 )}
                                                 onCheckedChange={(value) =>
                                                     toggleRun(
@@ -296,6 +469,46 @@ export function ExportWorkspace({
                         )}
 
                         <fieldset className="space-y-3">
+                            <legend className="font-medium">Video rows</legend>
+                            <p className="text-sm text-muted-foreground">
+                                Leave every row unselected to export all stored
+                                video rows in this dataset, or select exact rows
+                                to filter the export.
+                            </p>
+                            {selectableVideos.length === 0 ? (
+                                <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                                    Select a dataset with completed video
+                                    observations to filter rows.
+                                </p>
+                            ) : (
+                                <div className="grid max-h-56 gap-2 overflow-y-auto rounded-xl border p-2">
+                                    {selectableVideos.map((video) => (
+                                        <label
+                                            key={video.id}
+                                            className="flex cursor-pointer items-center gap-3 rounded-lg p-2 has-checked:bg-primary/5"
+                                        >
+                                            <Checkbox
+                                                checked={form.data.video_ids.includes(
+                                                    video.id,
+                                                )}
+                                                onCheckedChange={(value) =>
+                                                    toggleVideo(
+                                                        video.id,
+                                                        value === true,
+                                                    )
+                                                }
+                                            />
+                                            <span className="min-w-0 truncate text-sm">
+                                                #{video.rank} · {video.title}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
+                            <InputError message={form.errors.video_ids} />
+                        </fieldset>
+
+                        <fieldset className="space-y-3">
                             <legend className="font-medium">File format</legend>
                             <div className="grid gap-3 sm:grid-cols-2">
                                 {(['xlsx', 'csv'] as const).map((format) => (
@@ -328,7 +541,27 @@ export function ExportWorkspace({
                         </fieldset>
 
                         <fieldset className="space-y-4">
-                            <legend className="font-medium">Columns</legend>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <legend className="font-medium">Columns</legend>
+                                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={
+                                            form.data.include_technical_details
+                                        }
+                                        onCheckedChange={(value) => {
+                                            const include = value === true;
+                                            form.setData({
+                                                include_technical_details:
+                                                    include,
+                                                columns: include
+                                                    ? builder.default_columns
+                                                    : builder.standard_columns,
+                                            });
+                                        }}
+                                    />
+                                    Include technical details
+                                </label>
+                            </div>
                             <div className="grid gap-4 lg:grid-cols-2">
                                 {Object.entries(builder.column_groups).map(
                                     ([group, columns]) => (
@@ -394,7 +627,7 @@ export function ExportWorkspace({
                                     Video rows
                                 </p>
                                 <p className="text-xl font-semibold">
-                                    {selectedVideos}
+                                    {selectedVideoRows}
                                 </p>
                             </div>
                             <div>
@@ -427,13 +660,36 @@ export function ExportWorkspace({
                                 </AlertDescription>
                             </Alert>
                         )}
+                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+                            <Checkbox
+                                checked={form.data.confirmed}
+                                onCheckedChange={(value) =>
+                                    form.setData('confirmed', value === true)
+                                }
+                            />
+                            <span>
+                                <span className="block font-medium">
+                                    I confirm this exact stored dataset.
+                                </span>
+                                <span className="text-muted-foreground">
+                                    The source, filters, selected rows, and
+                                    snapshot versions will be frozen before the
+                                    queued file is generated.
+                                </span>
+                            </span>
+                        </label>
+                        <InputError message={form.errors.confirmed} />
                     </CardContent>
                 </Card>
                 <div className="flex justify-end">
                     <Button
                         type="submit"
                         size="lg"
-                        disabled={form.processing || selectedRuns.length === 0}
+                        disabled={
+                            form.processing ||
+                            selectedRuns.length === 0 ||
+                            !form.data.confirmed
+                        }
                     >
                         {form.processing ? <Spinner /> : <FileDown />}
                         {form.processing ? 'Queuing export…' : 'Create export'}

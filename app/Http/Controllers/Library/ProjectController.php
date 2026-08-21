@@ -43,6 +43,11 @@ class ProjectController extends Controller
             (string) $request->validated('name'),
             $this->optionalString($request->validated('description')),
             $this->optionalString($request->validated('color')),
+            $this->optionalString($request->validated('purpose')),
+            $this->optionalString($request->validated('market_key')),
+            $this->optionalString($request->validated('themes')),
+            $this->optionalString($request->validated('decision_status')),
+            $this->optionalString($request->validated('decision_note')),
         );
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project created.')]);
 
@@ -61,6 +66,11 @@ class ProjectController extends Controller
             (string) $request->validated('name'),
             $this->optionalString($request->validated('description')),
             $this->optionalString($request->validated('color')),
+            $request->has('purpose') ? $this->optionalString($request->validated('purpose')) : $researchProject->purpose,
+            $request->has('market_key') ? $this->optionalString($request->validated('market_key')) : $researchProject->market_key,
+            $request->has('themes') ? $this->optionalString($request->validated('themes')) : implode(', ', $researchProject->themes ?? []),
+            $request->has('decision_status') ? $this->optionalString($request->validated('decision_status')) : $researchProject->decision_status,
+            $request->has('decision_note') ? $this->optionalString($request->validated('decision_note')) : $researchProject->decision_note,
         );
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project updated.')]);
 

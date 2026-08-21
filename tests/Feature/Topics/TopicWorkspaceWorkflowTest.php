@@ -90,7 +90,11 @@ final class TopicWorkspaceWorkflowTest extends TestCase
         $this->actingAs($owner)->get(route('topics.show', $workspace))->assertOk()->assertInertia(fn (Assert $page): Assert => $page
             ->component('topics/show')->has('items', 1)
             ->where('items.0.role', 'counterexample')
-            ->where('items.0.cross_market_warning', 'This evidence was collected for ro_ro, not global_en.'));
+            ->where('items.0.cross_market_warning', 'This evidence was collected for ro_ro, not global_en.')
+            ->where('decision_canvas.coverage.linked_count', 1)
+            ->where('decision_canvas.coverage.cross_market_count', 1)
+            ->where('decision_canvas.coverage.same_market_completed_run_count', 0)
+            ->where('decision_canvas.next_action.label', 'Queue a same-market Search'));
 
         $this->actingAs($owner)->post(route('topics.archive', $workspace));
         $this->actingAs($owner)->post(route('topics.evidence.store', $workspace), $payload)->assertForbidden();

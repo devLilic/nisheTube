@@ -1,4 +1,4 @@
-import { Head, Link, usePage, usePoll } from '@inertiajs/react';
+import { Form, Head, Link, usePage, usePoll } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowLeft,
@@ -22,6 +22,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 import type { WorkspaceOption } from '@/features/integration/workspace-handoff';
 import { WorkspaceHandoff } from '@/features/integration/workspace-handoff';
 import { ResearchAnalysisSection } from '@/features/research/analysis/research-analysis';
@@ -117,6 +118,25 @@ export default function ResearchRunShow({
                                 runPublicId={run.public_id}
                                 queryText={run.query_text}
                             />
+                            {run.job_control.can_cancel && (
+                                <Form
+                                    action={`/research/runs/${encodeURIComponent(run.public_id)}/cancel`}
+                                    method="post"
+                                    disableWhileProcessing
+                                >
+                                    {({ processing }) => (
+                                        <Button
+                                            variant="outline"
+                                            disabled={processing}
+                                        >
+                                            {processing && <Spinner />}
+                                            {processing
+                                                ? 'Cancelling queued run...'
+                                                : 'Cancel queued run'}
+                                        </Button>
+                                    )}
+                                </Form>
+                            )}
                         </>
                     }
                 />
@@ -175,6 +195,18 @@ export default function ResearchRunShow({
                                     </Button>
                                 )}
                             </div>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {run.job_control.state === 'worker_unavailable' && (
+                    <Alert className="border-warning/40 bg-warning/10 text-warning-foreground">
+                        <AlertTriangle aria-hidden="true" />
+                        <AlertTitle>
+                            Local queue worker may not be running
+                        </AlertTitle>
+                        <AlertDescription className="text-current/80">
+                            {run.job_control.description}
                         </AlertDescription>
                     </Alert>
                 )}

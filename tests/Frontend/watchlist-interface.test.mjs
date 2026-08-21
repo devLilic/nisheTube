@@ -18,7 +18,7 @@ const explore = await readFile(
     'utf8',
 );
 
-test('watchlist page exposes explicit refresh, pause, retry, quota, partial and destructive states', () => {
+test('watchlist page exposes explicit refresh, pause, retry, quota, partial, notification and destructive states', () => {
     for (const copy of [
         'Refresh now',
         'Pause',
@@ -26,6 +26,8 @@ test('watchlist page exposes explicit refresh, pause, retry, quota, partial and 
         'Retry',
         'YouTube quota exhausted',
         'Partial observation',
+        'Watchlist notifications',
+        'Notify me about stored refresh outcomes',
         'Remove watched item',
     ]) {
         assert.match(page, new RegExp(copy));

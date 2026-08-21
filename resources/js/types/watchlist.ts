@@ -22,6 +22,10 @@ export type WatchlistItem = {
     status: 'monitoring' | 'attention' | 'promising' | 'ruled_out';
     is_active: boolean;
     refresh_mode: 'manual';
+    notification: {
+        enabled: boolean;
+        state: 'disabled' | 'waiting' | 'pending' | 'ready';
+    };
     note: string | null;
     project: { public_id: string; name: string } | null;
     workspace: { public_id: string; name: string } | null;
