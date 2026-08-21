@@ -127,7 +127,11 @@ final class EndToEndLocalWorkflowTest extends TestCase
         foreach (['csv', 'xlsx'] as $format) {
             $this->post(route('exports.store'), [
                 'format' => $format,
+                'source_type' => 'research_runs',
                 'research_run_ids' => [$firstRun->public_id, $secondRun->public_id],
+                'video_ids' => [],
+                'include_technical_details' => false,
+                'confirmed' => true,
                 'columns' => $columns,
             ])->assertRedirect(route('exports.index'));
 
@@ -262,7 +266,11 @@ final class EndToEndLocalWorkflowTest extends TestCase
 
         $this->post(route('exports.store'), [
             'format' => 'csv',
+            'source_type' => 'research_runs',
             'research_run_ids' => [$firstRun->public_id, $secondRun->public_id],
+            'video_ids' => [],
+            'include_technical_details' => false,
+            'confirmed' => true,
             'columns' => ['run_id', 'query', 'market', 'run_completed_at', 'video_title', 'views'],
         ])->assertRedirect(route('exports.index'));
         $export = ResearchExport::query()->sole();

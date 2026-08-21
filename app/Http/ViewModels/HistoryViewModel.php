@@ -16,7 +16,10 @@ class HistoryViewModel
 {
     public function __construct(private readonly ListComparableResearchRuns $comparableRuns) {}
 
-    /** @return array<string, mixed> */
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
     public function index(User $user, ?string $anchorPublicId, array $filters = []): array
     {
         $filters = array_merge([
@@ -73,7 +76,10 @@ class HistoryViewModel
         ];
     }
 
-    /** @param array<string, mixed> $filters */
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return Builder<ResearchRun>
+     */
     private function filteredRuns(User $user, array $filters): Builder
     {
         /** @var Builder<ResearchRun> $query */

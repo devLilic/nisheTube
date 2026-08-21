@@ -2,6 +2,7 @@ import {
     AlertTriangle,
     CheckCircle2,
     CircleDashed,
+    CircleX,
     LoaderCircle,
     ScanSearch,
     Sparkles,
@@ -50,6 +51,11 @@ const states: Record<
         label: 'Completed',
         icon: CheckCircle2,
         className: 'border-success/35 bg-success/12 text-success-foreground',
+    },
+    cancelled: {
+        label: 'Cancelled',
+        icon: CircleX,
+        className: 'border-border bg-muted text-muted-foreground',
     },
     failed: {
         label: 'Failed',

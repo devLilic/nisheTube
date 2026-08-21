@@ -158,6 +158,7 @@ final class BuildCrossChannelComparison
     }
 
     /** @param array{key: string|null, source: string} $market
+     * @param  Collection<int, AnalyzerRun>  $runs
      * @return array<string, mixed>
      */
     private function run(AnalyzerRun $run, array $market, ?ThumbnailAnalysisProfile $thumbnail, Collection $runs): array
@@ -255,7 +256,9 @@ final class BuildCrossChannelComparison
         };
     }
 
-    /** @return list<array{key: string, label: string, reason: string}> */
+    /** @param Collection<int, AnalyzerRun> $runs
+     * @return list<array{key: string, label: string, reason: string}>
+     */
     private function peerLabels(AnalyzerRun $run, Collection $runs): array
     {
         $metric = $this->metric($run);

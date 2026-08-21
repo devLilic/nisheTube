@@ -217,20 +217,27 @@ export function CrossChannelComparisonView({
                                 </dt>
                                 <dd>
                                     {run.niche?.label ?? 'Not available'} ·{' '}
-                                    {value(run.niche?.concentration_score ?? null)}
+                                    {value(
+                                        run.niche?.concentration_score ?? null,
+                                    )}
                                 </dd>
                                 <dt className="text-muted-foreground">
                                     Shorts share
                                 </dt>
                                 <dd>
                                     {value(run.shorts_share.percent, '%')} · n=
-                                    {run.shorts_share.sample_count} ({run.shorts_share.state})
+                                    {run.shorts_share.sample_count} (
+                                    {run.shorts_share.state})
                                 </dd>
                                 <dt className="text-muted-foreground">
                                     Public engagement
                                 </dt>
                                 <dd title={run.public_engagement.reason}>
-                                    {value(run.public_engagement.rate_percent, '%')} ({run.public_engagement.state})
+                                    {value(
+                                        run.public_engagement.rate_percent,
+                                        '%',
+                                    )}{' '}
+                                    ({run.public_engagement.state})
                                 </dd>
                                 <dt className="text-muted-foreground">
                                     Channel model
@@ -275,8 +282,8 @@ export function CrossChannelComparisonView({
                                 </ul>
                             ) : (
                                 <p className="mt-4 text-xs text-muted-foreground">
-                                    No conservative peer label is available
-                                    from the stored evidence.
+                                    No conservative peer label is available from
+                                    the stored evidence.
                                 </p>
                             )}
                         </article>
