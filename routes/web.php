@@ -25,6 +25,7 @@ use App\Http\Controllers\Library\FavoriteController;
 use App\Http\Controllers\Library\ProjectController;
 use App\Http\Controllers\Library\ShortlistController;
 use App\Http\Controllers\Library\TagController;
+use App\Http\Controllers\Localization\UiLocaleController;
 use App\Http\Controllers\Navigation\CompletedRunNotificationController;
 use App\Http\Controllers\Navigation\GlobalResearchSearchController;
 use App\Http\Controllers\Research\ResearchController;
@@ -34,6 +35,9 @@ use App\Http\Controllers\Watchlist\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', LandingController::class)->name('home');
+Route::put('locale', [UiLocaleController::class, 'update'])
+    ->middleware('throttle:30,1')
+    ->name('locale.update');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');

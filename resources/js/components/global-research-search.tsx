@@ -102,11 +102,11 @@ export function GlobalResearchSearch() {
             <DialogTrigger asChild>
                 <Button
                     variant="outline"
-                    className="min-w-52 flex-1 justify-start gap-2 bg-background text-muted-foreground lg:max-w-sm"
+                    className="min-w-11 flex-1 justify-start gap-2 bg-background text-muted-foreground sm:min-w-52 lg:max-w-sm"
                     aria-label="Search stored research"
                 >
                     <Search className="size-4" />
-                    <span className="truncate">
+                    <span className="hidden truncate sm:inline">
                         Search themes, videos, channels, runs
                     </span>
                 </Button>

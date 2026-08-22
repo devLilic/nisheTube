@@ -7,7 +7,8 @@ Before implementation, read this file, `TASK_INDEX.md`, and the linked brief for
 ## Fixed technical direction
 
 - Laravel 13 / PHP 8.3, Inertia 3, React 19, TypeScript, Tailwind CSS 4, shadcn/ui, and MySQL 8.4 through Laragon.
-- Local multi-user application using Laravel session authentication; UI copy is English only.
+- Local multi-user application using Laravel session authentication; UI copy supports Romanian and English, with Romanian as the default and English as fallback.
+- The active interface direction is light-only Liquid Glass with desktop, tablet, and mobile acceptance; dark/system controls are temporarily unavailable.
 - Store timestamps in UTC and display them in the authenticated user's timezone.
 - Use database-backed queues in v1; Redis and deployment work are out of scope.
 

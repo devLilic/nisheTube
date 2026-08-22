@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Localization\Enums\UiLocale;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string $timezone
+ * @property UiLocale $ui_locale
  * @property string|null $default_market_key
  * @property int $default_result_depth
  * @property CarbonImmutable|null $completed_run_notifications_read_at
@@ -27,7 +29,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'timezone', 'default_market_key', 'default_result_depth'])]
+#[Fillable(['name', 'email', 'password', 'timezone', 'ui_locale', 'default_market_key', 'default_result_depth'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -151,6 +153,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'ui_locale' => UiLocale::class,
             'default_result_depth' => 'integer',
             'completed_run_notifications_read_at' => 'immutable_datetime',
             'password' => 'hashed',

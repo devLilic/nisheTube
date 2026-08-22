@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import { BarChart3, Globe2, History, ShieldCheck } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import LocaleSelector from '@/components/locale-selector';
 import { Badge } from '@/components/ui/badge';
 import { home } from '@/routes';
 import type { AuthLayoutProps } from '@/types';
@@ -21,7 +22,8 @@ export default function AuthSimpleLayout({
     const { name } = usePage().props;
 
     return (
-        <main className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,0.92fr)_minmax(32rem,1.08fr)]">
+        <main className="relative grid min-h-svh bg-background lg:grid-cols-[minmax(0,0.92fr)_minmax(32rem,1.08fr)]">
+            <LocaleSelector className="absolute top-5 right-5 z-20" compact />
             <section className="relative hidden overflow-hidden bg-sidebar px-12 py-10 text-sidebar-foreground lg:flex lg:flex-col">
                 <div className="absolute -top-24 -left-20 size-80 rounded-full bg-sidebar-primary/20 blur-3xl" />
                 <div className="absolute right-0 bottom-0 size-96 translate-x-1/3 translate-y-1/3 rounded-full bg-info/15 blur-3xl" />

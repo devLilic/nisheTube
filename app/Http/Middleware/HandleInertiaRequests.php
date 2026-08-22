@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Localization\Enums\UiLocale;
 use App\Domain\Navigation\Services\CompletedRunNotifications;
 use App\Domain\Settings\Services\ResearchContextResolver;
 use App\Domain\YouTube\Contracts\QuotaLedger;
@@ -51,6 +52,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'locale' => app()->getLocale(),
+            'fallbackLocale' => UiLocale::English->value,
+            'supportedLocales' => UiLocale::values(),
             'auth' => [
                 'user' => $request->user(),
             ],

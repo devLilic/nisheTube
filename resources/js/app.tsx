@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import LocaleDocument from '@/components/locale-document';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -23,12 +24,14 @@ createInertiaApp({
         }
     },
     strictMode: true,
-    withApp(app) {
+    withApp(app, { page }) {
         return (
-            <TooltipProvider delayDuration={0}>
-                {app}
-                <Toaster />
-            </TooltipProvider>
+            <LocaleDocument initialLocale={page.props.locale}>
+                <TooltipProvider delayDuration={0}>
+                    {app}
+                    <Toaster />
+                </TooltipProvider>
+            </LocaleDocument>
         );
     },
     progress: {

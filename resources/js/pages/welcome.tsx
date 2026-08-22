@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, BarChart3, Globe2, ShieldCheck } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import LocaleSelector from '@/components/locale-selector';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { login, register } from '@/routes';
@@ -32,7 +33,7 @@ export default function Welcome() {
             <Head title="YouTube niche research with stored evidence" />
 
             <div className="min-h-svh bg-background text-foreground">
-                <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+                <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5 sm:px-8">
                     <Link
                         href="/"
                         className="flex items-center gap-3 rounded-lg font-semibold tracking-tight focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -43,8 +44,9 @@ export default function Welcome() {
 
                     <nav
                         aria-label="Authentication actions"
-                        className="flex items-center gap-2"
+                        className="flex flex-wrap items-center justify-end gap-2"
                     >
+                        <LocaleSelector compact />
                         <Link
                             href={login()}
                             className={cn(buttonVariants({ variant: 'ghost' }))}

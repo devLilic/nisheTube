@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PreferencesController from '@/actions/App/Http/Controllers/Settings/PreferencesController';
 import InputError from '@/components/input-error';
+import LocaleSelector from '@/components/locale-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import type { Auth } from '@/types';
+import { formatDate, formatNumber } from '@/lib/formatters';
+import type { Auth, UiLocale } from '@/types';
 
 type MarketOption = {
     value: string;
@@ -29,6 +31,7 @@ type MarketOption = {
 
 type PageProps = {
     auth: Auth;
+    locale: UiLocale;
     preferenceOptions: {
         markets: MarketOption[];
         timezones: string[];
@@ -42,20 +45,18 @@ type PreferenceData = {
     default_result_depth: number;
 };
 
-function previewTime(timezone: string): string {
+function previewTime(timezone: string, locale: UiLocale): string {
     try {
-        return new Intl.DateTimeFormat('en', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-            timeZone: timezone,
-        }).format(new Date('2026-08-21T12:34:00Z'));
+        return formatDate('2026-08-21T12:34:00Z', timezone, locale);
     } catch {
-        return 'Enter a valid timezone to preview timestamps.';
+        return locale === 'ro'
+            ? 'Introduceți un fus orar valid pentru previzualizare.'
+            : 'Enter a valid timezone to preview timestamps.';
     }
 }
 
 export default function Preferences({ preferenceOptions }: PageProps) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, locale } = usePage<PageProps>().props;
     const form = useForm<PreferenceData>({
         timezone: auth.user.timezone,
         default_market_key: auth.user.default_market_key ?? '',
@@ -73,20 +74,24 @@ export default function Preferences({ preferenceOptions }: PageProps) {
 
             <Card>
                 <CardHeader>
-                    <div className="flex items-start gap-3">
-                        <div className="rounded-lg bg-info/10 p-2 text-info-foreground">
-                            <SlidersHorizontal
-                                className="size-5"
-                                aria-hidden="true"
-                            />
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                            <div className="rounded-lg bg-info/10 p-2 text-info-foreground">
+                                <SlidersHorizontal
+                                    className="size-5"
+                                    aria-hidden="true"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <CardTitle>Research preferences</CardTitle>
+                                <CardDescription>
+                                    Choose the defaults for new research and how
+                                    stored UTC timestamps appear in your
+                                    workspace.
+                                </CardDescription>
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            <CardTitle>Research preferences</CardTitle>
-                            <CardDescription>
-                                Choose the defaults for new research and how
-                                stored UTC timestamps appear in your workspace.
-                            </CardDescription>
-                        </div>
+                        <LocaleSelector />
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -263,7 +268,10 @@ export default function Preferences({ preferenceOptions }: PageProps) {
                                         Stored UTC time
                                     </p>
                                     <p className="mt-1 font-medium">
-                                        {previewTime(form.data.timezone)}
+                                        {previewTime(
+                                            form.data.timezone,
+                                            locale,
+                                        )}
                                     </p>
                                 </div>
                                 <div>
@@ -280,8 +288,9 @@ export default function Preferences({ preferenceOptions }: PageProps) {
                                         Result depth
                                     </p>
                                     <p className="mt-1 font-medium">
-                                        {new Intl.NumberFormat('en').format(
+                                        {formatNumber(
                                             form.data.default_result_depth,
+                                            locale,
                                         )}{' '}
                                         videos
                                     </p>

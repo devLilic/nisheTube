@@ -1,3 +1,5 @@
+import type { UiLocale } from './localization';
+
 export type User = {
     id: number;
     name: string;
@@ -5,6 +7,7 @@ export type User = {
     avatar?: string;
     email_verified_at: string | null;
     timezone: string;
+    ui_locale: UiLocale;
     default_market_key: 'global_en' | 'ro_ro' | 'ru_ru' | null;
     default_result_depth: 25 | 50 | 100 | 200;
     created_at: string;

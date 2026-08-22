@@ -23,7 +23,8 @@ If implementation requires changing a locked decision, update `docs/DECISION_IND
 - MySQL 8.4 through Laragon.
 - Laravel session authentication with registration and multiple local users.
 - Database-backed queues for the first version; Redis may be added behind queue/cache configuration later.
-- English-only application interface for the first version.
+- Romanian/English application interface with Romanian as the default and English as the fallback; research language remains a separate setting.
+- The active redesign targets a light-only Liquid Glass interface at desktop, tablet, and mobile widths; dark/system appearance controls are temporarily unavailable.
 - Store timestamps in UTC and display them using the authenticated user's timezone.
 - Run locally from `C:\laragon\www\NisheTube`; no deployment work is in scope.
 

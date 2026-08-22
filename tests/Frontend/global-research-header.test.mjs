@@ -13,7 +13,7 @@ const meter = read('../../resources/js/components/quota-meter.tsx');
 const config = read('../../config/youtube.php');
 const uiSpec = read('../../docs/05_UI_UX.md');
 const backlog = read('../../docs/08_BACKLOG.md');
-const status = read('../../docs/TASK_STATUS.md');
+const taskIndex = read('../../docs/TASK_INDEX.md');
 
 test('authenticated header exposes decision workflow controls', () => {
     assert.match(header, /GlobalResearchSearch/);
@@ -53,13 +53,11 @@ test('quota uses configuration-backed request and unit vocabulary', () => {
     assert.doesNotMatch(`${quota}\n${meter}`, /token/i);
 });
 
-test('IA-02 documentation is current and SRCH-05 is the only promoted task', () => {
+test('the completed shell redesign is recorded in the current task index', () => {
     assert.match(
         uiSpec,
         /owner-visible stored themes, videos, channels, and runs/,
     );
     assert.match(backlog, /\[x\] \*\*IA-02/);
-    assert.match(status, /\| Active task\s+\| SRCH-05/);
-    assert.match(status, /\| IA-02 \| Completed/);
-    assert.match(status, /\| SRCH-05 \| In progress/);
+    assert.match(taskIndex, /\[RDSN-03\].*\| Completed/);
 });

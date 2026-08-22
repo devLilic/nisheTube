@@ -2,15 +2,15 @@
 
 Use this index to select only decisions relevant to the active task. The complete rationale and history remain in [the decision log](10_DECISIONS.md).
 
-| Domain                       | Decision IDs             | Working constraint                                                                                                                                      |
-| ---------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Platform and persistence     | D-001–D-004              | Local Laravel monolith, MySQL, queues, UTC storage, and historical records are durable.                                                                 |
-| Authentication and ownership | D-005–D-008              | Session-authenticated local users; owner-safe routes, reads, and mutations.                                                                             |
-| Provider and quota           | D-009–D-013              | Provider boundary, quota accounting, safe failure handling, and no secret exposure.                                                                     |
-| Research runs and scoring    | D-014–D-018, D-041–D-042 | Runs/snapshots and scoring versions are immutable; score inputs are stored and reproducible.                                                            |
-| Analysis and evidence        | D-019–D-039, D-043       | Analyzer, shared observations, semantic/comment/transcript/thumbnail evidence, handoffs, and four-channel comparison remain owner-scoped and versioned. |
-| Discovery                    | D-040                    | Candidate evidence is separate from Opportunity and weak signals stay explicit.                                                                         |
-| Interface scope              | D-038                    | Desktop is the visual acceptance target; accessibility and exact values remain required.                                                                |
+| Domain                       | Decision IDs             | Working constraint                                                                                                           |
+| ---------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Platform and persistence     | D-001–D-004              | Local Laravel monolith, MySQL, queues, UTC storage, and historical records are durable.                                      |
+| Authentication and ownership | D-005–D-008, D-049       | Session-authenticated local users; owner-safe routes, reads, mutations, and UI locale distinct from research language.       |
+| Provider and quota           | D-009–D-013              | Provider boundary, quota accounting, safe failure handling, and no secret exposure.                                          |
+| Research runs and scoring    | D-014–D-018, D-041–D-048 | Runs/snapshots and scoring remain immutable; format, creator-fit, idea, and scenario outputs stay explainable.               |
+| Analysis and evidence        | D-019–D-039, D-043–D-050 | Analyzer evidence remains owner-scoped and versioned; section enrichments are asynchronous and quota-safe.                   |
+| Discovery                    | D-040, D-044–D-047       | Candidate evidence is separate from Opportunity; weak and unknown signals stay explicit.                                     |
+| Interface scope              | D-049–D-054              | RO/EN, light-only Liquid Glass, journey navigation, responsive acceptance, accessibility, and performance caps are required. |
 
 ## Current task mapping
 
@@ -35,5 +35,10 @@ Use this index to select only decisions relevant to the active task. The complet
 | BULK-01  | D-005–D-018, D-038, D-041–D-042                                   | Bulk actions must reauthorize every owner-private target, remain bounded and idempotent, preserve immutable evidence, and disclose partial, destructive, or quota-consuming outcomes. |
 | A11Y-02  | D-038, D-041–D-042                                                | Desktop accessibility, terminology, density, and exact non-color alternatives must remain explicit for stored evidence and decision states.                                           |
 | QA-02    | D-005–D-018, D-038, D-041–D-042                                   | Acceptance coverage must protect owner scope, immutable evidence, transparent calculations, explicit outcomes, and desktop keyboard access across the decision workflow.              |
+| DOC-02   | D-012, D-014, D-044–D-054                                         | Aligns the accepted redesign programme and supersedes conflicting live documentation.                                                                                                 |
+| RDSN-01  | D-049, D-051–D-054                                                | Establishes the reusable visual/UX contract and responsive state prototypes.                                                                                                          |
+| L10N-01  | D-005–D-008, D-049, D-052, D-054                                  | Adds owner-persistent RO/EN UI locale infrastructure without changing frozen research market or evidence language.                                                                    |
+| RDSN-02  | D-049, D-051–D-054                                                | Implements the reusable Liquid Glass tokens, primitives, accessibility fallbacks, and authorized local showcase.                                                                      |
+| RDSN-03  | D-005–D-008, D-049, D-051–D-054                                   | Replaces application navigation with the research-journey shell while keeping owner-private context, stable routes, and complete mobile access.                                       |
 
 When a task activates, add only its applicable IDs and one-line reason here. Add a new full decision to `10_DECISIONS.md` only when a locked decision changes or a material new architectural decision is accepted.

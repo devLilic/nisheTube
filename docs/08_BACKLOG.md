@@ -351,8 +351,8 @@ Detailed scope and traceability for Phases 19–22 are defined in `13_DECISION_W
 - [ ] **EXP-04 — Selection-aware exports**
       Export filtered rows, explicit selections, Shortlists, comparisons, and workspaces with optional technical details and mandatory dataset confirmation. Acceptance: frozen owner-scoped manifests, queued authorization, Unicode/formula safety, bounded generation, complete job/download/expiry states, focused tests, and documentation pass.
 
-- [ ] **SET-05 — Consolidated preferences and formatting**
-      Regroup Settings and add default period, peer group, Shorts handling, numeric formatting, and notification preferences while keeping the interface English-only and adding no UI-language selector. Acceptance: validated owner preferences, backward-compatible defaults, UTC/timezone and exact-number behavior, no secret exposure, complete states, focused tests, and documentation pass.
+- [x] **SET-05 — Consolidated preferences and formatting**
+      Regroup Settings and add default period, peer group, Shorts handling, numeric formatting, and notification preferences. The later L10N-01 decision adds a separate UI-locale preference. Acceptance: validated owner preferences, backward-compatible defaults, UTC/timezone and exact-number behavior, no secret exposure, complete states, focused tests, and documentation pass.
 
 - [x] **LAND-01 — NisheTube landing and authentication entry**
       Replace the default Laravel landing page with accurate NisheTube purpose/data/limits/privacy/local-install copy and Login/Register actions; redirect authenticated users to Dashboard. Acceptance: loopback registration rules, guest/auth redirects, no framework/deployment marketing or secret leakage, accessible responsive UI, focused tests, and documentation pass.
@@ -374,6 +374,69 @@ Detailed scope and traceability for Phases 19–22 are defined in `13_DECISION_W
 - [x] **QA-02 — Decision-workflow acceptance and regression suite**
       Add the focused calculation, Discover, UI, and cross-stack cases in `13_DECISION_WORKFLOW_REDESIGN.md`, then verify Discover -> select -> validate -> compare -> decide -> monitor. Acceptance: theme-to-verdict takes at most five meaningful steps; first-view decision hierarchy is complete; weak candidates cannot overclaim; opportunity and profitability remain distinct; v1 history remains immutable; quota vocabulary/configuration and production navigation are correct; focused cross-stack/accessibility/documentation checks pass.
 
+## Phase 23 — Liquid Glass contract, localization, and foundation
+
+- [x] **DOC-02 — Redesign programme alignment**
+      Record D-044–D-054, supersede conflicting English-only/desktop-only directions, create complete briefs, and activate the design contract without changing application behavior.
+- [x] **RDSN-01 — Design contract and responsive prototypes**
+      Define the designer-owned page inventory, component migration matrix, material/tokens contract, and state prototypes at 1440px, 1024px, and 390px.
+- [ ] **L10N-01 — Romanian/English localization foundation**
+      Add owner-persistent UI locale, Romanian default, English fallback, guest/auth selectors, typed catalogs, and locale-aware formatting separate from research language.
+- [ ] **RDSN-02 — Liquid Glass primitives and showcase**
+      Implement tiered materials, reusable data/UI primitives, accessible fallbacks, and a local authorized design-system contract.
+- [ ] **RDSN-03 — Research-journey shell and navigation**
+      Add the floating desktop rail, responsive command bar, complete mobile Glass Sheet, corrected destinations, and journey-based grouping.
+- [ ] **APP-01 — Temporary light-only appearance**
+      Force light before first paint, hide dark/system controls, and preserve but ignore legacy appearance values.
+
+## Phase 24 — Research correctness before page migration
+
+- [ ] **FMT-01 — Conservative tri-state format evidence**
+      Persist short/long-form/unknown with method/version and never confirm Shorts from duration alone.
+- [ ] **XPLR-03 — Explorer metrics from eligible Research snapshots**
+      Replace Analyzer-only sources with bounded owner-scoped Research snapshot metrics and explicit provenance/availability.
+- [ ] **DISC-06 — Multilingual glued-phrase normalization**
+      Add versioned conservative RO/EN/RU segmentation while preserving originals and preventing alias double counts.
+- [ ] **SHORT-02 — Format-separated niche comparison**
+      Compare confirmed formats with exact sample/coverage and keep unknown evidence visible but excluded from direct conclusions.
+
+## Phase 25 — Complete production-page redesign
+
+- [ ] **RDSN-04 — Dashboard and Validate/Search**
+      Deliver the first complete production slice with next-action hierarchy, compact metrics, inspector-based intake, and stable inline progress.
+- [ ] **RDSN-05 — Research Results, Explore, and Discovery**
+      Migrate evidence surfaces to compact rows, inspectors, responsive filters, explicit states, and stable selection/navigation.
+- [ ] **ANA-07 — Section-scoped Analyzer enrichments**
+      Replace Comments/Thumbnail redirects and global reloads with authorized JSON start/status endpoints, local polling, loader, retry, and quota-safe idempotency.
+- [ ] **RDSN-06 — Analyzer and Compare**
+      Add the redesigned tab/inspector hierarchy and responsive synchronized comparison over unchanged immutable evidence contracts.
+- [ ] **RDSN-07 — Library and workspaces**
+      Unify Shortlist, Favorites, Projects, Topics, Watchlist, Ideas, History, and Exports through Collection + Inspector.
+- [ ] **RDSN-08 — Settings, landing, and authentication**
+      Complete the Liquid Glass migration with safe settings, accurate landing/auth, locale selection, and light-only appearance.
+- [ ] **L10N-02 — Complete production-copy audit**
+      Enforce RO/EN key parity, remove unapproved hard-coded copy, and verify long localized/evidence text at every target width.
+
+## Phase 26 — Advanced YouTube researcher tools
+
+- [ ] **SCR-06 — Small Creator Fit**
+      Add versioned explainable small-channel accessibility evidence with user-visible threshold, confidence, and limitations.
+- [ ] **ANA-08 — Competitor publishing strategy**
+      Add cadence, timing, duration, format, theme, title-structure, and relative-outlier evidence with exact provenance.
+- [ ] **THMB-02 — Packaging patterns**
+      Derive versioned supported thumbnail patterns and compatible outlier/baseline associations without causal or copying claims.
+- [ ] **IDEA-01 — Stored-evidence idea generator**
+      Produce source-linked ideas from existing owner evidence only, with no provider work or quota use.
+- [ ] **PROF-02 — User-entered commercial scenarios**
+      Calculate versioned ranges and sensitivity views only after explicit user assumptions, with no financial defaults.
+
+## Phase 27 — Redesign and researcher acceptance
+
+- [ ] **RDSN-09 — Visual, responsive, accessibility, and performance QA**
+      Complete designer review, responsive/browser/fallback/accessibility hardening, glass-layer audits, and focused visual/performance smoke coverage.
+- [ ] **QA-04 — YouTube researcher end-to-end acceptance**
+      Protect the full RO/EN Discover-to-project path, async enrichments, advanced evidence, ownership, quota, and immutable semantics.
+
 ## Suggested milestone releases
 
 - **M1 — Searchable:** Phases 0–4.
@@ -390,3 +453,6 @@ Detailed scope and traceability for Phases 19–22 are defined in `13_DECISION_W
 - **M12 — Decision workspaces:** Phase 20.
 - **M13 — Operational productivity:** Phase 21.
 - **M14 — Decision workflow hardening:** Phase 22.
+- **M15 — Liquid Glass foundation:** Phases 23–24.
+- **M16 — Responsive bilingual redesign:** Phase 25.
+- **M17 — Advanced researcher toolkit:** Phases 26–27.

@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { UiLocale } from '@/types/localization';
 import type { ResearchContext } from '@/types/navigation';
 import type { CompletedRunNotifications } from '@/types/navigation';
 import type { QuotaSummary } from '@/types/quota';
@@ -14,6 +15,9 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
+            locale: UiLocale;
+            fallbackLocale: 'en';
+            supportedLocales: UiLocale[];
             auth: Auth;
             youtubeQuota: QuotaSummary | null;
             researchContext: ResearchContext | null;

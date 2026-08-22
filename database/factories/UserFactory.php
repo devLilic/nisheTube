@@ -30,6 +30,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'timezone' => 'Europe/Chisinau',
+            'ui_locale' => 'ro',
             'default_market_key' => null,
             'default_result_depth' => 50,
             'remember_token' => Str::random(10),

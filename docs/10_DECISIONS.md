@@ -24,11 +24,11 @@
 **Decision:** Support login, registration, and multiple local users with strict ownership.  
 **Reason:** Explicit product requirement; local operation does not remove the need for data separation.
 
-## D-005 — English UI and three markets
+## D-005 — Three research markets and the original UI-language boundary
 
-**Status:** Accepted  
-**Decision:** UI copy is English. Research markets are Global/English, Romania/Romanian, and Russia/Russian.  
-**Reason:** Explicit product requirement. Market parameters are frozen per run.
+**Status:** Superseded in part by D-049
+**Decision:** Research markets remain Global/English, Romania/Romanian, and Russia/Russian. The original English-only UI constraint is replaced by D-049; UI locale never changes the frozen research market or evidence language.
+**Reason:** Market parameters remain frozen per run, while the product owner later required a Romanian interface with an English alternative.
 
 ## D-006 — Six-month snapshot retention
 
@@ -69,8 +69,8 @@
 ## D-012 — Live task-status register
 
 **Status:** Accepted  
-**Decision:** `docs/TASK_STATUS.md` is the live task-state register. It tracks each task as Pending, In progress, Completed, or Blocked, stores completion verification, and contains exactly one active task unless the project is blocked.  
-**Reason:** Codex needs an auditable, durable handoff between chats and must only promote the next task after the prior one is correctly verified.
+**Decision:** `docs/TASK_INDEX.md` is the compact live task-state register and contains exactly one active task unless the project is blocked. `docs/TASK_STATUS.md` is the append-only completion and verification archive.
+**Reason:** Codex needs a small durable handoff between chats without repeatedly loading the full historical verification archive, and must only promote the next task after the prior one is correctly verified.
 
 ## D-016 — Preserve favorited runs during automatic retention cleanup
 
@@ -264,9 +264,9 @@
 
 **Reason:** A research idea is explicit durable user intent, while a raw public-comment collection remains a bounded six-month evidence sample. A nullable provenance link plus a minimal intentional copy prevents retention from unexpectedly erasing the user's curated list, avoids preserving an entire comment collection for one selection, and keeps save/remove actions local, idempotent, and quota-free.
 
-## D-038 — Interface implementation and QA are desktop-only
+## D-038 — Original desktop-only interface acceptance
 
-**Status:** Accepted
+**Status:** Superseded by D-053 and D-054
 
 **Decision:** Beginning with IA-01, NisheTube interface implementation and visual acceptance target desktop browsers at approximately 1440px, with supported desktop widths starting at 1280px. Tablet and mobile-specific layouts, breakpoint optimization, and dedicated visual QA are out of scope. Smaller widths may retain best-effort wrapping or scrolling but are not completion gates.
 
@@ -311,3 +311,69 @@
 **Decision:** XCMP-02 may compare two through four distinct completed owner-scoped Analyzer channel attempts. The comparison remains storage-free and provider-free: it reads only pinned Analyzer metrics and related immutable semantic, thumbnail, and observation evidence. Every metric retains its source version, observation time, sample/coverage state, and nullability; incompatible periods, versions, formats, or samples remain explicit rather than normalized or recalculated. Four columns are permitted only in the desktop comparison layout with non-color strongest-value indicators and no derived opportunity score, channel ranking, causal finding, or recommendation.
 
 **Reason:** The user accepted a four-channel peer group because direct side-by-side context is useful for local research. Retaining the XCMP-01 bounded read-model constraints preserves ownership, historical integrity, and honest comparability while preventing the wider layout from becoming a hidden scoring or recommendation system.
+
+## D-044 — Video format classification is conservative and tri-state
+
+**Status:** Accepted
+**Decision:** New format evidence uses `short`, `long_form`, or `unknown`, stores its method and evidence, and never confirms a YouTube Short from duration alone. Unknown observations remain visible in coverage and are excluded by default from direct format comparisons.
+**Reason:** The provider does not expose a universally reliable Shorts flag. A tri-state contract prevents duration heuristics from becoming unsupported facts while keeping incomplete evidence measurable.
+
+## D-045 — Format comparisons preserve unknown coverage
+
+**Status:** Accepted
+**Decision:** Niche and evidence comparisons show confirmed Shorts, confirmed long-form, unknown, and total samples separately. Conclusions require a frozen minimum sample and include exact coverage; unknown rows cannot silently enter a Shorts-versus-long-form result.
+**Reason:** Mixed and partially classified samples otherwise create false format conclusions and conceal the uncertainty that produced them.
+
+## D-046 — Small Creator Fit is evidence-derived and explainable
+
+**Status:** Accepted
+**Decision:** Small Creator Fit uses a user-visible frozen creator-size threshold plus observed distribution, typical performance, recency, consistency, coverage, and confidence. It is a decision aid, not a success probability, and every component retains snapshot provenance.
+**Reason:** Reach by smaller channels is useful niche evidence only when viral dependence, sample quality, and the chosen definition of small are explicit.
+
+## D-047 — Idea generation is stored-evidence-only
+
+**Status:** Accepted
+**Decision:** The idea generator reads owner-scoped stored snapshots, outliers, phrases, titles, packaging patterns, and gaps only. It performs no provider call, consumes no YouTube quota, and attaches source references, confidence, and risks to every suggestion.
+**Reason:** Evidence-linked suggestions remain auditable and inexpensive, while an unconstrained generator could invent demand or hide new external collection.
+
+## D-048 — Commercial scenarios contain no hidden financial defaults
+
+**Status:** Accepted
+**Decision:** RPM, conversion, price, cost, currency, and period are supplied explicitly by the user. Observed product evidence and user assumptions remain separate; outputs are ranges and sensitivity views rather than factual revenue or profit estimates.
+**Reason:** NisheTube has no verified revenue evidence and must not turn generic monetization assumptions into misleading profitability claims.
+
+## D-049 — Romanian and English UI are separate from research language
+
+**Status:** Accepted
+**Decision:** NisheTube supports Romanian and English UI locales. Romanian is the default for guests and local users, English is the fallback, and a user or guest session may switch languages. UI locale does not mutate market, relevance language, stored evidence, provider queries, or source content.
+**Reason:** The product owner requires a Romanian interface while retaining an English alternative. Separating presentation locale from research configuration prevents accidental changes to immutable evidence semantics.
+
+## D-050 — Analyzer enrichments update only their section
+
+**Status:** Accepted
+**Decision:** Comments and Thumbnail patterns start through owner-authorized JSON requests, expose queued/processing/terminal status endpoints, and update local `AsyncSection` state without redirecting or reloading the Analyzer page. Jobs remain idempotent, quota-safe, retryable, and restorable after a manual refresh.
+**Reason:** Full Inertia reloads move the page, disturb active analysis context, and couple independent background enrichments to the complete run payload.
+
+## D-051 — Liquid Glass is a tiered functional design system
+
+**Status:** Accepted
+**Decision:** The light interface uses `glass-command`, `glass-panel`, and high-contrast `glass-content` materials. Navigation and transient controls receive the strongest blur; dense evidence and tables use stable translucent surfaces. Glass cannot be nested, animated continuously, or used to obscure exact data.
+**Reason:** An expressive Liquid Glass identity can coexist with a dense research application only when material strength follows information density and has a complete opaque fallback.
+
+## D-052 — Appearance is temporarily light-only
+
+**Status:** Accepted
+**Decision:** The application forces light color scheme and removes Light/Dark/System controls during the redesign. Existing stored appearance values are ignored but not deleted so a future theme task can restore compatibility deliberately.
+**Reason:** Completing one coherent Liquid Glass system is safer than shipping an unfinished dark variant or maintaining two diverging component contracts during a total redesign.
+
+## D-053 — Navigation follows the research journey and mobile uses a full sheet
+
+**Status:** Accepted
+**Decision:** Desktop navigation is grouped as Discover, Validate, Analyze, Organize, and Manage. Mobile exposes the same complete information architecture in an accessible Glass Sheet rather than a reduced bottom dock. Existing backend routes stay stable except for correcting known wrong destinations.
+**Reason:** The current fifteen-plus destinations need stronger task hierarchy, while the owner explicitly prefers full mobile access over a compressed five-item dock.
+
+## D-054 — Responsive, accessible, and bounded glass is a release gate
+
+**Status:** Accepted
+**Decision:** Visual acceptance covers 1440px, 1024px, and 390px. Text contrast, focus, keyboard behavior, reduced motion/transparency, forced colors, opaque blur fallback, and exact-value alternatives are mandatory. At most three blurred glass layers may be visible and glass containers may not be nested.
+**Reason:** Backdrop blur and sticky translucent surfaces can cause GPU repaint, contrast, and motion problems. Explicit caps make the visual direction testable without weakening accessibility or research readability.

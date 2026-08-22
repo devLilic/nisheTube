@@ -8,6 +8,7 @@ export type * from './explore';
 export type * from './history';
 export type * from './ideas';
 export type * from './library';
+export type * from './localization';
 export type * from './navigation';
 export type * from './quota';
 export type * from './research';
